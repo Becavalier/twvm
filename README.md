@@ -1,2 +1,2 @@
 # TWVM
-A tiny WebAssembly virtual machine.
+A tiny and efficient WebAssembly virtual machine.
