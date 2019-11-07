@@ -1,5 +1,6 @@
-#ifndef TWVM_UTIL_H
-#define TWVM_UTIL_H
+// Copyright 2019 YHSPY. All rights reserved.
+#ifndef UTIL_H_
+#define UTIL_H_
 
 #include <iostream>
 #include <string>
@@ -19,4 +20,4 @@ class Util {
   static void reportDebug(const string &msg);
 };
 
-#endif
+#endif  // UTIL_H_

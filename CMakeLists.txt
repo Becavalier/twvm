@@ -14,6 +14,7 @@ set (CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set (OUTPUT "twvm")
 set (STATE $ENV{CMAKE_TARGET})
+set (N_OUTPUT_SRC "build")
 set (T_OUTPUT_SRC "test")
 
 if (STATE STREQUAL TEST)
@@ -45,6 +46,7 @@ if (STATE STREQUAL TEST)
   # resolve source files;
   aux_source_directory (${T_OUTPUT_SRC} DIR_SRCS)
 else()
+  set (EXECUTABLE_OUTPUT_PATH ${N_OUTPUT_SRC})
   # resolve source files;
   aux_source_directory (. DIR_SRCS)
 endif()  

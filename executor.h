@@ -1,8 +1,8 @@
-#ifndef TWVM_EXECUTOR_H
-#define TWVM_EXECUTOR_H
+// Copyright 2019 YHSPY. All rights reserved.
+#ifndef EXECUTOR_H_
+#define EXECUTOR_H_
 
 class Executor {
-
 };
 
-#endif
+#endif  // EXECUTOR_H_

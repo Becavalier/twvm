@@ -1,8 +1,3 @@
-# cleanup;
-make clean
-rm -rf CMakeCache.txt
-rm -rf cmake_install.cmake
-
 # build;
 if [ "$1" = "--test" ]
 then

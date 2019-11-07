@@ -1,5 +1,6 @@
-#ifndef TWVM_TYPES_H
-#define TWVM_TYPES_H
+// Copyright 2019 YHSPY. All rights reserved.
+#ifndef TYPES_H_
+#define TYPES_H_
 
 #include <cstdint>
 
@@ -16,7 +17,7 @@ enum class valueTypesCode : uint8_t {
   kF32 = 0x7d,
   kF64 = 0x7c,
   kS128 = 0x7b,
-  kFuncRef = 0x70, // block_type;
+  kFuncRef = 0x70,  // block_type;
 };
 
 constexpr uint8_t kFuncType = 0x60;
@@ -47,4 +48,4 @@ enum class section_types_code : int8_t {
   kExceptionSection = 13
 };
 
-#endif
+#endif  // TYPES_H_
