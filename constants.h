@@ -1,0 +1,9 @@
+#ifndef TWVM_CONSTANTS_H
+#define TWVM_CONSTANTS_H
+
+#define WASM_PAGE_SIZE 64 * 1024
+#define BYTE_LENGTH_4 4
+#define BYTE_LENGTH_8 8
+#define INPUT_ARG_OFFSET 1
+
+#endif

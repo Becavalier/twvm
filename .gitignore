@@ -3,3 +3,6 @@ cmake_install.cmake
 CmakeCache.txt
 Makefile
 .vscode/
+install_manifest.txt
+googletest*/
+lib/

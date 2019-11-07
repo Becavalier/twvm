@@ -7,20 +7,20 @@
 
 class Decoder {
  private:
-  template <typename num_type>
-  static inline num_type read_little_endian(uchar_t* source) {
+  template <typename T>
+  static inline T readLittleEndian(uchar_t* source) {
     // stack value;
-    num_type r;
+    T r;
     // copying accordingly width;
-    memcpy(&r, reinterpret_cast<void*>(source), sizeof(num_type));
+    memcpy(&r, reinterpret_cast<void*>(source), sizeof(T));
     return r;
   }
 
  public:
-  static uint8_t read_u8(uchar_t* source);
-  static uint16_t read_u16(uchar_t* source);
-  static uint32_t read_u32(uchar_t* source);
-  static uint64_t read_u64(uchar_t* source);
+  static uint8_t readU8(uchar_t* source);
+  static uint16_t readU16(uchar_t* source);
+  static uint32_t readU32(uchar_t* source);
+  static uint64_t readU64(uchar_t* source);
 };
 
 #endif

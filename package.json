@@ -1,0 +1,26 @@
+{
+  "name": "twvm",
+  "version": "0.0.1",
+  "description": "A tiny and efficient WebAssembly virtual machine.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "lint": "cpplint --counting=total --root=. --recursive --linelength=120 ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Becavalier/TWVM.git"
+  },
+  "keywords": [
+    "WebAssembly",
+    "VM"
+  ],
+  "author": "YHSPY",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Becavalier/TWVM/issues"
+  },
+  "homepage": "https://github.com/Becavalier/TWVM#readme"
+}
