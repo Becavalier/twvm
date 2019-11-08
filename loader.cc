@@ -14,10 +14,10 @@ using std::ios;
 using std::make_shared;
 using std::copy;
 
-shared_ptr<Module> Loader::init(const std::string &fileName) {
+shared_module_t Loader::init(const std::string &fileName) {
   ifstream in(fileName, ios::binary);
   char d, counter = 1;
-  shared_ptr<Module> wasmModule(new Module());
+  shared_module_t wasmModule(new Module());
 
   if (in.is_open()) {
     while (in.good()) {
@@ -33,18 +33,23 @@ shared_ptr<Module> Loader::init(const std::string &fileName) {
     }
   }
 
+  in.close();
+  
   if (!in.eof() && in.fail()) {
     Util::reportError("can not reading file.");
+    return nullptr;
   }
-  in.close();
 
   // wrapping and returning a module instance;
   wasmModule->setModContent(buf);
+  // parsing;
+  parse(wasmModule);
+
   return wasmModule;
 }
 
-shared_ptr<Module> Loader::init(const uchar_t *source, size_t len) {
-  shared_ptr<Module> wasmModule;
+shared_module_t Loader::init(const uchar_t *source, size_t len) {
+  shared_module_t wasmModule;
   // one-time copying;
   buf = vector<uchar_t>(source, source + len);
 
@@ -52,6 +57,36 @@ shared_ptr<Module> Loader::init(const uchar_t *source, size_t len) {
     wasmModule->setModContent(buf);
   }
   return wasmModule;
+}
+
+void Loader::parse(const shared_module_t module) {
+  parseSection(module);
+}
+
+void Loader::parseSection(const shared_module_t module) {
+  // "enumKey##Code";
+  CAST_ENUM_VAL(sectionTypesCode, kTypeSection);
+  CAST_ENUM_VAL(sectionTypesCode, kImportSection);
+  CAST_ENUM_VAL(sectionTypesCode, kFunctionSection);
+  CAST_ENUM_VAL(sectionTypesCode, kTableSection);
+  CAST_ENUM_VAL(sectionTypesCode, kMemorySection);
+  CAST_ENUM_VAL(sectionTypesCode, kGlobalSection);
+  CAST_ENUM_VAL(sectionTypesCode, kExportSection);
+  CAST_ENUM_VAL(sectionTypesCode, kStartSection);
+  CAST_ENUM_VAL(sectionTypesCode, kElementSection);
+  CAST_ENUM_VAL(sectionTypesCode, kCodeSection);
+  CAST_ENUM_VAL(sectionTypesCode, kDataSection);
+  CAST_ENUM_VAL(sectionTypesCode, kDataCountSection);
+  CAST_ENUM_VAL(sectionTypesCode, kExceptionSection);
+
+  // while (!module->hasEnd()) {
+    auto sectionCode = Decoder::readU8(module);
+
+    // type section;
+    if (sectionCode == kTypeSectionCode) {
+      std::cout << "type section" << std::endl;
+    }
+  // }
 }
 
 bool Loader::validateWords(const vector<uchar_t> &buf) {

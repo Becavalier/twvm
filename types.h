@@ -23,7 +23,7 @@ enum class valueTypesCode : uint8_t {
 constexpr uint8_t kFuncType = 0x60;
 
 // import/export;
-enum class external_types_code : uint8_t {
+enum class externalTypesCode : uint8_t {
   kExternalFunction = 0,
   kExternalTable = 1,
   kExternalMemory = 2,
@@ -31,7 +31,7 @@ enum class external_types_code : uint8_t {
 };
 
 // sections;
-enum class section_types_code : int8_t {
+enum class sectionTypesCode : uint8_t {
   kUnknownSection = 0,
   kTypeSection = 1,
   kImportSection = 2,

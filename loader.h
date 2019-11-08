@@ -15,16 +15,16 @@ using std::shared_ptr;
 class Loader {
  private:
   static vector<uchar_t> buf;
-  static bool validateMagicWord(const vector<uchar_t> &buf);
-  static bool validateVersionWord(const vector<uchar_t> &buf);
-  static bool validateWords(const vector<uchar_t> &buf);
+  static bool validateMagicWord(const vector<uchar_t>&);
+  static bool validateVersionWord(const vector<uchar_t>&);
+  static bool validateWords(const vector<uchar_t>&);
 
   // analyzer helpers;
-
-
+  static void parse(const shared_module_t);
+  static void parseSection(const shared_module_t);
  public:
-  static shared_ptr<Module> init(const string &fileName);
-  static shared_ptr<Module> init(const uchar_t *source, size_t len);
+  static shared_module_t init(const string&);
+  static shared_module_t init(const uchar_t*, size_t);
 };
 
 #endif  // LOADER_H_

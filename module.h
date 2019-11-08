@@ -3,25 +3,49 @@
 #define MODULE_H_
 
 #include <vector>
+#include <iostream>
+#include <memory>
 #include "./types.h"
+#include "./util.h"
 
 using std::vector;
+using std::shared_ptr;
 
 class Module {
  public:
   Module() = default;
-  ~Module() = default;
+  ~Module() {
+    Util::reportDebug("module has been destructed.");
+  };
 
   void setModContent(const vector<uchar_t> &content) {
-    buf = content;
+    buf = content.data();
+    contentLength = content.size();
   }
 
-  size_t getModContentLength(void) {
-    return buf.size();
+  inline size_t getModContentLength(void) {
+    return contentLength;
+  }
+
+  inline const uchar_t* getCurrentOffsetBuf(void) {
+    return (buf + p);
+  }
+
+  inline void increaseBufOffset(size_t step) {
+    p += step;
+  }
+
+  inline bool hasEnd() {
+    return contentLength == p + 1;
   }
 
  private:
-  vector<uchar_t> buf;
+  const uchar_t *buf;
+  size_t contentLength;
+  // start from the first section;
+  size_t p = 8;
 };
+
+using shared_module_t = shared_ptr<Module>;
 
 #endif  // MODULE_H_

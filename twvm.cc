@@ -16,11 +16,14 @@ int main(int argc, char **argv) {
   }
 
   const auto wasmModule = Loader::init(argv[INPUT_ARG_OFFSET]);
-
   // debug;
-  const auto wasmModuleSize = wasmModule->getModContentLength();
-  if (wasmModuleSize > 0) {
-    Util::reportDebug("file loaded. (" + to_string(wasmModuleSize) + "B)");
+  if (wasmModule) {
+    const auto wasmModuleSize = wasmModule->getModContentLength();
+    if (wasmModuleSize > 0) {
+      Util::reportDebug("file loaded. (" + to_string(wasmModuleSize) + " bytes)");
+    }
+  } else {
+    return 1;
   }
 
   return 0;
