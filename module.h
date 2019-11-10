@@ -16,7 +16,7 @@ class Module {
   Module() = default;
   ~Module() {
     Util::reportDebug("module has been destructed.");
-  };
+  }
 
   void setModContent(const vector<uchar_t> &content) {
     buf = content.data();
@@ -39,11 +39,17 @@ class Module {
     return contentLength == p + 1;
   }
 
+  inline void addFuncSignatures(WasmFunctionSig *sig) {
+    funcSignatures.push_back(sig);
+  }
+
  private:
   const uchar_t *buf;
   size_t contentLength;
   // start from the first section;
   size_t p = 8;
+  // params, returns;
+  vector<WasmFunctionSig*> funcSignatures;
 };
 
 using shared_module_t = shared_ptr<Module>;

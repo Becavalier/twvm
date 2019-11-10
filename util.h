@@ -3,8 +3,8 @@
 #define UTIL_H_
 
 #define CAST_ENUM_VAL(className, enumKey) \
-  const auto enumKey##Code = Util::castUnderlyingVal<uchar_t, className>(className::enumKey)
-  
+  const auto enumKey##Code = Util::castUnderlyingVal<className>(className::enumKey)
+
 #include <iostream>
 #include <string>
 #include <type_traits>
@@ -25,9 +25,10 @@ class Util {
   static void reportDebug(const string &msg);
 
   template <typename T, typename E>
-  static T castUnderlyingVal(const E &e) {
-    return static_cast<typename underlying_type<E>::type>(e);
-  }
+  static auto castUnderlyingVal(const E &e) ->
+    decltype(static_cast<typename underlying_type<E>::type>(e)) {
+      return static_cast<typename underlying_type<E>::type>(e);
+    }
 };
 
 #endif  // UTIL_H_

@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
   if (wasmModule) {
     const auto wasmModuleSize = wasmModule->getModContentLength();
     if (wasmModuleSize > 0) {
-      Util::reportDebug("file loaded. (" + to_string(wasmModuleSize) + " bytes)");
+      Util::reportDebug("module parsed. (" + to_string(wasmModuleSize) + " bytes)");
     }
   } else {
     return 1;

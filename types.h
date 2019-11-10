@@ -3,6 +3,7 @@
 #define TYPES_H_
 
 #include <cstdint>
+#include <cstddef>
 
 using uchar_t = unsigned char;
 
@@ -10,17 +11,15 @@ constexpr uint32_t kWasmMagicWord = 0x6d736100;
 constexpr uint32_t kWasmVersion = 0x01;
 
 // basic types;
-enum class valueTypesCode : uint8_t {
-  kVoid = 0x40,
+enum class valueTypesCode : int8_t {
+  kVoid = 0x40,  // block_type;
   kI32 = 0x7f,
   kI64 = 0x7e,
   kF32 = 0x7d,
   kF64 = 0x7c,
-  kS128 = 0x7b,
-  kFuncRef = 0x70,  // block_type;
+  kFunc = 0x60,
+  kFuncRef = 0x70
 };
-
-constexpr uint8_t kFuncType = 0x60;
 
 // import/export;
 enum class externalTypesCode : uint8_t {
@@ -46,6 +45,19 @@ enum class sectionTypesCode : uint8_t {
   kDataSection = 11,
   kDataCountSection = 12,
   kExceptionSection = 13
+};
+
+class WasmFunctionSig {
+ public:
+  WasmFunctionSig(size_t paramsCount, size_t returnCount, const valueTypesCode *reps)
+    : paramsCount(paramsCount), returnCount(returnCount), reps(reps) {}
+  ~WasmFunctionSig() {
+    delete reps;
+  }
+ private:
+  size_t paramsCount;
+  size_t returnCount;
+  const valueTypesCode *reps;
 };
 
 #endif  // TYPES_H_
