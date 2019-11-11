@@ -39,23 +39,12 @@ class Module {
     return contentLength == p;
   }
 
-  inline void addFuncSignature(WasmFunctionSig *sig) {
-    funcSignatures.push_back(sig);
-  }
-
-  inline WasmFunctionSig* getFunctionSig(uint32_t index) {
-    return funcSignatures[index];
-  }
-
-  inline void addFunction(const WasmFunction &ref) { functions.push_back(ref); }
-  inline void addExport(const WasmExport &ref) { exportTable.push_back(ref);}
-  inline void addMemory(const shared_ptr<WasmMemory> &ref) { memory = ref;}
-  inline void addGlobal(const WasmGlobal &ref) { globals.push_back(ref); }
-
   inline auto& getTable() { return tables; }
+  inline auto& getFunctionSig() { return funcSignatures; }
   inline auto& getFunction() { return functions; }
   inline auto& getMemory() { return memory; }
   inline auto& getExport() { return exportTable; }
+  inline auto& getGlobal() { return globals; }
   inline auto& getImportedFuncCount() { return importedFuncCount; }
 
  private:

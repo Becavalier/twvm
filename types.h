@@ -101,11 +101,12 @@ struct WasmMemory {
 };
 
 struct WasmGlobal {
-  valueTypesCode type;
-  bool mutability;
-  void* init;  // initialization expr;
-  bool imported;
-  bool exported;
+  MOVE_ONLY_STRUCT(WasmGlobal);
+  valueTypesCode type = valueTypesCode::kVoid;
+  bool mutability = false;
+  void* init = nullptr;  // initialization expr;
+  bool imported = false;
+  bool exported = false;
 };
 
 struct WasmExport {

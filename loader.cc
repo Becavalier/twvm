@@ -134,7 +134,7 @@ void Loader::parseTypeSection(const shared_module_t &module) {
       for (auto j = 0; j < returnCount; j++) {
         typesArr.push_back(static_cast<valueTypesCode>(Decoder::readUint8(module)));
       }
-      module->addFuncSignature(new WasmFunctionSig(paramsCount, returnCount, typesArr.data()));
+      module->getFunctionSig().push_back(new WasmFunctionSig(paramsCount, returnCount, typesArr.data()));
     } else {
       Util::reportError("type section code mismatch.", true);
     }
@@ -152,9 +152,9 @@ void Loader::parseFunctionSection(const shared_module_t &module) {
   for (auto i = 0; i < declaredFuncCount; i++) {
     // indices: uint32_t;
     WRAP_UINT_FIELD(sigIndex, uint32_t, module);
-    auto sig = module->getFunctionSig(sigIndex);
+    auto sig = module->getFunctionSig()[sigIndex];
     auto funcIndex = module->getFunction().size();
-    module->addFunction({sig, funcIndex, sigIndex, nullptr, 0, false, false});
+    module->getFunction().push_back({sig, funcIndex, sigIndex, nullptr, 0, false, false});
   }
 }
 
@@ -202,7 +202,7 @@ void Loader::parseMemorySection(const shared_module_t &module) {
       memory->maximumPages = maximumPages;
       memory->hasMaximumPages = true;
     }
-    module->addMemory(memory);
+    module->getMemory() = memory;
   }
 }
 
@@ -213,7 +213,11 @@ void Loader::parseGlobalSection(const shared_module_t &module) {
   for (auto i = 0; i < globalCount; i++) {
     const auto contentType = static_cast<valueTypesCode>(Decoder::readUint8(module));
     const auto mutability = Decoder::readUint8(module) == kWasmTrue;
-    module->addGlobal({contentType, mutability, nullptr, false, false});
+    // placement-new && move;
+    module->getGlobal().emplace_back();
+    auto *thisGlobal = &module->getGlobal().back();
+    thisGlobal->type = contentType;
+    thisGlobal->mutability = mutability;
     // TODO(Jason Yu): analyze initialization expr;
     // ending with 0x0b;
   }
@@ -256,7 +260,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         Util::reportError("wrong export type.", true);
       }
     }
-    module->addExport({name, exportType, index});
+    module->getExport().push_back({name, exportType, index});
   }
 }
 
