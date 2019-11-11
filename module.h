@@ -39,8 +39,32 @@ class Module {
     return contentLength == p + 1;
   }
 
-  inline void addFuncSignatures(WasmFunctionSig *sig) {
+  inline void addFuncSignature(WasmFunctionSig *sig) {
     funcSignatures.push_back(sig);
+  }
+
+  inline WasmFunctionSig* getFunctionSig(uint32_t index) {
+    return funcSignatures[index];
+  }
+
+  inline uint32_t getFunctionTableSize() {
+    return functions.size();
+  }
+
+  inline void addFunction(const WasmFunction &ref) {
+    functions.push_back(ref);
+  }
+
+  inline auto& getTable() {
+    return tables;
+  }
+
+  inline void addMemory(shared_ptr<WasmMemory> &ref) {
+    memory = ref;
+  }
+
+  inline auto& getMemory() {
+    return memory;
   }
 
  private:
@@ -50,6 +74,11 @@ class Module {
   size_t p = 8;
   // params, returns;
   vector<WasmFunctionSig*> funcSignatures;
+  // order: imports -> defined;
+  vector<WasmFunction> functions;
+  vector<WasmTable> tables;
+  shared_ptr<WasmMemory> memory;
+  vector<WasmExport> exportTable;
 };
 
 using shared_module_t = shared_ptr<Module>;

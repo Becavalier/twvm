@@ -21,14 +21,13 @@ using std::underlying_type;
 
 class Util {
  public:
-  static void reportError(const string &msg);
-  static void reportDebug(const string &msg);
+  static void reportError(const string&, bool = false);
+  static void reportDebug(const string&);
 
   template <typename T, typename E>
-  static auto castUnderlyingVal(const E &e) ->
-    decltype(static_cast<typename underlying_type<E>::type>(e)) {
-      return static_cast<typename underlying_type<E>::type>(e);
-    }
+  static auto castUnderlyingVal(const E &e) {
+    return static_cast<typename underlying_type<E>::type>(e);
+  }
 };
 
 #endif  // UTIL_H_

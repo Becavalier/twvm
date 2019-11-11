@@ -1,6 +1,7 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <fstream>
 #include <array>
+#include <stdexcept>
 #include "./loader.h"
 #include "./constants.h"
 #include "./decoder.h"
@@ -81,11 +82,15 @@ shared_module_t Loader::init(const uchar_t *source, size_t len) {
 }
 
 void Loader::parse(const shared_module_t module) {
-  parseSection(module);
+  try {
+    parseSection(module);
+  } catch(const std::exception& e) {
+    Util::reportError("exception occur, process terminated.");
+  }
 }
 
 void Loader::parseSection(const shared_module_t module) {
-  // while (!module->hasEnd()) {
+  while (!module->hasEnd()) {
     auto sectionCode = Decoder::readVarUint<uint8_t>(module);
 
     if (sectionCode == kTypeSectionCode) {
@@ -97,7 +102,16 @@ void Loader::parseSection(const shared_module_t module) {
     if (sectionCode == kFunctionSectionCode) {
       parseFunctionSection(module);
     }
-  // }
+    if (sectionCode == kTableSectionCode) {
+      parseTableSection(module);
+    }
+    if (sectionCode == kMemorySectionCode) {
+      parseMemorySection(module);
+    }
+    if (sectionCode == kExportSectionCode) {
+      parseExportSection(module);
+    }
+  }
 }
 
 void Loader::parseTypeSection(const shared_module_t module) {
@@ -119,17 +133,86 @@ void Loader::parseTypeSection(const shared_module_t module) {
       for (auto j = 0; j < returnCount; j++) {
         typesArr.push_back(static_cast<valueTypesCode>(Decoder::readUint8(module)));
       }
-      module->addFuncSignatures(new WasmFunctionSig(paramsCount, returnCount, typesArr.data()));
+      module->addFuncSignature(new WasmFunctionSig(paramsCount, returnCount, typesArr.data()));
     } else {
-      Util::reportError("type section code mismatch.");
+      Util::reportError("type section code mismatch.", true);
     }
   }
 }
 
 void Loader::parseImportSection(const shared_module_t module) {
+  Util::reportDebug("parsing import section.");
 }
 
 void Loader::parseFunctionSection(const shared_module_t module) {
+  Util::reportDebug("parsing function section.");
+  WRAP_UINT_FIELD(payloadLen, uint32_t, module);
+  WRAP_UINT_FIELD(declaredFuncCount, uint32_t, module);
+  for (auto i = 0; i < declaredFuncCount; i++) {
+    // indices: uint32_t;
+    WRAP_UINT_FIELD(sigIndex, uint32_t, module);
+    auto sig = module->getFunctionSig(sigIndex);
+    auto funcIndex = module->getFunctionTableSize();
+    module->addFunction({sig, funcIndex, sigIndex, nullptr, false, false});
+  }
+}
+
+void Loader::parseTableSection(const shared_module_t module) {
+  Util::reportDebug("parsing table section.");
+  WRAP_UINT_FIELD(payloadLen, uint32_t, module);
+  WRAP_UINT_FIELD(tableCount, uint32_t, module);
+  for (auto i = 0; i < tableCount; i++) {
+    // only support "anyfunc" in MVP (by default);
+    WRAP_UINT_FIELD(tableType, uint8_t, module);
+    WRAP_UINT_FIELD(tableFlags, uint8_t, module);
+
+    // placement-new && move;
+    module->getTable().emplace_back();
+    auto *table = &module->getTable().back();
+
+    // TODO: support multiple table type;
+    WRAP_UINT_FIELD(initialSize, uint32_t, module);
+    table->initialSize = initialSize;
+
+    // (0 : no /1: has) maximum field;
+    if (tableFlags == kWasmTrue) {
+      WRAP_UINT_FIELD(maximumSize, uint32_t, module);
+      table->maximumSize = maximumSize;
+      table->hasMaximumSize = true;
+    }
+  }
+}
+
+void Loader::parseMemorySection(const shared_module_t module) {
+  Util::reportDebug("parsing memory section.");
+  WRAP_UINT_FIELD(payloadLen, uint32_t, module);
+  WRAP_UINT_FIELD(memeoryCount, uint32_t, module);
+  if (memeoryCount > 1) {
+    Util::reportError("only support one memory in MVP.", true);
+  } else {
+    WRAP_UINT_FIELD(memoryFlags, uint8_t, module);
+    auto memory = make_shared<WasmMemory>();
+
+    WRAP_UINT_FIELD(initialPages, uint32_t, module);
+    memory->initialPages = initialPages;
+
+    // (0 : no /1: has) maximum field;
+    if (memoryFlags == kWasmTrue) {
+      WRAP_UINT_FIELD(maximumPages, uint32_t, module);
+      memory->maximumPages = maximumPages;
+      memory->hasMaximumPages = true;
+    }
+    module->addMemory(memory);
+  }
+}
+
+void Loader::parseExportSection(const shared_module_t module) {
+  Util::reportDebug("parsing export section.");
+  WRAP_UINT_FIELD(payloadLen, uint32_t, module);
+  WRAP_UINT_FIELD(exportCount, uint32_t, module);
+  for (auto i = 0; i < exportCount; i++) {
+
+  }
 }
 
 bool Loader::validateWords(const vector<uchar_t> &buf) {

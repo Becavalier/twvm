@@ -4,11 +4,15 @@
 
 #include <cstdint>
 #include <cstddef>
+#include "./macros.h"
 
 using uchar_t = unsigned char;
 
 constexpr uint32_t kWasmMagicWord = 0x6d736100;
 constexpr uint32_t kWasmVersion = 0x01;
+constexpr size_t kSpecMaxWasmMemoryPages = 65536;
+constexpr uint8_t kWasmTrue = 1;
+constexpr uint8_t kWasmFalse = 0;
 
 // basic types;
 enum class valueTypesCode : int8_t {
@@ -58,6 +62,41 @@ class WasmFunctionSig {
   size_t paramsCount;
   size_t returnCount;
   const valueTypesCode *reps;
+};
+
+// wasm indirect call table;
+struct WasmFunction {
+  WasmFunctionSig* sig; 
+  size_t funcIndex;
+  size_t sigIndex;
+  uchar_t *code;
+  bool imported;
+  bool exported;
+};
+
+struct WasmTable {
+  MOVE_ONLY_STRUCT(WasmTable);
+  valueTypesCode type = valueTypesCode::kFuncRef;
+  uint32_t initialSize = 0;
+  uint32_t maximumSize = 0;
+  bool hasMaximumSize = false;
+  bool imported = false;
+  bool exported = false;
+};
+
+struct WasmMemory {
+  MOVE_ONLY_STRUCT(WasmMemory);
+  uint32_t initialPages = 0;
+  uint32_t maximumPages = 0;
+  bool hasMaximumPages = false;
+  bool imported = false;
+  bool exported = false;
+};
+
+struct WasmExport {
+  uchar_t* name;
+  externalTypesCode type;
+  uint32_t index;
 };
 
 #endif  // TYPES_H_

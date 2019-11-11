@@ -6,3 +6,4 @@ Makefile
 install_manifest.txt
 googletest*/
 lib/
+.DS_Store

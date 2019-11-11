@@ -9,7 +9,7 @@ include_directories(.)
 
 # set c++ config;
 set (CMAKE_VERBOSE_MAKEFILE "OFF")
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set (OUTPUT "twvm")

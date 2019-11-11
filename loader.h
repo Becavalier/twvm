@@ -27,6 +27,10 @@ class Loader {
   static void parseTypeSection(const shared_module_t);
   static void parseImportSection(const shared_module_t);
   static void parseFunctionSection(const shared_module_t);
+  static void parseTableSection(const shared_module_t);
+  static void parseMemorySection(const shared_module_t);
+  static void parseExportSection(const shared_module_t);
+  
  public:
   static shared_module_t init(const string&);
   static shared_module_t init(const uchar_t*, size_t);

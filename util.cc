@@ -1,11 +1,13 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <iostream>
+#include <stdexcept>
 #include "./util.h"
 
 using std::cerr;
 using std::endl;
+using std::runtime_error;
 
-void Util::reportError(const string &msg) {
+void Util::reportError(const string &msg, bool throwException) {
   cerr
     << OUTPUT_PREFIX
     << COLOR_CTL_ERROR
@@ -13,6 +15,9 @@ void Util::reportError(const string &msg) {
     << COLOR_CTL_NORMAL
     << msg
     << endl;
+  if (throwException) {
+    throw runtime_error(msg);
+  }
 }
 
 void Util::reportDebug(const string &msg) {
