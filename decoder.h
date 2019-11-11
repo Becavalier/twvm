@@ -5,11 +5,15 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <string>
 #include <functional>
 #include "./types.h"
 #include "./module.h"
 
 using std::function;
+using std::string;
+using std::memcpy;
+using std::malloc;
 
 class Decoder {
  private:
@@ -18,13 +22,30 @@ class Decoder {
     const uchar_t* buf,
     const function<void(T)> &callback = nullptr) {
     T r;
-    // copying width accordingly;
+    // copy amount of bytes accordingly;
     memcpy(&r, reinterpret_cast<const void*>(buf), sizeof(T));
     // callback function;
     if (callback) {
       callback(r);
     }
     return r;
+  }
+
+  template <typename T>
+  static inline T* readLittleEndian(
+    const uchar_t* buf,
+    const size_t len,
+    const function<void(T*)> &callback = nullptr) {
+    const size_t size = sizeof(T) * len;
+    auto r = malloc(size);
+    // copy amount of bytes accordingly;
+    memcpy(r, reinterpret_cast<const void*>(buf), size);
+    auto typedPointer = reinterpret_cast<T*>(r);
+    // callback function;
+    if (callback) {
+      callback(typedPointer);
+    }
+    return typedPointer;
   }
 
  public:
@@ -43,6 +64,8 @@ class Decoder {
 
   template <typename T>
   static T readVarInt(const shared_module_t);
+
+  static string decodeName(const shared_module_t, size_t);
 };
 
 #endif  // DECODER_H_

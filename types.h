@@ -4,8 +4,10 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <string>
 #include "./macros.h"
 
+using std::string;
 using uchar_t = unsigned char;
 
 constexpr uint32_t kWasmMagicWord = 0x6d736100;
@@ -30,7 +32,8 @@ enum class externalTypesCode : uint8_t {
   kExternalFunction = 0,
   kExternalTable = 1,
   kExternalMemory = 2,
-  kExternalGlobal = 3
+  kExternalGlobal = 3,
+  kExternalException = 4
 };
 
 // sections;
@@ -66,10 +69,14 @@ class WasmFunctionSig {
 
 // wasm indirect call table;
 struct WasmFunction {
-  WasmFunctionSig* sig; 
+  ~WasmFunction() {
+    code = nullptr;
+  }
+  WasmFunctionSig* sig;
   size_t funcIndex;
   size_t sigIndex;
-  uchar_t *code;
+  const uchar_t *code;
+  size_t codeLen;
   bool imported;
   bool exported;
 };
@@ -93,8 +100,16 @@ struct WasmMemory {
   bool exported = false;
 };
 
+struct WasmGlobal {
+  valueTypesCode type;
+  bool mutability;
+  void* init;  // initialization expr;
+  bool imported;
+  bool exported;
+};
+
 struct WasmExport {
-  uchar_t* name;
+  string name;
   externalTypesCode type;
   uint32_t index;
 };

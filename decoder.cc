@@ -106,3 +106,11 @@ template uint64_t Decoder::readVarUint<uint64_t>(const shared_module_t);
 template int8_t Decoder::readVarInt<int8_t>(const shared_module_t);
 template int32_t Decoder::readVarInt<int32_t>(const shared_module_t);
 template int64_t Decoder::readVarInt<int64_t>(const shared_module_t);
+
+string Decoder::decodeName(const shared_module_t module, size_t len) {
+  auto name = readLittleEndian<char>(module->getCurrentOffsetBuf(), len,
+    [&module, &len](char *val) -> void {
+      module->increaseBufOffset(sizeof(char) * len);
+    });
+  return string(name, len);
+}

@@ -20,17 +20,20 @@ class Loader {
   static bool validateWords(const vector<uchar_t>&);
 
   // analyzer invokers;
-  static void parse(const shared_module_t);
+  static void parse(const shared_module_t&);
 
   // analyzer helpers;
-  static void parseSection(const shared_module_t);
-  static void parseTypeSection(const shared_module_t);
-  static void parseImportSection(const shared_module_t);
-  static void parseFunctionSection(const shared_module_t);
-  static void parseTableSection(const shared_module_t);
-  static void parseMemorySection(const shared_module_t);
-  static void parseExportSection(const shared_module_t);
-  
+  static void parseSection(const shared_module_t&);
+  static void parseTypeSection(const shared_module_t&);
+  static void parseImportSection(const shared_module_t&);
+  static void parseFunctionSection(const shared_module_t&);
+  static void parseTableSection(const shared_module_t&);
+  static void parseMemorySection(const shared_module_t&);
+  static void parseGlobalSection(const shared_module_t&);
+  static void parseExportSection(const shared_module_t&);
+  static void parseCodeSection(const shared_module_t&);
+  static void skipKnownSection(uint8_t, const shared_module_t&);
+
  public:
   static shared_module_t init(const string&);
   static shared_module_t init(const uchar_t*, size_t);

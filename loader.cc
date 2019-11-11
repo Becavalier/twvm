@@ -9,6 +9,8 @@
 
 #define WRAP_UINT_FIELD(keyName, type, module) \
   const auto keyName = Decoder::readVarUint<type>(module)
+#define WRAP_UINT_FIELD_(type, module) \
+  Decoder::readVarUint<type>(module)
 
 #define WRAP_INT_FIELD(keyName, type, module) \
   const auto keyName = Decoder::readVarInt<type>(module)
@@ -81,7 +83,7 @@ shared_module_t Loader::init(const uchar_t *source, size_t len) {
   return wasmModule;
 }
 
-void Loader::parse(const shared_module_t module) {
+void Loader::parse(const shared_module_t &module) {
   try {
     parseSection(module);
   } catch(const std::exception& e) {
@@ -89,37 +91,36 @@ void Loader::parse(const shared_module_t module) {
   }
 }
 
-void Loader::parseSection(const shared_module_t module) {
+void Loader::parseSection(const shared_module_t &module) {
   while (!module->hasEnd()) {
     auto sectionCode = Decoder::readVarUint<uint8_t>(module);
 
+    // TODO(Jason Yu): constant based switch;
     if (sectionCode == kTypeSectionCode) {
       parseTypeSection(module);
-    }
-    if (sectionCode == kImportSectionCode) {
+    } else if (sectionCode == kImportSectionCode) {
       parseImportSection(module);
-    }
-    if (sectionCode == kFunctionSectionCode) {
+    } else if (sectionCode == kFunctionSectionCode) {
       parseFunctionSection(module);
-    }
-    if (sectionCode == kTableSectionCode) {
+    } else if (sectionCode == kTableSectionCode) {
       parseTableSection(module);
-    }
-    if (sectionCode == kMemorySectionCode) {
+    } else if (sectionCode == kMemorySectionCode) {
       parseMemorySection(module);
-    }
-    if (sectionCode == kExportSectionCode) {
+    } else if (sectionCode == kGlobalSectionCode) {
+      parseGlobalSection(module);
+    } else if (sectionCode == kExportSectionCode) {
       parseExportSection(module);
+    } else if (sectionCode == kCodeSectionCode) {
+      parseCodeSection(module);
+    } else {
+      // skip unknown sections;
+      skipKnownSection(sectionCode, module);
     }
   }
 }
 
-void Loader::parseTypeSection(const shared_module_t module) {
+void Loader::parseTypeSection(const shared_module_t &module) {
   Util::reportDebug("parsing type section.");
-  /**
-   * count varuint32;
-   * entries [func_type];    
-   */
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(entryCount, uint32_t, module);
   for (auto i = 0; i < entryCount; i++) {
@@ -140,11 +141,11 @@ void Loader::parseTypeSection(const shared_module_t module) {
   }
 }
 
-void Loader::parseImportSection(const shared_module_t module) {
+void Loader::parseImportSection(const shared_module_t &module) {
   Util::reportDebug("parsing import section.");
 }
 
-void Loader::parseFunctionSection(const shared_module_t module) {
+void Loader::parseFunctionSection(const shared_module_t &module) {
   Util::reportDebug("parsing function section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(declaredFuncCount, uint32_t, module);
@@ -152,12 +153,12 @@ void Loader::parseFunctionSection(const shared_module_t module) {
     // indices: uint32_t;
     WRAP_UINT_FIELD(sigIndex, uint32_t, module);
     auto sig = module->getFunctionSig(sigIndex);
-    auto funcIndex = module->getFunctionTableSize();
-    module->addFunction({sig, funcIndex, sigIndex, nullptr, false, false});
+    auto funcIndex = module->getFunction().size();
+    module->addFunction({sig, funcIndex, sigIndex, nullptr, 0, false, false});
   }
 }
 
-void Loader::parseTableSection(const shared_module_t module) {
+void Loader::parseTableSection(const shared_module_t &module) {
   Util::reportDebug("parsing table section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(tableCount, uint32_t, module);
@@ -170,7 +171,7 @@ void Loader::parseTableSection(const shared_module_t module) {
     module->getTable().emplace_back();
     auto *table = &module->getTable().back();
 
-    // TODO: support multiple table type;
+    // TODO(Jason Yu): support multiple table type;
     WRAP_UINT_FIELD(initialSize, uint32_t, module);
     table->initialSize = initialSize;
 
@@ -183,7 +184,7 @@ void Loader::parseTableSection(const shared_module_t module) {
   }
 }
 
-void Loader::parseMemorySection(const shared_module_t module) {
+void Loader::parseMemorySection(const shared_module_t &module) {
   Util::reportDebug("parsing memory section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(memeoryCount, uint32_t, module);
@@ -195,7 +196,6 @@ void Loader::parseMemorySection(const shared_module_t module) {
 
     WRAP_UINT_FIELD(initialPages, uint32_t, module);
     memory->initialPages = initialPages;
-
     // (0 : no /1: has) maximum field;
     if (memoryFlags == kWasmTrue) {
       WRAP_UINT_FIELD(maximumPages, uint32_t, module);
@@ -206,13 +206,77 @@ void Loader::parseMemorySection(const shared_module_t module) {
   }
 }
 
-void Loader::parseExportSection(const shared_module_t module) {
+void Loader::parseGlobalSection(const shared_module_t &module) {
+  Util::reportDebug("parsing global section.");
+  WRAP_UINT_FIELD(payloadLen, uint32_t, module);
+  WRAP_UINT_FIELD(globalCount, uint32_t, module);
+  for (auto i = 0; i < globalCount; i++) {
+    const auto contentType = static_cast<valueTypesCode>(Decoder::readUint8(module));
+    const auto mutability = Decoder::readUint8(module) == kWasmTrue;
+    module->addGlobal({contentType, mutability, nullptr, false, false});
+    // TODO(Jason Yu): analyze initialization expr;
+    // ending with 0x0b;
+  }
+}
+
+void Loader::parseExportSection(const shared_module_t &module) {
   Util::reportDebug("parsing export section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(exportCount, uint32_t, module);
   for (auto i = 0; i < exportCount; i++) {
-
+    WRAP_UINT_FIELD(nameLen, uint32_t, module);
+    const auto name = Decoder::decodeName(module, nameLen);
+    const auto exportType = static_cast<externalTypesCode>(Decoder::readUint8(module));
+    uint32_t index;
+    switch (exportType) {
+      case externalTypesCode::kExternalFunction: {
+        index = WRAP_UINT_FIELD_(uint32_t, module);
+        module->getFunction()[index].exported = true;
+        break;
+      }
+      case externalTypesCode::kExternalTable: {
+        // TODO(Jason Yu) ;
+        break;
+      }
+      case externalTypesCode::kExternalMemory: {
+        index = WRAP_UINT_FIELD_(uint32_t, module);
+        const auto mem = module->getMemory();
+        if (index != 0 || mem == nullptr) {
+          Util::reportError("invalid memory index.", true);
+        } else {
+          mem->exported = true;
+        }
+        break;
+      }
+      case externalTypesCode::kExternalGlobal: {
+        // TODO(Jason Yu) ;
+        break;
+      }
+      default: {
+        Util::reportError("wrong export type.", true);
+      }
+    }
+    module->addExport({name, exportType, index});
   }
+}
+
+void Loader::parseCodeSection(const shared_module_t &module) {
+  Util::reportDebug("parsing code section.");
+  WRAP_UINT_FIELD(payloadLen, uint32_t, module);
+  WRAP_UINT_FIELD(bodyCount, uint32_t, module);
+  for (auto i = 0; i < bodyCount; i++) {
+    WRAP_UINT_FIELD(bodySize, uint32_t, module);
+    // update function body;
+    auto func = module->getFunction()[module->getImportedFuncCount() + i];
+    func.code = module->getCurrentOffsetBuf();
+    func.codeLen = bodySize;
+    module->increaseBufOffset(bodySize);
+  }
+}
+
+void Loader::skipKnownSection(uint8_t sectionCode, const shared_module_t &module) {
+  // WRAP_UINT_FIELD(payloadLen, uint32_t, module);
+  std::cout << (int)sectionCode << std::endl;
 }
 
 bool Loader::validateWords(const vector<uchar_t> &buf) {

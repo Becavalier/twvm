@@ -36,7 +36,7 @@ class Module {
   }
 
   inline bool hasEnd() {
-    return contentLength == p + 1;
+    return contentLength == p;
   }
 
   inline void addFuncSignature(WasmFunctionSig *sig) {
@@ -47,37 +47,30 @@ class Module {
     return funcSignatures[index];
   }
 
-  inline uint32_t getFunctionTableSize() {
-    return functions.size();
-  }
+  inline void addFunction(const WasmFunction &ref) { functions.push_back(ref); }
+  inline void addExport(const WasmExport &ref) { exportTable.push_back(ref);}
+  inline void addMemory(const shared_ptr<WasmMemory> &ref) { memory = ref;}
+  inline void addGlobal(const WasmGlobal &ref) { globals.push_back(ref); }
 
-  inline void addFunction(const WasmFunction &ref) {
-    functions.push_back(ref);
-  }
-
-  inline auto& getTable() {
-    return tables;
-  }
-
-  inline void addMemory(shared_ptr<WasmMemory> &ref) {
-    memory = ref;
-  }
-
-  inline auto& getMemory() {
-    return memory;
-  }
+  inline auto& getTable() { return tables; }
+  inline auto& getFunction() { return functions; }
+  inline auto& getMemory() { return memory; }
+  inline auto& getExport() { return exportTable; }
+  inline auto& getImportedFuncCount() { return importedFuncCount; }
 
  private:
   const uchar_t *buf;
   size_t contentLength;
   // start from the first section;
   size_t p = 8;
+  size_t importedFuncCount = 0;
   // params, returns;
   vector<WasmFunctionSig*> funcSignatures;
-  // order: imports -> defined;
+  // order: (external imported) -> (internal defined);
   vector<WasmFunction> functions;
   vector<WasmTable> tables;
   shared_ptr<WasmMemory> memory;
+  vector<WasmGlobal> globals;
   vector<WasmExport> exportTable;
 };
 
