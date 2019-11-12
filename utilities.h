@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef Utilities_H_
-#define Utilities_H_
+#ifndef UTILITIES_H_
+#define UTILITIES_H_
 
 #define CAST_ENUM_VAL(className, enumKey) \
   const auto enumKey##Code = Utilities::castUnderlyingVal<className>(className::enumKey)
@@ -41,4 +41,4 @@ class Utilities {
   }
 };
 
-#endif  // Utilities_H_
+#endif  // UTILITIES_H_

@@ -36,7 +36,7 @@
 
 #define DECLARE_NAMED_ENUM(name, opcode) \
   kOpcode##name = opcode,
-  
+
 enum WasmOpcode {
   ITERATE_NUMERIC_OPCODE(DECLARE_NAMED_ENUM)
   ITERATE_PARAMETRIC_OPCODE(DECLARE_NAMED_ENUM)
@@ -44,4 +44,4 @@ enum WasmOpcode {
   ITERATE_CONTROL_OPCODE(DECLARE_NAMED_ENUM)
 };
 
-#endif
+#endif  // OPCODE_H_

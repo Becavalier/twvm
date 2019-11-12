@@ -42,14 +42,14 @@ CAST_ENUM_VAL(valueTypesCode, kFunc);
 
 shared_module_t Loader::init(const std::string &fileName) {
   ifstream in(fileName, ios::binary);
-  char d, counter = 1;
+  char d;
+  size_t counter = 1;
   shared_module_t wasmModule(new Module());
 
-  if (in.is_open()) {
-    while (in.good()) {
-      in.read(&d, sizeof(d));
+  if (in.is_open() && in.good()) {
+    while (in.read(&d, sizeof(d))) {
       buf.push_back(d);
-      // checking magic word / version number;
+      // checking magic word / version number in stream;
       if (counter == BYTE_LENGTH_8) {
         if (!validateWords(buf)) {
           return wasmModule;
@@ -57,14 +57,12 @@ shared_module_t Loader::init(const std::string &fileName) {
       }
       counter++;
     }
-  }
-
-  in.close();
-  if (!in.eof() && in.fail()) {
+  } else {
     Utilities::reportError("can not reading file.");
     return nullptr;
   }
 
+  in.close();
   // wrapping and returning a module instance;
   wasmModule->setModContent(buf);
   // parsing;
@@ -265,7 +263,8 @@ void Loader::parseGlobalSection(const shared_module_t &module) {
           Utilities::reportError("global index is out of bound.", true);
         }
         if (moduleGlobal[globalIndex].mutability || !moduleGlobal[globalIndex].imported) {
-          Utilities::reportError("only immutable imported globals can be used in initializer expressions.", true);
+          Utilities::reportError(
+            "only immutable imported globals can be used in initializer expressions.", true);
         }
         thisGlobal->init.kind = WasmInitExpr::WasmInitKind::kGlobalIndex;
         thisGlobal->init.val.vGlobalIndex = globalIndex;
@@ -278,7 +277,7 @@ void Loader::parseGlobalSection(const shared_module_t &module) {
     }
     if (static_cast<WasmOpcode>(Decoder::readUint8(module)) != WasmOpcode::kOpcodeEnd) {
       Utilities::reportError("illegal ending byte.", true);
-    };
+    }
   }
 }
 
@@ -330,16 +329,16 @@ void Loader::parseCodeSection(const shared_module_t &module) {
   for (auto i = 0; i < bodyCount; i++) {
     WRAP_UINT_FIELD(bodySize, uint32_t, module);
     // update function body;
-    auto func = module->getFunction()[module->getImportedFuncCount() + i];
-    func.code = module->getCurrentOffsetBuf();
-    func.codeLen = bodySize;
+    auto funcIns = module->getFunction()[module->getImportedFuncCount() + i];
+    funcIns.code = module->getCurrentOffsetBuf();
+    funcIns.codeLen = bodySize;
     module->increaseBufOffset(bodySize);
   }
 }
 
 void Loader::skipKnownSection(uint8_t sectionCode, const shared_module_t &module) {
   // WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  Utilities::reportWarning(string("unknown byte: ") + std::to_string((int)sectionCode));
+  // Utilities::reportWarning(string("unknown byte: ") + std::to_string((int)sectionCode));
 }
 
 bool Loader::validateWords(const vector<uchar_t> &buf) {
