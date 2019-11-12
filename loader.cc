@@ -5,7 +5,8 @@
 #include "./loader.h"
 #include "./constants.h"
 #include "./decoder.h"
-#include "./util.h"
+#include "./utilities.h"
+#include "./opcode.h"
 
 #define WRAP_UINT_FIELD(keyName, type, module) \
   const auto keyName = Decoder::readVarUint<type>(module)
@@ -60,7 +61,7 @@ shared_module_t Loader::init(const std::string &fileName) {
 
   in.close();
   if (!in.eof() && in.fail()) {
-    Util::reportError("can not reading file.");
+    Utilities::reportError("can not reading file.");
     return nullptr;
   }
 
@@ -87,7 +88,7 @@ void Loader::parse(const shared_module_t &module) {
   try {
     parseSection(module);
   } catch(const std::exception& e) {
-    Util::reportError("exception occur, process terminated.");
+    Utilities::reportError("exception occur, process terminated.");
   }
 }
 
@@ -106,6 +107,8 @@ void Loader::parseSection(const shared_module_t &module) {
       parseTableSection(module);
     } else if (sectionCode == kMemorySectionCode) {
       parseMemorySection(module);
+    } else if (sectionCode == kStartSectionCode) {
+      parseStartSection(module);
     } else if (sectionCode == kGlobalSectionCode) {
       parseGlobalSection(module);
     } else if (sectionCode == kExportSectionCode) {
@@ -120,7 +123,7 @@ void Loader::parseSection(const shared_module_t &module) {
 }
 
 void Loader::parseTypeSection(const shared_module_t &module) {
-  Util::reportDebug("parsing type section.");
+  Utilities::reportDebug("parsing type section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(entryCount, uint32_t, module);
   for (auto i = 0; i < entryCount; i++) {
@@ -134,32 +137,32 @@ void Loader::parseTypeSection(const shared_module_t &module) {
       for (auto j = 0; j < returnCount; j++) {
         typesArr.push_back(static_cast<valueTypesCode>(Decoder::readUint8(module)));
       }
-      module->getFunctionSig().push_back(new WasmFunctionSig(paramsCount, returnCount, typesArr.data()));
+      module->getFunctionSig().push_back({paramsCount, returnCount, typesArr.data()});
     } else {
-      Util::reportError("type section code mismatch.", true);
+      Utilities::reportError("type section code mismatch.", true);
     }
   }
 }
 
 void Loader::parseImportSection(const shared_module_t &module) {
-  Util::reportDebug("parsing import section.");
+  Utilities::reportDebug("parsing import section.");
 }
 
 void Loader::parseFunctionSection(const shared_module_t &module) {
-  Util::reportDebug("parsing function section.");
+  Utilities::reportDebug("parsing function section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(declaredFuncCount, uint32_t, module);
   for (auto i = 0; i < declaredFuncCount; i++) {
     // indices: uint32_t;
     WRAP_UINT_FIELD(sigIndex, uint32_t, module);
-    auto sig = module->getFunctionSig()[sigIndex];
+    auto sig = &module->getFunctionSig()[sigIndex];
     auto funcIndex = module->getFunction().size();
     module->getFunction().push_back({sig, funcIndex, sigIndex, nullptr, 0, false, false});
   }
 }
 
 void Loader::parseTableSection(const shared_module_t &module) {
-  Util::reportDebug("parsing table section.");
+  Utilities::reportDebug("parsing table section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(tableCount, uint32_t, module);
   for (auto i = 0; i < tableCount; i++) {
@@ -185,11 +188,11 @@ void Loader::parseTableSection(const shared_module_t &module) {
 }
 
 void Loader::parseMemorySection(const shared_module_t &module) {
-  Util::reportDebug("parsing memory section.");
+  Utilities::reportDebug("parsing memory section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(memeoryCount, uint32_t, module);
   if (memeoryCount > 1) {
-    Util::reportError("only support one memory in MVP.", true);
+    Utilities::reportError("only support one memory in MVP.", true);
   } else {
     WRAP_UINT_FIELD(memoryFlags, uint8_t, module);
     auto memory = make_shared<WasmMemory>();
@@ -206,8 +209,21 @@ void Loader::parseMemorySection(const shared_module_t &module) {
   }
 }
 
+void Loader::parseStartSection(const shared_module_t &module) {
+  Utilities::reportDebug("parsing start section.");
+  WRAP_UINT_FIELD(payloadLen, uint32_t, module);
+  WRAP_UINT_FIELD(startFuncIndex, uint32_t, module);
+  // start function: no arguments or return value;
+  const auto sig = module->getFunction()[startFuncIndex].sig;
+  if (sig->paramsCount != 0 || sig->returnCount != 0) {
+    Utilities::reportError("the start function must not take any arguments or return value.", true);
+  } else {
+    module->getStartFuncIndex() = startFuncIndex;
+  }
+}
+
 void Loader::parseGlobalSection(const shared_module_t &module) {
-  Util::reportDebug("parsing global section.");
+  Utilities::reportDebug("parsing global section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(globalCount, uint32_t, module);
   for (auto i = 0; i < globalCount; i++) {
@@ -218,13 +234,56 @@ void Loader::parseGlobalSection(const shared_module_t &module) {
     auto *thisGlobal = &module->getGlobal().back();
     thisGlobal->type = contentType;
     thisGlobal->mutability = mutability;
-    // TODO(Jason Yu): analyze initialization expr;
-    // ending with 0x0b;
+    // deal with opcode;
+    const auto opcode = static_cast<WasmOpcode>(Decoder::readUint8(module));
+    // MVP: i32.const / i64.const / f32.const / f64.const / get_global;
+    switch (opcode) {
+      case WasmOpcode::kOpcodeI32Const: {
+        thisGlobal->init.kind = WasmInitExpr::WasmInitKind::kI32Const;
+        thisGlobal->init.val.vI32Const = Decoder::readVarInt<int32_t>(module);
+        break;
+      }
+      case WasmOpcode::kOpcodeI64Const: {
+        thisGlobal->init.kind = WasmInitExpr::WasmInitKind::kI64Const;
+        thisGlobal->init.val.vI64Const = Decoder::readVarInt<int64_t>(module);
+        break;
+      }
+      case WasmOpcode::kOpcodeF32Const: {
+        thisGlobal->init.kind = WasmInitExpr::WasmInitKind::kF32Const;
+        thisGlobal->init.val.vF32Const = Decoder::readUint32(module);
+        break;
+      }
+      case WasmOpcode::kOpcodeF64Const: {
+        thisGlobal->init.kind = WasmInitExpr::WasmInitKind::kF64Const;
+        thisGlobal->init.val.vF64Const = Decoder::readUint64(module);
+        break;
+      }
+      case WasmOpcode::kOpcodeGlobalSet: {
+        WRAP_UINT_FIELD(globalIndex, uint32_t, module);
+        const auto& moduleGlobal = module->getGlobal();
+        if (globalIndex > moduleGlobal.size()) {
+          Utilities::reportError("global index is out of bound.", true);
+        }
+        if (moduleGlobal[globalIndex].mutability || !moduleGlobal[globalIndex].imported) {
+          Utilities::reportError("only immutable imported globals can be used in initializer expressions.", true);
+        }
+        thisGlobal->init.kind = WasmInitExpr::WasmInitKind::kGlobalIndex;
+        thisGlobal->init.val.vGlobalIndex = globalIndex;
+        break;
+      }
+      default: {
+        Utilities::reportError("not supported opcode found in global section.", true);
+        break;
+      }
+    }
+    if (static_cast<WasmOpcode>(Decoder::readUint8(module)) != WasmOpcode::kOpcodeEnd) {
+      Utilities::reportError("illegal ending byte.", true);
+    };
   }
 }
 
 void Loader::parseExportSection(const shared_module_t &module) {
-  Util::reportDebug("parsing export section.");
+  Utilities::reportDebug("parsing export section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(exportCount, uint32_t, module);
   for (auto i = 0; i < exportCount; i++) {
@@ -246,7 +305,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         index = WRAP_UINT_FIELD_(uint32_t, module);
         const auto mem = module->getMemory();
         if (index != 0 || mem == nullptr) {
-          Util::reportError("invalid memory index.", true);
+          Utilities::reportError("invalid memory index.", true);
         } else {
           mem->exported = true;
         }
@@ -257,7 +316,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         break;
       }
       default: {
-        Util::reportError("wrong export type.", true);
+        Utilities::reportError("wrong export type.", true);
       }
     }
     module->getExport().push_back({name, exportType, index});
@@ -265,7 +324,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
 }
 
 void Loader::parseCodeSection(const shared_module_t &module) {
-  Util::reportDebug("parsing code section.");
+  Utilities::reportDebug("parsing code section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(bodyCount, uint32_t, module);
   for (auto i = 0; i < bodyCount; i++) {
@@ -280,16 +339,16 @@ void Loader::parseCodeSection(const shared_module_t &module) {
 
 void Loader::skipKnownSection(uint8_t sectionCode, const shared_module_t &module) {
   // WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  std::cout << (int)sectionCode << std::endl;
+  Utilities::reportWarning(string("unknown byte: ") + std::to_string((int)sectionCode));
 }
 
 bool Loader::validateWords(const vector<uchar_t> &buf) {
   if (!validateMagicWord(buf)) {
-    Util::reportError("invalid wasm magic word, expect 0x6d736100.");
+    Utilities::reportError("invalid wasm magic word, expect 0x6d736100.");
     return false;
   }
   if (!validateVersionWord(buf)) {
-    Util::reportError("invalid wasm version, expect 0x01.");
+    Utilities::reportError("invalid wasm version, expect 0x01.");
     return false;
   }
   return true;

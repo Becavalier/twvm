@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <string>
 #include "./macros.h"
+#include "./utilities.h"
 
 using std::string;
 using uchar_t = unsigned char;
@@ -54,14 +55,57 @@ enum class sectionTypesCode : uint8_t {
   kExceptionSection = 13
 };
 
-class WasmFunctionSig {
- public:
-  WasmFunctionSig(size_t paramsCount, size_t returnCount, const valueTypesCode *reps)
-    : paramsCount(paramsCount), returnCount(returnCount), reps(reps) {}
-  ~WasmFunctionSig() {
-    delete reps;
+/******************/
+/* compound types */
+/******************/
+struct WasmInitExpr {
+#define WRAP_CONSTRUCTOR(type, kindEnum, key) \
+  explicit WasmInitExpr(type v) : kind(kindEnum) { \
+    val.key = v; \
   }
- private:
+
+  enum WasmInitKind {
+    kNone,
+    kGlobalIndex,
+    kRefFuncIndex,
+    kI32Const,
+    kI64Const,
+    kF32Const,
+    kF64Const,
+    kRefNullConst,
+  } kind = kNone;
+  union {
+    // constants;
+    int32_t vI32Const;
+    int64_t vI64Const;
+    float vF32Const;
+    double vF64Const;
+    // op: get_global (refer to an immutable import);
+    uint32_t vGlobalIndex;
+    uint32_t vFuncIndex;
+  } val;
+
+  WasmInitExpr() = default;
+  WRAP_CONSTRUCTOR(int32_t, kI32Const, vI32Const)
+  WRAP_CONSTRUCTOR(int64_t, kI64Const, vI64Const)
+  WRAP_CONSTRUCTOR(float, kF32Const, vF32Const)
+  WRAP_CONSTRUCTOR(double, kF64Const, vF64Const)
+  WasmInitExpr(WasmInitKind kind, uint32_t index) : kind(kind) {
+    if (kind == kGlobalIndex) {
+      val.vGlobalIndex = index;
+    } else if (kind == kRefFuncIndex) {
+      val.vFuncIndex = index;
+    } else {
+      Utilities::reportError("unknown global type.", true);
+    }
+  }
+};
+
+/******************/
+/* sections types */
+/******************/
+struct WasmFunctionSig {
+  ~WasmFunctionSig() { reps = nullptr; }
   size_t paramsCount;
   size_t returnCount;
   const valueTypesCode *reps;
@@ -69,9 +113,7 @@ class WasmFunctionSig {
 
 // wasm indirect call table;
 struct WasmFunction {
-  ~WasmFunction() {
-    code = nullptr;
-  }
+  ~WasmFunction() { code = nullptr; }
   WasmFunctionSig* sig;
   size_t funcIndex;
   size_t sigIndex;
@@ -104,7 +146,7 @@ struct WasmGlobal {
   MOVE_ONLY_STRUCT(WasmGlobal);
   valueTypesCode type = valueTypesCode::kVoid;
   bool mutability = false;
-  void* init = nullptr;  // initialization expr;
+  WasmInitExpr init = {};  // initialization expr;
   bool imported = false;
   bool exported = false;
 };

@@ -6,7 +6,7 @@
 #include <iostream>
 #include <memory>
 #include "./types.h"
-#include "./util.h"
+#include "./utilities.h"
 
 using std::vector;
 using std::shared_ptr;
@@ -15,7 +15,7 @@ class Module {
  public:
   Module() = default;
   ~Module() {
-    Util::reportDebug("module has been destructed.");
+    Utilities::reportDebug("module has been destructed.");
   }
 
   void setModContent(const vector<uchar_t> &content) {
@@ -46,6 +46,7 @@ class Module {
   inline auto& getExport() { return exportTable; }
   inline auto& getGlobal() { return globals; }
   inline auto& getImportedFuncCount() { return importedFuncCount; }
+  inline auto& getStartFuncIndex() { return startFuncIndex; }
 
  private:
   const uchar_t *buf;
@@ -53,8 +54,9 @@ class Module {
   // start from the first section;
   size_t p = 8;
   size_t importedFuncCount = 0;
+  size_t startFuncIndex = -1;
   // params, returns;
-  vector<WasmFunctionSig*> funcSignatures;
+  vector<WasmFunctionSig> funcSignatures;
   // order: (external imported) -> (internal defined);
   vector<WasmFunction> functions;
   vector<WasmTable> tables;
