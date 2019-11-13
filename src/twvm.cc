@@ -1,11 +1,11 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <iostream>
 #include <string>
-#include "./utilities.h"
-#include "./constants.h"
-#include "./loader.h"
-#include "./module.h"
-#include "./executor.h"
+#include "src/utilities.h"
+#include "src/constants.h"
+#include "src/loader.h"
+#include "src/module.h"
+#include "src/executor.h"
 
 using std::to_string;
 
@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
   if (wasmModule) {
     const auto wasmModuleSize = wasmModule->getModContentLength();
     if (wasmModuleSize > 0) {
-      Utilities::reportDebug("module parsing completed. (" + to_string(wasmModuleSize) + " bytes)");
+      Utilities::reportDebug("module parsing complete. (" + to_string(wasmModuleSize) + " bytes)");
     }
   } else {
     return 1;

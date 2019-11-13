@@ -9,7 +9,7 @@
   "scripts": {
     "build": "bash bin/build.sh",
     "test": "npm-run-all \"build -- --test\"",
-    "lint": "cpplint --counting=total --root=. --recursive --linelength=100 --extensions=cc,h .",
+    "lint": "cpplint --counting=total --root=./src --recursive --linelength=100 --extensions=cc,h ./src",
     "memcheck": "npm run build && valgrind --leak-check=full --show-leak-kinds=all build/twvm",
     "clear": "make clean && rm -rf CMakeCache.txt && rm -rf cmake_install.cmake && rm -rf CMakeFiles/"
   },

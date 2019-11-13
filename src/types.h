@@ -5,10 +5,12 @@
 #include <cstdint>
 #include <cstddef>
 #include <string>
-#include "./macros.h"
-#include "./utilities.h"
+#include <vector>
+#include "src/macros.h"
+#include "src/utilities.h"
 
 using std::string;
+using std::vector;
 using uchar_t = unsigned char;
 
 constexpr uint32_t kWasmMagicWord = 0x6d736100;
@@ -18,7 +20,7 @@ constexpr uint8_t kWasmTrue = 1;
 constexpr uint8_t kWasmFalse = 0;
 
 // basic types;
-enum class valueTypesCode : int8_t {
+enum class ValueTypesCode : int8_t {
   kVoid = 0x40,  // block_type;
   kI32 = 0x7f,
   kI64 = 0x7e,
@@ -29,7 +31,7 @@ enum class valueTypesCode : int8_t {
 };
 
 // import/export;
-enum class externalTypesCode : uint8_t {
+enum class ExternalTypesCode : uint8_t {
   kExternalFunction = 0,
   kExternalTable = 1,
   kExternalMemory = 2,
@@ -38,7 +40,7 @@ enum class externalTypesCode : uint8_t {
 };
 
 // sections;
-enum class sectionTypesCode : uint8_t {
+enum class SectionTypesCode : uint8_t {
   kUnknownSection = 0,
   kTypeSection = 1,
   kImportSection = 2,
@@ -108,7 +110,7 @@ struct WasmFunctionSig {
   ~WasmFunctionSig() { reps = nullptr; }
   size_t paramsCount;
   size_t returnCount;
-  const valueTypesCode *reps;
+  const ValueTypesCode *reps;
 };
 
 // wasm indirect call table;
@@ -125,12 +127,21 @@ struct WasmFunction {
 
 struct WasmTable {
   MOVE_ONLY_STRUCT(WasmTable);
-  valueTypesCode type = valueTypesCode::kFuncRef;
+  ValueTypesCode type = ValueTypesCode::kFuncRef;
   uint32_t initialSize = 0;
   uint32_t maximumSize = 0;
   bool hasMaximumSize = false;
   bool imported = false;
   bool exported = false;
+};
+
+template <typename T = WasmFunction>
+struct WasmElement {
+  MOVE_ONLY_STRUCT(WasmElement<T>);
+  size_t tableIndex = 0;  // default;
+  ExternalTypesCode type = ExternalTypesCode::kExternalException;  // anyfunc;
+  WasmInitExpr init = {};  // offset in table (initialization expr);
+  vector<T*> entities = {};
 };
 
 struct WasmMemory {
@@ -144,7 +155,7 @@ struct WasmMemory {
 
 struct WasmGlobal {
   MOVE_ONLY_STRUCT(WasmGlobal);
-  valueTypesCode type = valueTypesCode::kVoid;
+  ValueTypesCode type = ValueTypesCode::kVoid;
   bool mutability = false;
   WasmInitExpr init = {};  // initialization expr;
   bool imported = false;
@@ -153,8 +164,16 @@ struct WasmGlobal {
 
 struct WasmExport {
   string name;
-  externalTypesCode type;
+  ExternalTypesCode type;
   uint32_t index;
 };
+
+struct WasmImport {
+  string moduleName;
+  string fieldName;
+  ExternalTypesCode kind;
+  uint32_t index;
+};
+
 
 #endif  // TYPES_H_

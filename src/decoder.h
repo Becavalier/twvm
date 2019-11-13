@@ -7,8 +7,8 @@
 #include <memory>
 #include <string>
 #include <functional>
-#include "./types.h"
-#include "./module.h"
+#include "src/types.h"
+#include "src/module.h"
 
 using std::function;
 using std::string;

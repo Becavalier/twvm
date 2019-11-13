@@ -2,17 +2,14 @@
 #ifndef UTILITIES_H_
 #define UTILITIES_H_
 
-#define CAST_ENUM_VAL(className, enumKey) \
-  const auto enumKey##Code = Utilities::castUnderlyingVal<className>(className::enumKey)
-
-#define REPORT(color, label) \
-  cerr \
+#define REPORT(color, label, msg) \
+  cout \
     << OUTPUT_PREFIX \
     << color \
     << label \
-    << COLOR_CTL_NORMAL \
-    << msg \
-    << endl
+    << COLOR_CTL_NORMAL; \
+  if (msg.size() > 0) cout << msg << endl; \
+  return cout;
 
 #include <iostream>
 #include <string>
@@ -31,14 +28,9 @@ using std::underlying_type;
 
 class Utilities {
  public:
-  static void reportError(const string&, bool = false);
-  static void reportDebug(const string&);
-  static void reportWarning(const string&);
-
-  template <typename T, typename E>
-  static auto castUnderlyingVal(const E &e) {
-    return static_cast<typename underlying_type<E>::type>(e);
-  }
+  static std::ostream& reportError(const string &msg = "internal error occured.", bool = true);
+  static std::ostream& reportDebug(const string &msg = "");
+  static std::ostream& reportWarning(const string &msg = "");
 };
 
 #endif  // UTILITIES_H_

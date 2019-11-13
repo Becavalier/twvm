@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.11)
 
 project (TWVM)
 
-include_directories(./src)
+include_directories(.)
 
 # set (CMAKE_C_COMPILER /usr/bin/clang)
 # set (CMAKE_CXX_COMPILER /usr/bin/clang++)
