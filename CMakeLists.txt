@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.11)
 
 project (TWVM)
 
-include_directories(.)
+include_directories(./src)
 
 # set (CMAKE_C_COMPILER /usr/bin/clang)
 # set (CMAKE_CXX_COMPILER /usr/bin/clang++)
@@ -48,7 +48,7 @@ if (STATE STREQUAL TEST)
 else()
   set (EXECUTABLE_OUTPUT_PATH ${N_OUTPUT_SRC})
   # resolve source files;
-  aux_source_directory (. DIR_SRCS)
+  aux_source_directory (./src DIR_SRCS)
 endif()  
 
 # add executable;
