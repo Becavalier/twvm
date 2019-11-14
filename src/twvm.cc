@@ -7,14 +7,15 @@
 #include "src/loader.h"
 #include "src/module.h"
 #include "src/executor.h"
+#include "src/stack.h"
 
 using std::to_string;
-using std::chrono::high_resolution_clock; 
+using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
 
 int main(int argc, char **argv) {
-  const auto start = high_resolution_clock::now(); 
+  const auto start = high_resolution_clock::now();
 
   if (argc < 2) {
     Utilities::reportError("no input file.");
@@ -29,7 +30,10 @@ int main(int argc, char **argv) {
       Utilities::reportDebug("module parsing completed. (" + to_string(wasmModuleSize) + " bytes)");
       const auto stop = high_resolution_clock::now();
       const auto duration = duration_cast<microseconds>(stop - start);
-      Utilities::reportDebug() << "execution time: " << duration.count() / 1000.0 << "ms." << std::endl;
+      Utilities::reportDebug()
+        << "execution time: "
+        << duration.count() / 1000.0 << "ms."
+        << std::endl;
     }
   } else {
     return 1;

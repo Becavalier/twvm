@@ -27,7 +27,7 @@ enum class ValueTypesCode : int8_t {
   kF32 = 0x7d,
   kF64 = 0x7c,
   kFunc = 0x60,
-  kFuncRef = 0x70
+  kFuncRef = 0x70,
 };
 
 // import/export;
@@ -36,7 +36,7 @@ enum class ExternalTypesCode : uint8_t {
   kExternalTable = 1,
   kExternalMemory = 2,
   kExternalGlobal = 3,
-  kExternalException = 4
+  kExternalException = 4,
 };
 
 // sections;
@@ -54,7 +54,14 @@ enum class SectionTypesCode : uint8_t {
   kCodeSection = 10,
   kDataSection = 11,
   kDataCountSection = 12,
-  kExceptionSection = 13
+  kExceptionSection = 13,
+};
+
+// stack frame types;
+enum class StackFrameTypes : uint8_t {
+  kValues = 0,
+  kLabels,
+  kActivations,
 };
 
 /******************/
