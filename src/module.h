@@ -10,6 +10,7 @@
 
 using std::vector;
 using std::shared_ptr;
+using std::move;
 
 // pay attention to the bound check;
 #define WRAP_SELECT_METHOD(name, key) \
@@ -25,8 +26,9 @@ class Module {
   }
 
   void setModContent(const vector<uchar_t> &content) {
-    buf = content.data();
-    contentLength = content.size();
+    moduleData = move(content);
+    moduleDataBuf = moduleData.data();
+    contentLength = moduleData.size();
   }
 
   inline size_t getModContentLength(void) {
@@ -34,7 +36,7 @@ class Module {
   }
 
   inline const uchar_t* getCurrentOffsetBuf(void) {
-    return (buf + p);
+    return (moduleDataBuf + p);
   }
 
   inline void increaseBufOffset(size_t step) {
@@ -59,7 +61,8 @@ class Module {
   inline auto& getStartFuncIndex() { return startFuncIndex; }
 
  private:
-  const uchar_t *buf;
+  vector<uchar_t> moduleData;
+  const uchar_t *moduleDataBuf;
   size_t contentLength;
   // start from the first section;
   size_t p = 8;
@@ -68,7 +71,7 @@ class Module {
   size_t startFuncIndex = -1;
   // params, returns;
   vector<WasmFunctionSig> funcSignatures;
-  // order: (external imported) -> (internal defined);
+  // order: external imported | internal defined;
   vector<WasmFunction> functions;
   vector<WasmTable> tables;
   shared_ptr<WasmMemory> memory = nullptr;

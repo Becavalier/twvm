@@ -8,36 +8,61 @@
 #include "src/module.h"
 #include "src/executor.h"
 #include "src/stack.h"
+#include "src/instantiator.h"
+#include "src/inspector.h"
 
 using std::to_string;
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
 
+const auto calcTimeInterval(decltype(high_resolution_clock::now()) &previous) {
+  const auto stop = high_resolution_clock::now();
+  const auto duration = duration_cast<microseconds>(stop - previous);
+  previous = stop;
+  return duration.count() / 1000.0;
+}
+
 int main(int argc, char **argv) {
-  const auto start = high_resolution_clock::now();
+  auto start = high_resolution_clock::now();
 
   if (argc < 2) {
     Utilities::reportError("no input file.");
     return 1;
   }
 
+  // static loading;
   const auto wasmModule = Loader::init(argv[INPUT_ARG_OFFSET]);
+
   // debug;
   if (wasmModule) {
     const auto wasmModuleSize = wasmModule->getModContentLength();
     if (wasmModuleSize > 0) {
       Utilities::reportDebug("module parsing completed. (" + to_string(wasmModuleSize) + " bytes)");
-      const auto stop = high_resolution_clock::now();
-      const auto duration = duration_cast<microseconds>(stop - start);
       Utilities::reportDebug()
-        << "execution time: "
-        << duration.count() / 1000.0 << "ms."
-        << std::endl;
+        << "static parsing time: "
+        << calcTimeInterval(start) << "ms."
+         << std::endl;
     }
   } else {
     return 1;
   }
+
+  // instantiating;
+  const auto wasmInstance = Instantiator::instantiate(wasmModule);
+  // debug;
+  if (wasmInstance) {
+    Utilities::reportDebug("module instantiating completed.");
+    Utilities::reportDebug()
+      << "instantiating time: "
+      << calcTimeInterval(start) << "ms."
+      << std::endl;
+  } else {
+    return 1;
+  }
+
+  // inspect;
+  Inspector::inspect(wasmInstance);
 
   return 0;
 }

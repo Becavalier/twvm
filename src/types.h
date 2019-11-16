@@ -13,9 +13,9 @@ using std::string;
 using std::vector;
 using uchar_t = unsigned char;
 
+constexpr size_t kSpecMaxWasmMemoryPages = 65536;
 constexpr uint32_t kWasmMagicWord = 0x6d736100;
 constexpr uint32_t kWasmVersion = 0x01;
-constexpr size_t kSpecMaxWasmMemoryPages = 65536;
 constexpr uint8_t kWasmTrue = 1;
 constexpr uint8_t kWasmFalse = 0;
 
@@ -64,25 +64,29 @@ enum class StackFrameTypes : uint8_t {
   kActivations,
 };
 
-/******************/
-/* compound types */
-/******************/
-struct WasmInitExpr {
-#define WRAP_CONSTRUCTOR(type, kindEnum, key) \
-  explicit WasmInitExpr(type v) : kind(kindEnum) { \
-    val.key = v; \
-  }
+enum class InitExprKind : uint8_t {
+  kNone,
+  kGlobalIndex,
+  kI32Const,
+  kI64Const,
+  kF32Const,
+  kF64Const,
+};
 
-  enum WasmInitKind {
-    kNone,
-    kGlobalIndex,
-    kRefFuncIndex,
-    kI32Const,
-    kI64Const,
-    kF32Const,
-    kF64Const,
-    kRefNullConst,
-  } kind = kNone;
+/* runtime types */
+// here we directly use "int32_t", "int64_t", "float", "double" to present 4 kinds of Wasm values;  
+union RTValue {
+  int32_t i32;
+  int64_t i64;
+  float f32;
+  double f64;
+};
+
+/* compound types */
+// for initial value of global section, offset of data/elements segment;
+struct WasmInitExpr {
+  WasmInitExpr() = default;
+  InitExprKind kind = InitExprKind::kNone;
   union {
     // constants;
     int32_t vI32Const;
@@ -91,30 +95,30 @@ struct WasmInitExpr {
     double vF64Const;
     // op: get_global (refer to an immutable import);
     uint32_t vGlobalIndex;
-    uint32_t vFuncIndex;
   } val;
-
-  WasmInitExpr() = default;
-  WRAP_CONSTRUCTOR(int32_t, kI32Const, vI32Const)
-  WRAP_CONSTRUCTOR(int64_t, kI64Const, vI64Const)
-  WRAP_CONSTRUCTOR(float, kF32Const, vF32Const)
-  WRAP_CONSTRUCTOR(double, kF64Const, vF64Const)
-  WasmInitExpr(WasmInitKind kind, uint32_t index) : kind(kind) {
-    if (kind == kGlobalIndex) {
-      val.vGlobalIndex = index;
-    } else if (kind == kRefFuncIndex) {
-      val.vFuncIndex = index;
-    } else {
-      Utilities::reportError("unknown global type.", true);
+  RTValue toRTValue() {
+    RTValue rtVal;
+    if (kind != InitExprKind::kGlobalIndex) {
+      switch (kind) {
+        case InitExprKind::kF32Const: { rtVal.f32 = val.vF32Const; break; }
+        case InitExprKind::kF64Const: { rtVal.f64 = val.vF64Const; break; }
+        case InitExprKind::kI32Const: { rtVal.i32 = val.vI32Const; break; }
+        case InitExprKind::kI64Const: { rtVal.i64 = val.vI64Const; break; }
+        default: {
+          Utilities::reportError("initial expression has not been initialized.");
+        }
+      }
+    } else  {
+      // deal with platform-hosted imported "global";
     }
+    return rtVal;
   }
 };
 
-/******************/
-/* sections types */
-/******************/
+/* static sections types */
 struct WasmFunctionSig {
   ~WasmFunctionSig() { reps = nullptr; }
+  uint32_t index;
   size_t paramsCount;
   size_t returnCount;
   const ValueTypesCode *reps;
@@ -133,7 +137,7 @@ struct WasmFunction {
 };
 
 struct WasmTable {
-  MOVE_ONLY_STRUCT(WasmTable);
+  SET_STRUCT_MOVE_ONLY(WasmTable);
   ValueTypesCode type = ValueTypesCode::kFuncRef;
   uint32_t initialSize = 0;
   uint32_t maximumSize = 0;
@@ -144,7 +148,7 @@ struct WasmTable {
 
 template <typename T = WasmFunction>
 struct WasmElement {
-  MOVE_ONLY_STRUCT(WasmElement<T>);
+  SET_STRUCT_MOVE_ONLY(WasmElement<T>);
   size_t tableIndex = 0;  // default;
   ExternalTypesCode type = ExternalTypesCode::kExternalException;  // anyfunc;
   WasmInitExpr init = {};  // offset in table (initialization expr);
@@ -152,7 +156,7 @@ struct WasmElement {
 };
 
 struct WasmMemory {
-  MOVE_ONLY_STRUCT(WasmMemory);
+  SET_STRUCT_MOVE_ONLY(WasmMemory);
   uint32_t initialPages = 0;
   uint32_t maximumPages = 0;
   bool hasMaximumPages = false;
@@ -161,7 +165,7 @@ struct WasmMemory {
 };
 
 struct WasmGlobal {
-  MOVE_ONLY_STRUCT(WasmGlobal);
+  SET_STRUCT_MOVE_ONLY(WasmGlobal);
   ValueTypesCode type = ValueTypesCode::kVoid;
   bool mutability = false;
   WasmInitExpr init = {};  // initialization expr;
@@ -181,6 +185,5 @@ struct WasmImport {
   ExternalTypesCode kind;
   uint32_t index;
 };
-
 
 #endif  // TYPES_H_

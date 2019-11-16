@@ -29,43 +29,35 @@ class Frame : public enable_shared_from_this<Frame> {
 
 template <typename T>
 class ValuesFrame : public Frame {
-  // here we directly use "int32_t", "int64_t", "float", "double" to present 4 kinds of Wasm values;
-  union val {
-    int32_t vI32Const;
-    int64_t vI64Const;
-    float vF32Const;
-    double vF64Const;
-  };
-  
  public:
-  FORBID_COPYING(ValuesFrame);
+  SET_STRUCT_DISABLE_COPY_CONSTUCT(ValuesFrame);
   ValuesFrame(T value) : Frame(StackFrameTypes::kValues) {
     if (is_same<T, int32_t>::value) {
-      data.vI32Const = value;
+      data.i32 = value;
     } else if (is_same<T, int64_t>::value) {
-      data.vI64Const = value;
+      data.i64 = value;
     } else if (is_same<T, float>::value) {
-      data.vF32Const = value;
+      data.f32 = value;
     } else if (is_same<T, double>::value) {
-      data.vF64Const = value;
+      data.f64 = value;
     }
   }
   const T& value() {
     return *reinterpret_cast<T*>(&data);
   };
  private:
-   val data;
+   RTValue data;
 };
 
 class LabelsFrame : public Frame {
  public:
-  FORBID_COPYING(LabelsFrame);
+  SET_STRUCT_DISABLE_COPY_CONSTUCT(LabelsFrame);
   LabelsFrame() : Frame(StackFrameTypes::kLabels) {}
 };
 
 class ActivationsFrame : public Frame {
  public:
-  FORBID_COPYING(ActivationsFrame);
+  SET_STRUCT_DISABLE_COPY_CONSTUCT(ActivationsFrame);
   ActivationsFrame() : Frame(StackFrameTypes::kActivations) {}
 };
 

@@ -11,6 +11,8 @@ include_directories(.)
 set (CMAKE_VERBOSE_MAKEFILE "OFF")
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_FLAGS_RELEASE "-O3")
+set (CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb ")
+set (CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
 set (OUTPUT "twvm")
 set (STATE $ENV{CMAKE_TARGET})

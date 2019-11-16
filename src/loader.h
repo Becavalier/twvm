@@ -82,22 +82,22 @@ class Loader {
     // MVP: i32.const / i64.const / f32.const / f64.const / get_global;
     switch (opcode) {
       case WasmOpcode::kOpcodeI32Const: {
-        expr->kind = WasmInitExpr::WasmInitKind::kI32Const;
+        expr->kind = InitExprKind::kI32Const;
         expr->val.vI32Const = Decoder::readVarInt<int32_t>(module);
         break;
       }
       case WasmOpcode::kOpcodeI64Const: {
-        expr->kind = WasmInitExpr::WasmInitKind::kI64Const;
+        expr->kind = InitExprKind::kI64Const;
         expr->val.vI64Const = Decoder::readVarInt<int64_t>(module);
         break;
       }
       case WasmOpcode::kOpcodeF32Const: {
-        expr->kind = WasmInitExpr::WasmInitKind::kF32Const;
+        expr->kind = InitExprKind::kF32Const;
         expr->val.vF32Const = Decoder::readUint32(module);
         break;
       }
       case WasmOpcode::kOpcodeF64Const: {
-        expr->kind = WasmInitExpr::WasmInitKind::kF64Const;
+        expr->kind = InitExprKind::kF64Const;
         expr->val.vF64Const = Decoder::readUint64(module);
         break;
       }
@@ -108,7 +108,7 @@ class Loader {
           Utilities::reportError(
             "only immutable imported globals can be used in initializer expressions.", true);
         }
-        expr->kind = WasmInitExpr::WasmInitKind::kGlobalIndex;
+        expr->kind = InitExprKind::kGlobalIndex;
         expr->val.vGlobalIndex = globalIndex;
         break;
       }
@@ -117,6 +117,7 @@ class Loader {
         break;
       }
     }
+    // "0x0b" ending byte;
     if (static_cast<WasmOpcode>(Decoder::readUint8(module)) != WasmOpcode::kOpcodeEnd) {
       Utilities::reportError("illegal ending byte.", true);
     }

@@ -44,12 +44,14 @@ Then run the following command to detect the memory leak of the binary version p
 
 ## Roadmap
 
-- [ ] Support basic Wasm functionalities;
-- [ ] Support full Wasm MVP proposals;
-- [ ] Support lightweight validation;
-- [ ] Support thread independant execution;
-- [ ] Support experimental SIMD;
-- [ ] Support WASI;
+- [ ] Basic Wasm interpreter on main spec;
+- [ ] Full Wasm MVP proposals support;
+- [ ] Stage based lightweight module validation;
+- [ ] Standalone thread execution;
+- [ ] Graph-based IR optimization;
+- [ ] JIT engine based optimization;
+- [ ] Experimental SIMD instructions;
+- [ ] Basic WASI standard libraries;
 
 
 ## Copyright and License

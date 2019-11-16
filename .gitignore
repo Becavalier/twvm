@@ -7,3 +7,4 @@ install_manifest.txt
 googletest*/
 lib/
 .DS_Store
+node_modules/

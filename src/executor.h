@@ -2,7 +2,7 @@
 #ifndef EXECUTOR_H_
 #define EXECUTOR_H_
 
-// instantiation & execution;
+// core execution logic;
 class Executor {
 
 };

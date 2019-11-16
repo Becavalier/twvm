@@ -16,6 +16,7 @@ using std::ios;
 using std::array;
 
 shared_module_t Loader::init(const std::string &fileName) {
+  Utilities::reportDebug("- [LOADING PHASE] -");
   ifstream in(fileName, ios::binary);
   char d;
   size_t counter = 1;
@@ -48,6 +49,7 @@ shared_module_t Loader::init(const std::string &fileName) {
 }
 
 shared_module_t Loader::init(const uchar_t *source, size_t len) {
+  Utilities::reportDebug("- [LOADING PHASE] -");
   shared_module_t wasmModule;
 
   // one-time copying;
@@ -108,18 +110,19 @@ void Loader::parseTypeSection(const shared_module_t &module) {
   Utilities::reportDebug("parsing type section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(entryCount, uint32_t, module);
-  for (auto i = 0; i < entryCount; i++) {
+  for (uint32_t i = 0; i < entryCount; i++) {
     if (static_cast<ValueTypesCode>(Decoder::readUint8(module)) == ValueTypesCode::kFunc) {
-      vector<ValueTypesCode> typesArr;
+      // allocate vector on heap;
+      const auto typesArr = new vector<ValueTypesCode>;
       WRAP_UINT_FIELD(paramsCount, uint32_t, module);
-      for (auto j = 0; j < paramsCount; j++) {
-        typesArr.push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
+      for (uint32_t j = 0; j < paramsCount; j++) {
+        typesArr->push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
       }
       WRAP_UINT_FIELD(returnCount, uint8_t, module);
-      for (auto j = 0; j < returnCount; j++) {
-        typesArr.push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
+      for (uint32_t j = 0; j < returnCount; j++) {
+        typesArr->push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
       }
-      module->getFunctionSig()->push_back({paramsCount, returnCount, typesArr.data()});
+      module->getFunctionSig()->push_back({i, paramsCount, returnCount, typesArr->data()});
     } else {
       Utilities::reportError("type section code mismatch.");
     }
