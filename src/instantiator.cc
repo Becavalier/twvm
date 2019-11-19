@@ -19,7 +19,10 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   // memory instance;
   Utilities::reportDebug("store: creating memory instances.");
   const auto staticMemory = module->getMemory();
-  store->memoryInsts.push_back({staticMemory->initialPages, staticMemory->maximumPages});
+  // we can not use "push_back" here, -
+  // since the destructor will be called when the temp value is copied by default copy-constructor -
+  // (even for move-constructor, we didn't use std::move), and the memory we allocated will get lost.
+  store->memoryInsts.emplace_back(staticMemory->initialPages, staticMemory->maximumPages);
   moduleInst->memmories.push_back(&store->memoryInsts.back());
   // TODO(Jason Yu): init data section;
 
@@ -27,17 +30,23 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   Utilities::reportDebug("store: creating function instances.");
   const auto staticFunctions = module->getFunction();
   for (auto &i : *staticFunctions) {
-    const auto code = new vector<WasmOpcode>();
+    store->functionInsts.emplace_back();
+    const auto ins = &store->functionInsts.back();
     for (auto j = 0; j < i.codeLen; j++) {
       const auto opcode = static_cast<WasmOpcode>(Decoder::readUint8(i.code + j));
       if (opcode != WasmOpcode::kOpcodeEnd) {
-        code->push_back(opcode);
+        ins->code.push_back(opcode);
       }
     }
-    store->functionInsts.push_back({i.sig, moduleInst, code});
-    moduleInst->funcs.push_back(&store->functionInsts.back());
+    ins->type = i.sig;
+    ins->module = moduleInst;
   }
-
+  // We need to perform this loop separately, since -
+  // the address of the vector elements are not stable due to the "resize" of each "*_back";
+  for (auto &i : store->functionInsts) {
+    moduleInst->funcs.push_back(&i);
+  }
+ 
   // global instances;
   Utilities::reportDebug("store: creating global instances.");
   const auto staticGlobal = module->getGlobal();
@@ -45,16 +54,17 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     // skip platform-hosting imported global;
     if (i.type != ValueTypesCode::kFunc) {
       store->globalInsts.push_back({i.type, i.init.toRTValue(), i.mutability});
-      moduleInst->globals.push_back(&store->globalInsts.back());
     }
   }
-
+  for (auto &i : store->globalInsts) {
+    moduleInst->globals.push_back(&i);
+  }
+  
   // table instances;
   Utilities::reportDebug("store: creating table instances.");
   const auto staticTable = module->getTable();
   for (auto &i : *staticTable) {
     store->tableInsts.push_back({i.maximumSize});
-    moduleInst->tables.push_back(&store->tableInsts.back());
     const auto tableInst = &store->tableInsts.back();
     for (auto &j : *module->getElement()) {
       // MVP: use default element section;
@@ -65,10 +75,18 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
       }
     }
   }
-
+  for (auto &i : store->tableInsts) {
+    moduleInst->tables.push_back(&i);
+  }
+  
   // TODO(Jason Yu): global instances;
   Utilities::reportDebug("store: creating export instances. [skip]");
   const auto staticExport = module->getExport();
 
-  return make_shared<WasmInstance>(WasmInstance({moduleInst, store, stack}));
+  // global Wasm instance;
+  const auto wasmIns = make_shared<WasmInstance>();
+  wasmIns->module = moduleInst;
+  wasmIns->store = store;
+  wasmIns->stack = stack;
+  return wasmIns;
 }

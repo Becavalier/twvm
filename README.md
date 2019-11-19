@@ -33,9 +33,11 @@ And lint the source code by:
 
 * **Memory Check**:
 
-Install "*valgrind*" on MacOS according to the following article first:
+Install "*valgrind*" on MacOS according to the following articles first:
 
 *[How to Install Valgrind on macOS High Sierra](https://www.gungorbudak.com/blog/2018/04/28/how-to-install-valgrind-on-macos-high-sierra/)*
+
+*[Valgrind on macOs 10.14/10.15](https://github.com/sowson/valgrind)*
 
 
 Then run the following command to detect the memory leak of the binary version program:

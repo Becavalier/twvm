@@ -117,23 +117,23 @@ struct WasmInitExpr {
 
 /* static sections types */
 struct WasmFunctionSig {
-  ~WasmFunctionSig() { reps = nullptr; }
-  uint32_t index;
-  size_t paramsCount;
-  size_t returnCount;
-  const ValueTypesCode *reps;
+  SET_STRUCT_MOVE_ONLY(WasmFunctionSig);
+  uint32_t index = 0;
+  size_t paramsCount = 0;
+  size_t returnCount = 0;
+  vector<ValueTypesCode> reps;
 };
 
 // wasm indirect call table;
 struct WasmFunction {
-  ~WasmFunction() { code = nullptr; }
+  SET_STRUCT_MOVE_ONLY(WasmFunction);
   WasmFunctionSig* sig;
   size_t funcIndex;
   size_t sigIndex;
-  const uchar_t *code;
-  size_t codeLen;
-  bool imported;
-  bool exported;
+  const uchar_t *code = nullptr;
+  size_t codeLen = 0;
+  bool imported = false;
+  bool exported = false;
 };
 
 struct WasmTable {

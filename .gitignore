@@ -8,3 +8,4 @@ googletest*/
 lib/
 .DS_Store
 node_modules/
+*.dSYM/

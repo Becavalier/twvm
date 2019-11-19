@@ -113,16 +113,19 @@ void Loader::parseTypeSection(const shared_module_t &module) {
   for (uint32_t i = 0; i < entryCount; i++) {
     if (static_cast<ValueTypesCode>(Decoder::readUint8(module)) == ValueTypesCode::kFunc) {
       // allocate vector on heap;
-      const auto typesArr = new vector<ValueTypesCode>;
+      module->getFunctionSig()->emplace_back();
+      const auto sig = &module->getFunctionSig()->back();
       WRAP_UINT_FIELD(paramsCount, uint32_t, module);
       for (uint32_t j = 0; j < paramsCount; j++) {
-        typesArr->push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
+        sig->reps.push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
       }
       WRAP_UINT_FIELD(returnCount, uint8_t, module);
       for (uint32_t j = 0; j < returnCount; j++) {
-        typesArr->push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
+        sig->reps.push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
       }
-      module->getFunctionSig()->push_back({i, paramsCount, returnCount, typesArr->data()});
+      sig->index = i;
+      sig->paramsCount = paramsCount;
+      sig->returnCount = returnCount;
     } else {
       Utilities::reportError("type section code mismatch.");
     }
@@ -190,11 +193,15 @@ void Loader::parseFunctionSection(const shared_module_t &module) {
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(declaredFuncCount, uint32_t, module);
   for (auto i = 0; i < declaredFuncCount; i++) {
+    module->getFunction()->emplace_back();
+    const auto func = &module->getFunction()->back();
     // indices: uint32_t;
     WRAP_UINT_FIELD(sigIndex, uint32_t, module);
     const auto sig = module->getFunctionSig(sigIndex);
     const auto funcIndex = module->getFunction()->size();
-    module->getFunction()->push_back({sig, funcIndex, sigIndex, nullptr, 0, false, false});
+    func->sig = sig;
+    func->sigIndex = sigIndex;
+    func->funcIndex = funcIndex;
   }
 }
 

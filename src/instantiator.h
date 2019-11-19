@@ -25,14 +25,17 @@ class WasmMemoryInstance {
   WasmMemoryInstance(uint32_t initMemSize = 1, uint32_t maxMemSize = 0) : maxMemSize(maxMemSize) {
     if (initMemSize > 0 && (maxMemSize == 0 || initMemSize <= maxMemSize)) {
       // allocate space (multiple of Wasm page);
-      data = reinterpret_cast<uchar_t*>(malloc(initMemSize * WASM_PAGE_SIZE));
-      currentMemSize = initMemSize;
+      if ((data = static_cast<uchar_t*>(malloc(initMemSize * WASM_PAGE_SIZE)))) {
+        currentMemSize = initMemSize;
+      } else {
+        Utilities::reportError("memory allocating error.");
+      }
     } else {
       Utilities::reportError("invalid memory allocation size.");
     }
   }
   ~WasmMemoryInstance() {
-    data = nullptr;
+    free(data);
   }
 
   // memory -> stack;
@@ -63,7 +66,7 @@ class WasmMemoryInstance {
     return currentMemSize;
   }
 
-  const auto& rawData() {
+  const auto& rawDataBuf() {
     return data;
   }
 
@@ -74,6 +77,7 @@ class WasmMemoryInstance {
     } else {
       const auto previousMemSize = currentMemSize;
       currentMemSize = currentMemSize + pages;
+      // TODO(Jason Yu): relloc;
       return previousMemSize;
     }
   }
@@ -82,7 +86,7 @@ class WasmMemoryInstance {
   // 64k per pages;
   uint32_t maxMemSize = 0;
   uint32_t currentMemSize = 0;
-  uchar_t* data;
+  uchar_t* data = nullptr;
   const WasmMemory *staticMemory;
 };
 
@@ -101,10 +105,9 @@ struct WasmTableInstance {
 
 struct WasmFuncInstance {
   SET_STRUCT_MOVE_ONLY(WasmFuncInstance);
-  ~WasmFuncInstance() { code = nullptr; }
   WasmFunctionSig* type;
   shared_ptr<WasmModuleInstance> module;
-  const vector<WasmOpcode> *code;
+  vector<WasmOpcode> code;
 };
 
 struct WasmExportInstance {
@@ -123,6 +126,7 @@ struct WasmModuleInstance {
 };
 
 struct WasmInstance {
+  SET_STRUCT_MOVE_ONLY(WasmInstance);
   shared_ptr<WasmModuleInstance> module;
   shared_ptr<Store> store;
   shared_ptr<Stack> stack;
