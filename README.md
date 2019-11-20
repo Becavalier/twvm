@@ -2,8 +2,7 @@
 
 [![experimental](http://badges.github.io/stability-badges/dist/experimental.svg)](http://github.com/badges/stability-badges)
 
-[![action](https://github.com/Becavalier/TWVM/workflows/Build CI/badge.svg)]()
-
+<img alt="GitHub Actions status" src="https://github.com/Becavalier/TWVM/workflows/Build CI/badge.svg">
 
 > A tiny and efficient WebAssembly virtual machine.
 
