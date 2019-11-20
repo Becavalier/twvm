@@ -36,6 +36,8 @@ using std::cout;
 using std::endl;
 using std::is_same;
 using std::stringstream;
+using std::istringstream;
+using std::getline;
 
 class Printer {
  private:
@@ -60,6 +62,7 @@ class Utilities {
   static inline unique_ptr<Printer> getPrinter() {
     return make_unique<Printer>();
   }
+  static vector<string> splitStr(const string&, char);
 };
 
 #endif  // UTILITIES_H_

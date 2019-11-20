@@ -16,7 +16,7 @@ set (CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 set (OUTPUT "twvm")
 set (STATE $ENV{CMAKE_TARGET})
 set (N_OUTPUT_SRC "build")
-set (T_OUTPUT_SRC "test")
+set (T_OUTPUT_SRC "tests")
 
 if (STATE STREQUAL TEST)
   set (EXECUTABLE_OUTPUT_PATH ${T_OUTPUT_SRC})

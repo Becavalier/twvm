@@ -15,16 +15,19 @@ using std::stringstream;
 
 void Inspector::inspect(shared_ptr<WasmInstance> ins) {
   stringstream line;
+  // set up display format;
+  line << hex << showbase;
   const auto printer = Utilities::getPrinter();
 
   OUT << endl;
   OUT << hex << showbase << "- [INSPECTOR PHASE] -" << endl;
   
   // WasmFunctionSig;
-  OUT << "# Signatures: " << ins->module->types.size() << endl;
+  OUT << "# Signatures (" << ins->module->types.size() << "): " << endl;
   for (const auto &type : ins->module->types) {
     auto i = 0;
     const auto reps = type->reps;
+    line << "[";
     line << type->index << ": ";
     for (; i < type->paramsCount; i++) {
       line << static_cast<int>(reps[i]) << ' ';
@@ -32,49 +35,55 @@ void Inspector::inspect(shared_ptr<WasmInstance> ins) {
     for (; i < (type->paramsCount + type->returnCount); i++) {
       line << "-> " << static_cast<int>(reps[i]);
     }
+    line << "]";
     printer->feedLine(line);
   }
   printer->printTableView();
 
   // WasmFunction;
-  OUT << "# Functions: " << ins->module->funcs.size() << endl;
+  OUT << "# Functions (" << ins->module->funcs.size() << "): " <<  endl;
   for (const auto &func : ins->module->funcs) {
-    line << "[sig_index " << func->type->index << "] " << "[code_size " << func->code.size() << "B]";
+    line << "[";
+    line << "sig_index " << func->type->index << " | " << "code_size " << func->code.size() << " B]";
     printer->feedLine(line);
   }
   printer->printTableView();
 
   // WasmTable;
-  OUT << "# Tables: " << ins->module->tables.size() << endl;
+  OUT << "# Tables (" << ins->module->tables.size() << "): " << endl;
   for (const auto &table : ins->module->tables) {
-    line << "[max_table_size " << table->maxTableSize << "] ";
+    line << "[";
+    line << "max_table_size " << table->maxTableSize << "]";
     printer->feedLine(line);
   }
   printer->printTableView();
 
   // WasmMemory;
-  OUT << "# Memories: " << ins->module->memories.size() << endl;
+  OUT << "# Memories (" << ins->module->memories.size() << "): " << endl;
   for (const auto &memory : ins->module->memories) {
-    line << "[memory_size " << (memory->size() * WASM_PAGE_SIZE / 1024) << "Kib] ";
+    line << "[";
+    line << "memory_size " << (memory->size() * WASM_PAGE_SIZE / 1024) << " kib]";
     printer->feedLine(line);
   }
   printer->printTableView();
 
   // WasmGlobal;
-  OUT << "# Globals: " << ins->module->globals.size() << endl;
+  OUT << "# Globals (" << ins->module->globals.size() << "): " << endl;
   for (const auto &global : ins->module->globals) {
-    line << "[global_type " << static_cast<int>(global->type) << "] ";
-    line << "[mutability " << global->mutability << "] ";
+    line << "[";
+    line << "global_type " << static_cast<int>(global->type) << " | ";
+    line << "mutability " << global->mutability << "]";
     printer->feedLine(line);
   }
   printer->printTableView();
 
   // WasmExport;
-  OUT << "# Exports: " << ins->module->exports.size() << endl;
+  OUT << "# Exports (" << ins->module->exports.size() << "): " << endl;
   for (const auto &_export : ins->module->exports) {
-    line << "[export_name \"" << _export.name << "\"] ";
-    line << "[export_type " << static_cast<int>(_export.type) << "] ";
-    line << "[index " << _export.index << "] ";
+    line << "[";
+    line << "export_name \"" << _export.name << "\" | ";
+    line << "export_type " << static_cast<int>(_export.type) << " | ";
+    line << "index " << _export.index << "]";
     printer->feedLine(line);
   }
   printer->printTableView();

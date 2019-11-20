@@ -16,7 +16,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   for (auto &i : (*staticFuncTypes)) {
     moduleInst->types.push_back(&i);
   }
-  
+
   // memory instance;
   Utilities::reportDebug("store: creating memory instances.");
   const auto staticMemory = module->getMemory();
@@ -47,7 +47,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   for (auto &i : store->functionInsts) {
     moduleInst->funcs.push_back(&i);
   }
- 
+
   // global instances;
   Utilities::reportDebug("store: creating global instances.");
   const auto staticGlobal = module->getGlobal();
@@ -60,7 +60,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   for (auto &i : store->globalInsts) {
     moduleInst->globals.push_back(&i);
   }
-  
+
   // table instances;
   Utilities::reportDebug("store: creating table instances.");
   const auto staticTable = module->getTable();
