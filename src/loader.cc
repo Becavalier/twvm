@@ -145,7 +145,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
     WRAP_UINT_FIELD(fieldNameLen, uint32_t, module);
     const auto fieldName = Decoder::decodeName(module, fieldNameLen);
     const auto importType = static_cast<ExternalTypesCode>(Decoder::readUint8(module));
-    uint32_t index;
+    uint32_t index = 0;
     switch (importType) {
       case ExternalTypesCode::kExternalFunction: {
         WRAP_UINT_FIELD(sigIndex, uint32_t, module);
@@ -278,7 +278,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
     WRAP_UINT_FIELD(nameLen, uint32_t, module);
     const auto name = Decoder::decodeName(module, nameLen);
     const auto exportType = static_cast<ExternalTypesCode>(Decoder::readUint8(module));
-    uint32_t index;
+    uint32_t index = 0;
     switch (exportType) {
       case ExternalTypesCode::kExternalFunction: {
         index = WRAP_UINT_FIELD_(uint32_t, module);

@@ -14,6 +14,10 @@
 #include <iostream>
 #include <string>
 #include <type_traits>
+#include <vector>
+#include <memory>
+#include <type_traits>
+#include <sstream>
 
 #define OUTPUT_PREFIX "twvm: "
 
@@ -25,12 +29,37 @@
 
 using std::string;
 using std::underlying_type;
+using std::vector;
+using std::unique_ptr;
+using std::make_unique;
+using std::cout;
+using std::endl;
+using std::is_same;
+using std::stringstream;
+
+class Printer {
+ private:
+  vector<string> lines;
+ 
+ public:
+  void inline feedLine(const string &line) {
+    lines.push_back(line);
+  }
+  void inline feedLine(stringstream &line) {
+    lines.push_back(line.str());
+    line.str(string());
+  }
+  void printTableView();
+};
 
 class Utilities {
  public:
-  static std::ostream& reportError(const string &msg = "internal error occured.", bool = true);
   static std::ostream& reportDebug(const string &msg = "");
   static std::ostream& reportWarning(const string &msg = "");
+  static std::ostream& reportError(const string &msg = "internal error occured.", bool = true);
+  static inline unique_ptr<Printer> getPrinter() {
+    return make_unique<Printer>();
+  }
 };
 
 #endif  // UTILITIES_H_

@@ -4,6 +4,7 @@
 #include "src/decoder.h"
 
 const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module) {
+  Utilities::reportDebug() << endl;
   Utilities::reportDebug("- [INSTANTIATING PHASE] -");
 
   // produce store, stack and module instance;
@@ -23,7 +24,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   // since the destructor will be called when the temp value is copied by default copy-constructor -
   // (even for move-constructor, we didn't use std::move), and the memory we allocated will get lost.
   store->memoryInsts.emplace_back(staticMemory->initialPages, staticMemory->maximumPages);
-  moduleInst->memmories.push_back(&store->memoryInsts.back());
+  moduleInst->memories.push_back(&store->memoryInsts.back());
   // TODO(Jason Yu): init data section;
 
   // function instances;
@@ -78,10 +79,13 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   for (auto &i : store->tableInsts) {
     moduleInst->tables.push_back(&i);
   }
-  
-  // TODO(Jason Yu): global instances;
-  Utilities::reportDebug("store: creating export instances. [skip]");
+
+  // global instances;
+  Utilities::reportDebug("store: creating export instances.");
   const auto staticExport = module->getExport();
+  for (auto &i : *staticExport) {
+    moduleInst->exports.push_back({i.name, i.type, i.index});
+  }
 
   // global Wasm instance;
   const auto wasmIns = make_shared<WasmInstance>();

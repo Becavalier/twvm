@@ -112,7 +112,9 @@ struct WasmFuncInstance {
 
 struct WasmExportInstance {
   SET_STRUCT_MOVE_ONLY(WasmExportInstance);
-  // TODO (Jason Yu) ;
+  string name;
+  ExternalTypesCode type;
+  uint32_t index = 0;
 };
 
 struct WasmModuleInstance {
@@ -120,9 +122,9 @@ struct WasmModuleInstance {
   vector<WasmFunctionSig*> types;
   vector<WasmFuncInstance*> funcs;
   vector<WasmTableInstance*> tables;
-  vector<WasmMemoryInstance*> memmories;
+  vector<WasmMemoryInstance*> memories;
   vector<WasmGlobalInstance*> globals;
-  WasmExportInstance *exports;
+  vector<WasmExportInstance> exports;
 };
 
 struct WasmInstance {

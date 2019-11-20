@@ -64,5 +64,7 @@ int main(int argc, char **argv) {
   // inspect;
   Inspector::inspect(wasmInstance);
 
+  // execution
+
   return 0;
 }

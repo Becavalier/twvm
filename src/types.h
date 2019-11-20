@@ -176,14 +176,14 @@ struct WasmGlobal {
 struct WasmExport {
   string name;
   ExternalTypesCode type;
-  uint32_t index;
+  uint32_t index = 0;
 };
 
 struct WasmImport {
   string moduleName;
   string fieldName;
   ExternalTypesCode kind;
-  uint32_t index;
+  uint32_t index = 0;
 };
 
 #endif  // TYPES_H_

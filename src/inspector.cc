@@ -1,5 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <iostream>
+#include <sstream>
 #include "src/utilities.h"
 #include "src/inspector.h"
 
@@ -9,33 +10,72 @@
 using std::cout;
 using std::endl;
 using std::hex;
+using std::showbase;
+using std::stringstream;
 
-bool Inspector::inspect(shared_ptr<WasmInstance> ins) {
-  OUT << hex << "- [INSPECTOR PHASE] -" << endl;
+void Inspector::inspect(shared_ptr<WasmInstance> ins) {
+  stringstream line;
+  const auto printer = Utilities::getPrinter();
+
+  OUT << endl;
+  OUT << hex << showbase << "- [INSPECTOR PHASE] -" << endl;
   
   // WasmFunctionSig;
-  OUT << "count of Signatures: " << ins->module->types.size() << endl;
+  OUT << "# Signatures: " << ins->module->types.size() << endl;
   for (const auto &type : ins->module->types) {
-    const auto reps = type->reps;
     auto i = 0;
-    OUT << "( " << type->index << ": ";
+    const auto reps = type->reps;
+    line << type->index << ": ";
     for (; i < type->paramsCount; i++) {
-      cout << "[param " << static_cast<int>(reps[i]) << "] ";
+      line << static_cast<int>(reps[i]) << ' ';
     }
-    for (; i < type->paramsCount + type->returnCount; i++) {
-      cout << "-> [result " << static_cast<int>(reps[i]) << "] ";
+    for (; i < (type->paramsCount + type->returnCount); i++) {
+      line << "-> " << static_cast<int>(reps[i]);
     }
-    cout << ")" << endl;
+    printer->feedLine(line);
   }
+  printer->printTableView();
 
   // WasmFunction;
-  OUT << "count of Functions: " << ins->module->funcs.size() << endl;
-  for (const auto func : ins->module->funcs) {
-    OUT << "- ";
-    cout << "[sig_index " << func->type->index << "] ";
-    cout << "[code_size " << func->code.size() << "] ";
-    cout << "-" << endl;
+  OUT << "# Functions: " << ins->module->funcs.size() << endl;
+  for (const auto &func : ins->module->funcs) {
+    line << "[sig_index " << func->type->index << "] " << "[code_size " << func->code.size() << "B]";
+    printer->feedLine(line);
   }
+  printer->printTableView();
 
-  return true;
+  // WasmTable;
+  OUT << "# Tables: " << ins->module->tables.size() << endl;
+  for (const auto &table : ins->module->tables) {
+    line << "[max_table_size " << table->maxTableSize << "] ";
+    printer->feedLine(line);
+  }
+  printer->printTableView();
+
+  // WasmMemory;
+  OUT << "# Memories: " << ins->module->memories.size() << endl;
+  for (const auto &memory : ins->module->memories) {
+    line << "[memory_size " << (memory->size() * WASM_PAGE_SIZE / 1024) << "Kib] ";
+    printer->feedLine(line);
+  }
+  printer->printTableView();
+
+  // WasmGlobal;
+  OUT << "# Globals: " << ins->module->globals.size() << endl;
+  for (const auto &global : ins->module->globals) {
+    line << "[global_type " << static_cast<int>(global->type) << "] ";
+    line << "[mutability " << global->mutability << "] ";
+    printer->feedLine(line);
+  }
+  printer->printTableView();
+
+  // WasmExport;
+  OUT << "# Exports: " << ins->module->exports.size() << endl;
+  for (const auto &_export : ins->module->exports) {
+    line << "[export_name \"" << _export.name << "\"] ";
+    line << "[export_type " << static_cast<int>(_export.type) << "] ";
+    line << "[index " << _export.index << "] ";
+    printer->feedLine(line);
+  }
+  printer->printTableView();
 }

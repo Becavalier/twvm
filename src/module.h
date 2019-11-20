@@ -22,7 +22,7 @@ class Module {
  public:
   Module() = default;
   ~Module() {
-    Utilities::reportDebug("static module has been destructed.");
+    Utilities::reportDebug("[destructor] static module has been destructed.");
   }
 
   void setModContent(const vector<uchar_t> &content) {
