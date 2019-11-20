@@ -1,6 +1,9 @@
-name: C/C++ CI
+name: Build CI
 
-on: [push]
+on: 
+  push:
+    branches:
+    - master
 
 jobs:
   build:
@@ -8,9 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Setup Node.js for use with actions
-      uses: actions/setup-node@v1.1.0
-    - name: Setup C++ environment
-      uses: kurocha/setup-cpp@v1
-    - name: build
-      run: cd .. && npm run build
+      - name: Fetch Codebase
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v1.1.0
+        with:
+          node-version: '10.x'
+      - name: Setup C++ environment
+        uses: kurocha/setup-cpp@v1
+      - name: Install Dependencies
+        run: npm install
+      - name: Build
+        run: npm run debug
