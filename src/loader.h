@@ -105,21 +105,20 @@ class Loader {
         WRAP_UINT_FIELD(globalIndex, uint32_t, module);
         const auto moduleGlobal = module->getGlobal(globalIndex);
         if (moduleGlobal->mutability || !moduleGlobal->imported) {
-          Utilities::reportError(
-            "only immutable imported globals can be used in initializer expressions.", true);
+          ERROR_OUT("only immutable imported globals can be used in initializer expressions.", true);
         }
         expr->kind = InitExprKind::kGlobalIndex;
         expr->val.vGlobalIndex = globalIndex;
         break;
       }
       default: {
-        Utilities::reportError("not supported opcode found in global section.", true);
+        ERROR_OUT("not supported opcode found in global section.", true);
         break;
       }
     }
     // "0x0b" ending byte;
     if (static_cast<WasmOpcode>(Decoder::readUint8(module)) != WasmOpcode::kOpcodeEnd) {
-      Utilities::reportError("illegal ending byte.", true);
+      ERROR_OUT("illegal ending byte.", true);
     }
   }
 

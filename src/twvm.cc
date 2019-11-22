@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include "src/macros.h"
 #include "src/utilities.h"
 #include "src/constants.h"
 #include "src/loader.h"
@@ -27,7 +28,7 @@ int main(int argc, char **argv) {
   auto start = high_resolution_clock::now();
 
   if (argc < 2) {
-    Utilities::reportError("no input file.");
+    ERROR_OUT("no input file.");
     return 1;
   }
 
@@ -38,8 +39,8 @@ int main(int argc, char **argv) {
   if (wasmModule) {
     const auto wasmModuleSize = wasmModule->getModContentLength();
     if (wasmModuleSize > 0) {
-      Utilities::reportDebug("module parsing completed. (" + to_string(wasmModuleSize) + " bytes)");
-      Utilities::reportDebug()
+      DEBUG_OUT("module parsing completed. (" + to_string(wasmModuleSize) + " bytes)");
+      DEBUG_OUT()
         << "static parsing time: "
         << calcTimeInterval(start) << "ms."
          << std::endl;
@@ -52,8 +53,8 @@ int main(int argc, char **argv) {
   const auto wasmInstance = Instantiator::instantiate(wasmModule);
   // debug;
   if (wasmInstance) {
-    Utilities::reportDebug("module instantiating completed.");
-    Utilities::reportDebug()
+    DEBUG_OUT("module instantiating completed.");
+    DEBUG_OUT()
       << "instantiating time: "
       << calcTimeInterval(start) << "ms."
       << std::endl;
@@ -65,6 +66,10 @@ int main(int argc, char **argv) {
   Inspector::inspect(wasmInstance);
 
   // execution
+  const auto result = Executor::execute(wasmInstance);
+  if (result == 1) {
+    ERROR_OUT("Wasm module execution failed!");
+  }
 
-  return 0;
+  return result;
 }

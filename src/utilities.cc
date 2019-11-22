@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <numeric>
 #include "src/utilities.h"
+#include "src/macros.h"
 
 using std::runtime_error;
 using std::max_element;
@@ -64,9 +65,9 @@ void Printer::printTableView() {
     const auto columnWidthSize = columnWidth.size();
     const auto maxLengthPadding =
       accumulate(begin(columnWidth), end(columnWidth), 0) + columnWidthSize + 3;
-    Utilities::reportDebug() << setw(maxLengthPadding) << setfill('-') << left << '|' << endl;
+    DEBUG_OUT() << setw(maxLengthPadding) << setfill('-') << left << '|' << endl;
     for (auto i = 0; i < lines.size(); i++) {
-      Utilities::reportDebug() << "| ";
+      DEBUG_OUT() << "| ";
         for (auto j = 0; j < columnWidthSize; j++) {
           cout << setw(columnWidth[j]) << setfill(' ') << columnContent[i][j];
           if (j != columnWidthSize - 1) {
@@ -75,7 +76,7 @@ void Printer::printTableView() {
         }
         cout << " |" << endl;
     }
-    Utilities::reportDebug() << setw(maxLengthPadding) << setfill('-') << left << '|' << endl;
+    DEBUG_OUT() << setw(maxLengthPadding) << setfill('-') << left << '|' << endl;
     lines.clear();
   }
 }

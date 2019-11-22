@@ -4,11 +4,11 @@
 #include "src/decoder.h"
 
 const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module) {
-  Utilities::reportDebug() << endl;
-  Utilities::reportDebug("- [INSTANTIATING PHASE] -");
+  DEBUG_OUT() << endl;
+  DEBUG_OUT("- [INSTANTIATING PHASE] -");
 
   // produce store, stack and module instance;
-  Utilities::reportDebug("instantiating store, stack and module instances.");
+  DEBUG_OUT("instantiating store, stack and module instances.");
   const auto store = make_shared<Store>();
   const auto stack = make_shared<Stack>();
   const auto moduleInst = make_shared<WasmModuleInstance>();
@@ -18,17 +18,18 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // memory instance;
-  Utilities::reportDebug("store: creating memory instances.");
+  DEBUG_OUT("store: creating memory instances.");
   const auto staticMemory = module->getMemory();
   // we can not use "push_back" here, -
   // since the destructor will be called when the temp value is copied by default copy-constructor -
   // (even for move-constructor, we didn't use std::move), and the memory we allocated will get lost.
+  // so, only allow the way of "placement-new" here.
   store->memoryInsts.emplace_back(staticMemory->initialPages, staticMemory->maximumPages);
   moduleInst->memories.push_back(&store->memoryInsts.back());
   // TODO(Jason Yu): init data section;
 
   // function instances;
-  Utilities::reportDebug("store: creating function instances.");
+  DEBUG_OUT("store: creating function instances.");
   const auto staticFunctions = module->getFunction();
   for (auto &i : *staticFunctions) {
     store->functionInsts.emplace_back();
@@ -49,7 +50,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // global instances;
-  Utilities::reportDebug("store: creating global instances.");
+  DEBUG_OUT("store: creating global instances.");
   const auto staticGlobal = module->getGlobal();
   for (auto &i : *staticGlobal) {
     // skip platform-hosting imported global;
@@ -62,7 +63,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // table instances;
-  Utilities::reportDebug("store: creating table instances.");
+  DEBUG_OUT("store: creating table instances.");
   const auto staticTable = module->getTable();
   for (auto &i : *staticTable) {
     store->tableInsts.push_back({i.maximumSize});
@@ -81,7 +82,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // global instances;
-  Utilities::reportDebug("store: creating export instances.");
+  DEBUG_OUT("store: creating export instances.");
   const auto staticExport = module->getExport();
   for (auto &i : *staticExport) {
     moduleInst->exports.push_back({i.name, i.type, i.index});

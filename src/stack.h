@@ -53,6 +53,9 @@ class LabelsFrame : public Frame {
  public:
   SET_STRUCT_DISABLE_COPY_CONSTUCT(LabelsFrame);
   LabelsFrame() : Frame(StackFrameTypes::kLabels) {}
+ private:
+  // for "block", "loop" and "if";
+  ValueTypesCode resultType;
 };
 
 class ActivationsFrame : public Frame {

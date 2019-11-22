@@ -28,10 +28,10 @@ class WasmMemoryInstance {
       if ((data = static_cast<uchar_t*>(malloc(initMemSize * WASM_PAGE_SIZE)))) {
         currentMemSize = initMemSize;
       } else {
-        Utilities::reportError("memory allocating error.");
+        ERROR_OUT("memory allocating error.");
       }
     } else {
-      Utilities::reportError("invalid memory allocation size.");
+      ERROR_OUT("invalid memory allocation size.");
     }
   }
   ~WasmMemoryInstance() {
@@ -44,7 +44,7 @@ class WasmMemoryInstance {
     if (offset + sizeof(T) <= currentMemSize * DEFAULT_BYTE_LENGTH) {
       return *reinterpret_cast<T*>(data + offset);
     } else {
-      Utilities::reportError("memory out of bound.");
+      ERROR_OUT("memory out of bound.");
       // unreachable;
       return false;
     }
@@ -57,7 +57,7 @@ class WasmMemoryInstance {
     if (offset + sizeof(T) <= currentMemSize * DEFAULT_BYTE_LENGTH) {
       *(reinterpret_cast<T*>(data + offset)) = val;
     } else {
-      Utilities::reportError("memory out of bound.");
+      ERROR_OUT("memory out of bound.");
     }
   }
 

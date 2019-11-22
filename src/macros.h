@@ -2,6 +2,13 @@
 #ifndef MACROS_H_
 #define MACROS_H_
 
+#include <src/utilities.h>
+
+#define DEBUG_OUT \
+  Utilities::reportDebug
+#define ERROR_OUT \
+  Utilities::reportError
+
 // 1. user-defined destructor will prevent compiler from calling explicit move-constructor;
 #define SET_STRUCT_DISABLE_COPY_CONSTUCT(TypeName) \
   TypeName(const TypeName&) = delete; \

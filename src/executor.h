@@ -2,9 +2,15 @@
 #ifndef EXECUTOR_H_
 #define EXECUTOR_H_
 
+#include <memory>
+#include <src/instantiator.h>
+
+using std::shared_ptr;
+
 // core execution logic;
 class Executor {
-
+ public:
+  static int execute(shared_ptr<WasmInstance>);
 };
 
 #endif  // EXECUTOR_H_

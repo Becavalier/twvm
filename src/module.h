@@ -7,6 +7,7 @@
 #include <memory>
 #include "src/types.h"
 #include "src/utilities.h"
+#include "src/macros.h"
 
 using std::vector;
 using std::shared_ptr;
@@ -22,7 +23,7 @@ class Module {
  public:
   Module() = default;
   ~Module() {
-    Utilities::reportDebug("[destructor] static module has been destructed.");
+    DEBUG_OUT("[destructor] static module has been destructed.");
   }
 
   void setModContent(const vector<uchar_t> &content) {
