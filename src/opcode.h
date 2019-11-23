@@ -190,17 +190,31 @@
   V(F64SConvertI32, 0xb7) \
   V(F64UConvertI32, 0xb8) \
   V(F64SConvertI64, 0xb9) \
-  V(F64UConvertI64, 0xba) \
+  V(F64UConvertI64, 0xba) \ 
   V(F64ConvertF32, 0xbb) \
   V(I32ReinterpretF32, 0xbc) \
   V(I64ReinterpretF64, 0xbd) \
   V(F32ReinterpretI32, 0xbe) \
   V(F64ReinterpretI64, 0xbf)
 
+#include <memory>
+#include "src/instantiator.h"
+
+using std::shared_ptr;
+
+// ahead declare;
+struct WasmInstance;
+
 enum class WasmOpcode {
   ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
 };
 
-class OpCode;
+class OpCode {
+ private:
+  static bool inline doUnreachable();
+
+ public:
+  static bool handle(shared_ptr<WasmInstance> wasmIns, WasmOpcode opcode);
+};
 
 #endif  // OPCODE_H_

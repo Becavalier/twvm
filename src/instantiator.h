@@ -16,8 +16,10 @@ using std::vector;
 using std::make_shared;
 using std::shared_ptr;
 
+// ahead declare;
 struct Store;
 struct WasmModuleInstance;
+enum class WasmOpcode;
 
 class WasmMemoryInstance {
  public:
@@ -129,6 +131,9 @@ struct WasmModuleInstance {
 
 struct WasmInstance {
   SET_STRUCT_MOVE_ONLY(WasmInstance);
+  // start function, or main function;
+  const uchar_t *startPoint = nullptr;
+  size_t startCodeLen = 0;
   shared_ptr<WasmModuleInstance> module;
   shared_ptr<Store> store;
   shared_ptr<Stack> stack;

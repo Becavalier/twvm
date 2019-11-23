@@ -1,7 +1,12 @@
 // Copyright 2019 YHSPY. All rights reserved.
+#include <algorithm>
 #include "src/instantiator.h"
 #include "src/store.h"
 #include "src/decoder.h"
+
+using std::find_if;
+using std::hex;
+using std::showbase;
 
 const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module) {
   DEBUG_OUT() << endl;
@@ -93,5 +98,35 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   wasmIns->module = moduleInst;
   wasmIns->store = store;
   wasmIns->stack = stack;
+
+  // setup start point;
+  const auto startFunctionIndex = module->getStartFuncIndex();
+  bool hasStartPoint = true;
+  if (startFunctionIndex != -1) {
+    const auto &wasmFunc = module->getFunction()->at(startFunctionIndex);
+    wasmIns->startPoint = wasmFunc.code;
+    wasmIns->startCodeLen = wasmFunc.codeLen;
+  } else {
+    const auto exportItB = module->getExport()->begin();
+    const auto exportItE = module->getExport()->end();
+    const auto it = find_if(exportItB, exportItE, [](const WasmExport &exportEntity) -> auto {
+      return exportEntity.name == "main" && exportEntity.type == ExternalTypesCode::kExternalFunction;
+    });
+    if (it != exportItE) {
+      const auto &wasmFunc = module->getFunction()->at(it->index);
+      wasmIns->startPoint = wasmFunc.code;
+      wasmIns->startCodeLen = wasmFunc.codeLen;
+    } else {
+      hasStartPoint = false;
+    }
+  }
+  if (hasStartPoint && wasmIns->startPoint != nullptr) {
+    DEBUG_OUT() << "execution start point: " << hex << showbase
+      << reinterpret_cast<uintptr_t>(wasmIns->startPoint)
+      << '.' << endl;
+  } else {
+    ERROR_OUT("no start point found!");
+  }
+  
   return wasmIns;
 }

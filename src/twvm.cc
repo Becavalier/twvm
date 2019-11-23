@@ -67,8 +67,8 @@ int main(int argc, char **argv) {
 
   // execution
   const auto result = Executor::execute(wasmInstance);
-  if (result == 1) {
-    ERROR_OUT("Wasm module execution failed!");
+  if (result != 0) {
+    ERROR_OUT("error occured while executing Wasm module!");
   }
 
   return result;

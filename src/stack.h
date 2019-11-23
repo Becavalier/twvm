@@ -10,28 +10,16 @@
 
 using std::stack;
 using std::shared_ptr;
-using std::static_pointer_cast;
-using std::enable_shared_from_this;
+using std::unique_ptr;
 using std::is_same;
 
-class Frame : public enable_shared_from_this<Frame> {
- public:
-  explicit Frame(StackFrameTypes type) : type(type) {}
-  ~Frame() = default;
-
-  template<typename T>
-  shared_ptr<T> as() {
-    return static_pointer_cast<T>(shared_from_this());
-  }
- private:
-  StackFrameTypes type = StackFrameTypes::kValues;
-};
+class BaseValueFrame {};
 
 template <typename T>
-class ValuesFrame : public Frame {
+class ValueFrame : public BaseValueFrame {
  public:
-  SET_STRUCT_DISABLE_COPY_CONSTUCT(ValuesFrame);
-  ValuesFrame(T value) : Frame(StackFrameTypes::kValues) {
+  SET_STRUCT_MOVE_ONLY(ValueFrame);
+  ValueFrame(T value) {
     if (is_same<T, int32_t>::value) {
       data.i32 = value;
     } else if (is_same<T, int64_t>::value) {
@@ -49,29 +37,33 @@ class ValuesFrame : public Frame {
    RTValue data;
 };
 
-class LabelsFrame : public Frame {
+class LabelFrame {
  public:
-  SET_STRUCT_DISABLE_COPY_CONSTUCT(LabelsFrame);
-  LabelsFrame() : Frame(StackFrameTypes::kLabels) {}
+  SET_STRUCT_MOVE_ONLY(LabelFrame);
  private:
   // for "block", "loop" and "if";
   ValueTypesCode resultType;
 };
 
-class ActivationsFrame : public Frame {
+class ActivationFrame {
  public:
-  SET_STRUCT_DISABLE_COPY_CONSTUCT(ActivationsFrame);
-  ActivationsFrame() : Frame(StackFrameTypes::kActivations) {}
+  SET_STRUCT_MOVE_ONLY(ActivationFrame);
 };
 
 // for saving "Values" / "Labels" / "Activations";
 class Stack {
  public:
-  Stack() = default;
-  ~Stack() = default;
+  const int checkStackState() {
+    // TODO(Jason Yu) check the status of stack;
+    return 1;
+  };
   
  private:
-  stack<Frame*> data;
+  // in order to reduce the overhead from casting between parent and child types -
+  // caused by "dynamic_cast" and "static_cast", we'd better store these three kinds of Frames separately.
+  stack<unique_ptr<BaseValueFrame>> valueStack;
+  stack<LabelFrame> labelStack;
+  stack<ActivationFrame> activationStack;
 };
 
 #endif  // STACK_H_

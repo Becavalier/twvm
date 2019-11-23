@@ -9,7 +9,11 @@ using std::shared_ptr;
 
 // core execution logic;
 class Executor {
+ private:
+  static size_t codeLen;
+
  public:
+  static size_t currentSteps;
   static int execute(shared_ptr<WasmInstance>);
 };
 
