@@ -4,6 +4,7 @@
 
 #include <stack>
 #include <memory>
+#include <cstring>
 #include <type_traits>
 #include "src/constants.h"
 #include "src/utilities.h"
