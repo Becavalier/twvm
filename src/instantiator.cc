@@ -27,7 +27,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   const auto staticMemory = module->getMemory();
   // we can not use "push_back" here, -
   // since the destructor will be called when the temp value is copied by default copy-constructor -
-  // (even for move-constructor, we didn't use std::move), and the memory we allocated will get lost.
+  // (even for move-constructor, we didn't use std::move), and the memory we allocated will be lost.
   // so, only allow the way of "placement-new" here.
   store->memoryInsts.emplace_back(staticMemory->initialPages, staticMemory->maximumPages);
   moduleInst->memories.push_back(&store->memoryInsts.back());
@@ -40,13 +40,11 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     store->functionInsts.emplace_back();
     const auto ins = &store->functionInsts.back();
     for (auto j = 0; j < i.codeLen; j++) {
-      const auto opcode = static_cast<WasmOpcode>(Decoder::readUint8(i.code + j));
-      if (opcode != WasmOpcode::kOpcodeEnd) {
-        ins->code.push_back(opcode);
-      }
+      ins->code.push_back(static_cast<WasmOpcode>(Decoder::readUint8(i.code + j)));
     }
     ins->type = i.sig;
     ins->module = moduleInst;
+    ins->staticProto = &i;
   }
   // We need to perform this loop separately, since -
   // the address of the vector elements are not stable due to the "resize" of each "*_back";
@@ -86,7 +84,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     moduleInst->tables.push_back(&i);
   }
 
-  // global instances;
+  // export instances;
   DEBUG_OUT("store: creating export instances.");
   const auto staticExport = module->getExport();
   for (auto &i : *staticExport) {
@@ -110,7 +108,8 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     const auto exportItB = module->getExport()->begin();
     const auto exportItE = module->getExport()->end();
     const auto it = find_if(exportItB, exportItE, [](const WasmExport &exportEntity) -> auto {
-      return exportEntity.name == "main" && exportEntity.type == ExternalTypesCode::kExternalFunction;
+      return exportEntity.name == "main"
+        && exportEntity.type == ExternalTypesCode::kExternalFunction;
     });
     if (it != exportItE) {
       const auto &wasmFunc = module->getFunction()->at(it->index);
@@ -127,6 +126,6 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   } else {
     ERROR_OUT("no start point found!");
   }
-  
+
   return wasmIns;
 }

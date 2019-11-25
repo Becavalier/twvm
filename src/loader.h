@@ -4,6 +4,8 @@
 
 #define WRAP_UINT_FIELD(keyName, type, module) \
   const auto keyName = Decoder::readVarUint<type>(module)
+#define WRAP_UINT_FIELD_WITH_STEP(keyName, type, module, step) \
+  const auto keyName = Decoder::readVarUint<type>(module, step)
 #define WRAP_UINT_FIELD_(type, module) \
   Decoder::readVarUint<type>(module)
 
@@ -105,20 +107,20 @@ class Loader {
         WRAP_UINT_FIELD(globalIndex, uint32_t, module);
         const auto moduleGlobal = module->getGlobal(globalIndex);
         if (moduleGlobal->mutability || !moduleGlobal->imported) {
-          ERROR_OUT("only immutable imported globals can be used in initializer expressions.", true);
+          ERROR_OUT("only immutable imported globals can be used in initializer expressions.");
         }
         expr->kind = InitExprKind::kGlobalIndex;
         expr->val.vGlobalIndex = globalIndex;
         break;
       }
       default: {
-        ERROR_OUT("not supported opcode found in global section.", true);
+        ERROR_OUT("not supported opcode found in global section.");
         break;
       }
     }
     // "0x0b" ending byte;
     if (static_cast<WasmOpcode>(Decoder::readUint8(module)) != WasmOpcode::kOpcodeEnd) {
-      ERROR_OUT("illegal ending byte.", true);
+      ERROR_OUT("illegal ending byte.");
     }
   }
 

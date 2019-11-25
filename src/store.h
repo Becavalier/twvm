@@ -4,9 +4,14 @@
 
 #include <vector>
 #include "src/macros.h"
-#include "src/instantiator.h"
+#include "src/instances.h"
 
 using std::vector;
+
+class WasmMemoryInstance;
+struct WasmFuncInstance;
+struct WasmGlobalInstance;
+struct WasmTableInstance;
 
 // for storing global instances, it consists of -
 // the runtime representation of all instances of functions, tables, memories, and globals -

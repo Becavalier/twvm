@@ -17,27 +17,24 @@ using std::is_same;
 class ValueFrame {
  public:
   SET_STRUCT_MOVE_ONLY(ValueFrame);
-  ValueFrame(ValueFrameTypes type) : bitPattern{} {} 
+  ValueFrame(ValueFrameTypes type) : bitPattern{} {}
 
-#define DEFINE_TYPE_SPECIFIC_METHODS(name, localtype, ctype) \
-  explicit ValueFrame(ctype v) : type(localtype), bitPattern{} { \                            
+#define DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS(name, localtype, ctype) \
+  ValueFrame(ctype v) : type(localtype), bitPattern{} { \
     Utilities::writeUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern), v); \
   } \
-  ctype to##name##() const { \
-    return Utilities::readUnalignedValue<ctype>( \
-      reinterpret_cast<uintptr_t>(bitPattern)); \
-  } \
-  ITERATE_WASM_VAL_TYPE(DEFINE_TYPE_SPECIFIC_METHODS)
-#undef DEFINE_TYPE_SPECIFIC_METHODS
+  const ctype to##name() { \
+    return Utilities::readUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern)); \
+  } 
+  ITERATE_WASM_VAL_TYPE(DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS)
 
-  bool operator==(const ValueFrame& other) const {
-    return type == other.type && 
-      !memcmp(bitPattern, other.bitPattern, WASM_VALUE_BIT_PATTERN_WITH);
+  const bool operator==(const ValueFrame& other) {
+    return type == other.type && !memcmp(bitPattern, other.bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
   }
 
  private:
   ValueFrameTypes type;
-  uint8_t bitPattern[WASM_VALUE_BIT_PATTERN_WITH];
+  uint8_t bitPattern[WASM_VALUE_BIT_PATTERN_WIDTH];
 };
 
 class LabelFrame {
@@ -58,12 +55,11 @@ class Stack {
  public:
   const int checkStackState() {
     // TODO(Jason Yu) check the status of stack;
-    return 1;
-  };
-  
- private:
+    return 0;
+  }
   // in order to reduce the overhead from casting between parent and child types -
-  // caused by "dynamic_cast" and "static_cast", we'd better store these three kinds of Frames separately.
+  // caused by "dynamic_cast" and "static_cast", we'd better store these three kinds of Frames -
+  // separately.
   stack<ValueFrame> valueStack;
   stack<LabelFrame> labelStack;
   stack<ActivationFrame> activationStack;

@@ -13,10 +13,8 @@
 
 #include <iostream>
 #include <string>
-#include <type_traits>
 #include <vector>
 #include <memory>
-#include <type_traits>
 #include <sstream>
 
 #define OUTPUT_PREFIX "twvm: "
@@ -34,7 +32,6 @@ using std::unique_ptr;
 using std::make_unique;
 using std::cout;
 using std::endl;
-using std::is_same;
 using std::stringstream;
 using std::istringstream;
 using std::getline;
@@ -42,7 +39,7 @@ using std::getline;
 class Printer {
  private:
   vector<string> lines;
- 
+
  public:
   void inline feedLine(const string &line) {
     lines.push_back(line);
@@ -60,7 +57,7 @@ class Utilities {
   static std::ostream& reportWarning(const string &msg = "");
   static std::ostream& reportError(const string &msg = "internal error occured.", bool = true);
   static vector<string> splitStr(const string&, char);
-  
+
   static inline unique_ptr<Printer> getPrinter() {
     return make_unique<Printer>();
   }

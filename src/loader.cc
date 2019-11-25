@@ -152,7 +152,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
         const auto sig = module->getFunctionSig(sigIndex);
         index = module->getFunction()->size();
         module->getImportedFuncCount()++;
-        module->getFunction()->push_back({sig, index, sigIndex, nullptr, 0, true, false});
+        module->getFunction()->push_back({sig, index, sigIndex, {}, nullptr, 0, true, false});
         break;
       }
       case ExternalTypesCode::kExternalTable: {
@@ -328,9 +328,20 @@ void Loader::parseCodeSection(const shared_module_t &module) {
     WRAP_UINT_FIELD(bodySize, uint32_t, module);
     // update function body;
     const auto function = module->getFunction(module->getImportedFuncCount() + i);
+    // resolve locals;
+    size_t step = 0;
+    WRAP_UINT_FIELD_WITH_STEP(localEntryCount, uint32_t, module, &step);
+    for (auto j = 0; j < localEntryCount; j++) {
+      WRAP_UINT_FIELD_WITH_STEP(localCount, uint32_t, module, &step);
+      WRAP_UINT_FIELD_WITH_STEP(localTypeCode, uint8_t, module, &step);
+      const auto type = static_cast<ValueFrameTypes>(localTypeCode);
+      for (auto k = 0; k < localCount; k++) {
+        function->locals.push_back(type);
+      }
+    }
     function->code = module->getCurrentOffsetBuf();
-    function->codeLen = bodySize;
-    module->increaseBufOffset(bodySize);
+    function->codeLen = bodySize - step;
+    module->increaseBufOffset(function->codeLen);
   }
 }
 

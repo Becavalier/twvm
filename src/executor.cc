@@ -4,23 +4,21 @@
 #include "src/opcode.h"
 #include "src/decoder.h"
 
-size_t Executor::currentSteps = 0;
-size_t Executor::codeLen = 0;
-
-int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
+const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   DEBUG_OUT() << endl;
   DEBUG_OUT() << "- [EXECUTING PHASE] -" << endl;
 
   codeLen = wasmIns->startCodeLen;
-  const auto *pc = wasmIns->startPoint;
-  
-  while(true) {
+  pc = wasmIns->startPoint - 1;
+
+  while (true) {
     if (currentSteps == codeLen) {
+      // verify running reuslt by the state of final stack;
       return wasmIns->stack->checkStackState();
     }
 
-    const WasmOpcode opcode = static_cast<WasmOpcode>(Decoder::readUint8(pc + (currentSteps++)));
-    const auto result = OpCode::handle(wasmIns, opcode);
+    const WasmOpcode opcode = static_cast<WasmOpcode>(Decoder::readUint8(forward_()));
+    OpCode::handle(wasmIns, opcode, this);
   }
 
   return 0;

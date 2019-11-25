@@ -3,18 +3,31 @@
 #define EXECUTOR_H_
 
 #include <memory>
-#include <src/instantiator.h>
+#include "src/instances.h"
 
 using std::shared_ptr;
+
+struct WasmInstance;
 
 // core execution logic;
 class Executor {
  private:
-  static size_t codeLen;
+  size_t codeLen = 0;
 
  public:
-  static size_t currentSteps;
-  static int execute(shared_ptr<WasmInstance>);
+  const uchar_t *pc;
+  size_t currentSteps = 0;
+  const int execute(shared_ptr<WasmInstance>);
+
+  inline void increaseCodeLen(size_t step) {
+    codeLen += step;
+  }
+
+  inline const uchar_t* forward_(size_t step = 1) {
+    currentSteps += step;
+    pc += step;
+    return pc;
+  }
 };
 
 #endif  // EXECUTOR_H_

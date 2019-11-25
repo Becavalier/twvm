@@ -59,10 +59,10 @@ enum class SectionTypesCode : uint8_t {
 
 // stack frame types;
 enum class ValueFrameTypes : uint8_t {
-  kI32Value,
-  kI64Value,
-  kF32Value,
-  kF64Value,
+  kI32Value = 0x7f,
+  kI64Value = 0x7e,
+  kF32Value = 0x7d,
+  kF64Value = 0x7c,
 };
 
 enum class StackFrameTypes : uint8_t {
@@ -81,7 +81,7 @@ enum class InitExprKind : uint8_t {
 };
 
 /* runtime types */
-// here we directly use "int32_t", "int64_t", "float", "double" to present 4 kinds of Wasm values;  
+// here we directly use "int32_t", "int64_t", "float", "double" to present 4 kinds of Wasm values;
 union RTValue {
   int32_t i32;
   int64_t i64;
@@ -137,6 +137,7 @@ struct WasmFunction {
   WasmFunctionSig* sig;
   size_t funcIndex;
   size_t sigIndex;
+  vector<ValueFrameTypes> locals = {};
   const uchar_t *code = nullptr;
   size_t codeLen = 0;
   bool imported = false;

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <memory>
 #include "src/macros.h"
 #include "src/utilities.h"
 #include "src/constants.h"
@@ -16,6 +17,7 @@ using std::to_string;
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
+using std::make_unique;
 
 const auto calcTimeInterval(decltype(high_resolution_clock::now()) &previous) {
   const auto stop = high_resolution_clock::now();
@@ -66,7 +68,9 @@ int main(int argc, char **argv) {
   Inspector::inspect(wasmInstance);
 
   // execution
-  const auto result = Executor::execute(wasmInstance);
+  const auto executor = make_unique<Executor>();
+  const auto result = executor->execute(wasmInstance);
+
   if (result != 0) {
     ERROR_OUT("error occured while executing Wasm module!");
   }

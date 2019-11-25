@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <memory>
+#include <utility>
 #include "src/types.h"
 #include "src/utilities.h"
 #include "src/macros.h"
@@ -32,11 +33,11 @@ class Module {
     contentLength = moduleData.size();
   }
 
-  inline size_t getModContentLength(void) {
+  inline size_t getModContentLength() {
     return contentLength;
   }
 
-  inline const uchar_t* getCurrentOffsetBuf(void) {
+  inline const uchar_t* getCurrentOffsetBuf() {
     return (moduleDataBuf + p);
   }
 
