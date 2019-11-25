@@ -59,10 +59,23 @@ class Utilities {
   static std::ostream& reportDebug(const string &msg = "");
   static std::ostream& reportWarning(const string &msg = "");
   static std::ostream& reportError(const string &msg = "internal error occured.", bool = true);
+  static vector<string> splitStr(const string&, char);
+  
   static inline unique_ptr<Printer> getPrinter() {
     return make_unique<Printer>();
   }
-  static vector<string> splitStr(const string&, char);
+
+  template <typename T>
+  static inline void writeUnalignedValue(uintptr_t p, T value) {
+    memcpy(reinterpret_cast<void*>(p), &value, sizeof(T));
+  }
+
+  template <typename T>
+  static inline T readUnalignedValue(uintptr_t p) {
+    T r;
+    memcpy(&r, reinterpret_cast<void*>(p), sizeof(T));
+    return r;
+  }
 };
 
 #endif  // UTILITIES_H_

@@ -58,6 +58,13 @@ enum class SectionTypesCode : uint8_t {
 };
 
 // stack frame types;
+enum class ValueFrameTypes : uint8_t {
+  kI32Value,
+  kI64Value,
+  kF32Value,
+  kF64Value,
+};
+
 enum class StackFrameTypes : uint8_t {
   kValues = 0,
   kLabels,

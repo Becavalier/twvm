@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <functional>
+#include "src/utilities.h"
 #include "src/types.h"
 #include "src/module.h"
 
@@ -21,9 +22,7 @@ class Decoder {
   static inline T readLittleEndian(
     const uchar_t* buf,
     const function<void(T)> &callback = nullptr) {
-    T r;
-    // copy amount of bytes accordingly;
-    memcpy(&r, reinterpret_cast<const void*>(buf), sizeof(T));
+    auto r = Utilities::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(buf));
     // callback function;
     if (callback) {
       callback(r);

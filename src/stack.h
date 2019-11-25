@@ -5,36 +5,39 @@
 #include <stack>
 #include <memory>
 #include <type_traits>
+#include "src/constants.h"
+#include "src/utilities.h"
 #include "src/macros.h"
 #include "src/types.h"
 
 using std::stack;
 using std::shared_ptr;
-using std::unique_ptr;
 using std::is_same;
 
-class BaseValueFrame {};
-
-template <typename T>
-class ValueFrame : public BaseValueFrame {
+class ValueFrame {
  public:
   SET_STRUCT_MOVE_ONLY(ValueFrame);
-  ValueFrame(T value) {
-    if (is_same<T, int32_t>::value) {
-      data.i32 = value;
-    } else if (is_same<T, int64_t>::value) {
-      data.i64 = value;
-    } else if (is_same<T, float>::value) {
-      data.f32 = value;
-    } else if (is_same<T, double>::value) {
-      data.f64 = value;
-    }
+  ValueFrame(ValueFrameTypes type) : bitPattern{} {} 
+
+#define DEFINE_TYPE_SPECIFIC_METHODS(name, localtype, ctype) \
+  explicit ValueFrame(ctype v) : type(localtype), bitPattern{} { \                            
+    Utilities::writeUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern), v); \
+  } \
+  ctype to##name##() const { \
+    return Utilities::readUnalignedValue<ctype>( \
+      reinterpret_cast<uintptr_t>(bitPattern)); \
+  } \
+  ITERATE_WASM_VAL_TYPE(DEFINE_TYPE_SPECIFIC_METHODS)
+#undef DEFINE_TYPE_SPECIFIC_METHODS
+
+  bool operator==(const ValueFrame& other) const {
+    return type == other.type && 
+      !memcmp(bitPattern, other.bitPattern, WASM_VALUE_BIT_PATTERN_WITH);
   }
-  const T& value() {
-    return *reinterpret_cast<T*>(&data);
-  };
+
  private:
-   RTValue data;
+  ValueFrameTypes type;
+  uint8_t bitPattern[WASM_VALUE_BIT_PATTERN_WITH];
 };
 
 class LabelFrame {
@@ -61,7 +64,7 @@ class Stack {
  private:
   // in order to reduce the overhead from casting between parent and child types -
   // caused by "dynamic_cast" and "static_cast", we'd better store these three kinds of Frames separately.
-  stack<unique_ptr<BaseValueFrame>> valueStack;
+  stack<ValueFrame> valueStack;
   stack<LabelFrame> labelStack;
   stack<ActivationFrame> activationStack;
 };
