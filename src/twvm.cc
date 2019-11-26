@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
   const auto executor = make_unique<Executor>();
   const auto result = executor->execute(wasmInstance);
 
-  if (result != 0) {
+  if (!result) {
     ERROR_OUT("error occured while executing Wasm module!");
   }
 

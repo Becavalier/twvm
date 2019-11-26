@@ -2,8 +2,6 @@
 #ifndef MACROS_H_
 #define MACROS_H_
 
-#include <src/utilities.h>
-
 #define DEBUG_OUT \
   Utilities::reportDebug
 #define ERROR_OUT \
@@ -27,3 +25,6 @@
   V(F64, ValueFrameTypes::kF64Value, double)
 
 #endif  // MACROS_H_
+
+#include <src/types.h>
+#include <src/utilities.h>

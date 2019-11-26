@@ -104,6 +104,10 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     const auto &wasmFunc = module->getFunction()->at(startFunctionIndex);
     wasmIns->startPoint = wasmFunc.code;
     wasmIns->startCodeLen = wasmFunc.codeLen;
+    stack->activationStack.emplace(
+      &wasmFunc, 
+      stack->valueStack.size(),
+      stack->labelStack.size());
   } else {
     const auto exportItB = module->getExport()->begin();
     const auto exportItE = module->getExport()->end();
@@ -115,6 +119,11 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
       const auto &wasmFunc = module->getFunction()->at(it->index);
       wasmIns->startPoint = wasmFunc.code;
       wasmIns->startCodeLen = wasmFunc.codeLen;
+      wasmIns->startEntry = false;
+      stack->activationStack.emplace(
+        &wasmFunc, 
+        stack->valueStack.size(),
+        stack->labelStack.size());
     } else {
       hasStartPoint = false;
     }

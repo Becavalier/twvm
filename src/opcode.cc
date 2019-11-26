@@ -10,6 +10,36 @@ void OpCode::doUnreachable() {
   ERROR_OUT("unreachable code!");
 }
 
+void OpCode::doEnd(shared_ptr<WasmInstance> &wasmIns, Executor *executor) {
+  const auto &currentLabelStackSize = wasmIns->stack->labelStack.size();
+  const auto currentActivation = &wasmIns->stack->activationStack.top();
+  const auto activationLabelStackHeight = currentActivation->getLabelStackHeight();
+  const auto activationValueStackHeight = currentActivation->getValueStackHeight();
+  if (currentLabelStackSize == activationLabelStackHeight) {
+    // function end;
+    if (currentActivation->pFuncIns->sig->returnCount == (wasmIns->stack->valueStack.size() - activationValueStackHeight)) {
+      const auto returnTypes = currentActivation->pFuncIns->sig->getReturnTypes();
+      // pop operands from the stack;
+      for (auto i = 0; i < returnTypes.size(); i++) {
+        const auto topValue = &wasmIns->stack->valueStack.top();
+        if (topValue->getValueType() == returnTypes.at(i)) {
+          wasmIns->stack->returnValueStack.emplace(move(*topValue));
+          wasmIns->stack->valueStack.pop();
+        } else {
+          ERROR_OUT("return arity mismatch of the function!");
+        }
+      }
+      for (auto i = 0; i < wasmIns->stack->returnValueStack.size(); i++) {
+        wasmIns->stack->valueStack.emplace(move(wasmIns->stack->returnValueStack.top()));
+      }
+    }
+  } else if (currentLabelStackSize > activationLabelStackHeight) {
+    // control structure end;
+  } else {
+    ERROR_OUT("invalide \"end(0xb)\" condition!");
+  }
+}
+
 void OpCode::doI32Const(shared_ptr<WasmInstance> &wasmIns, Executor *executor) {
   // push an i32 value onto the stack;
   auto value = static_cast<int32_t>(Decoder::readVarInt<int32_t>(executor->forward_()));
@@ -24,7 +54,7 @@ void OpCode::handle(shared_ptr<WasmInstance> wasmIns, WasmOpcode opcode, Executo
       break;
     }
     case WasmOpcode::kOpcodeEnd: {
-      cout << "end" << endl;
+      doEnd(wasmIns, executor);
       break;
     }
     case WasmOpcode::kOpcodeI32Const: {

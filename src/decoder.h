@@ -54,7 +54,9 @@ class Decoder {
   }
   
   template <typename T>
-  static T readVarUint_(vector<uchar_t> t, size_t *step = nullptr) {
+  static T readVarUint_(
+    vector<uchar_t> t, 
+    size_t *step = nullptr) {
     T r = 0;
     unsigned shift = 0;
     for (auto byte : t) {
@@ -68,7 +70,9 @@ class Decoder {
   }
 
   template <typename T>
-  static T readVarInt_(vector<uchar_t> t, size_t *step = nullptr) {
+  static T readVarInt_(
+    vector<uchar_t> t, 
+    size_t *step = nullptr) {
     T r = 0;
     unsigned shift = 0;
     uchar_t b;
@@ -119,7 +123,9 @@ class Decoder {
    * 01111000 10111011 11000000 -123456 (Signed);
    */
   template <typename T>
-  static T readVarUint(const shared_module_t module, size_t *step = nullptr) {
+  static T readVarUint(
+    const shared_module_t module, 
+    size_t *step = nullptr) {
     if (sizeof(T) == 1) {
       return readUint8(module);
     } else {
@@ -129,7 +135,9 @@ class Decoder {
   }
 
   template <typename T>
-  static T readVarUint(const uchar_t *p, size_t *step = nullptr) {
+  static T readVarUint(
+    const uchar_t *p, 
+    size_t *step = nullptr) {
     if (sizeof(T) == 1) {
       return readUint8(p);
     } else {
@@ -139,13 +147,17 @@ class Decoder {
   }
 
   template <typename T>
-  static T readVarInt(const shared_module_t module, size_t *step = nullptr) {
+  static T readVarInt(
+    const shared_module_t module, 
+    size_t *step = nullptr) {
     vector<uchar_t> t = Decoder::moduleWrapValue(module);
     return Decoder::readVarInt_<T>(t, step);
   }
 
   template <typename T>
-  static T readVarInt(const uchar_t *p, size_t *step = nullptr) {
+  static T readVarInt(
+    const uchar_t *p, 
+    size_t *step = nullptr) {
     vector<uchar_t> t = Decoder::ptrWrapValue(p);
     return Decoder::readVarInt_<T>(t, step);
   }

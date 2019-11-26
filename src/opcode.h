@@ -214,6 +214,7 @@ enum class WasmOpcode {
 class OpCode {
  private:
   static inline void doUnreachable();
+  static inline void doEnd(shared_ptr<WasmInstance>&, Executor*);
   static inline void doI32Const(shared_ptr<WasmInstance>&, Executor*);
 
  public:

@@ -14,7 +14,7 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   while (true) {
     if (currentSteps == codeLen) {
       // verify running reuslt by the state of final stack;
-      return wasmIns->stack->checkStackState();
+      return wasmIns->stack->checkStackState(wasmIns->startEntry);
     }
 
     const WasmOpcode opcode = static_cast<WasmOpcode>(Decoder::readUint8(forward_()));

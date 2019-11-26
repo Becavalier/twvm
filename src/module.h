@@ -23,9 +23,6 @@ using std::move;
 class Module {
  public:
   Module() = default;
-  ~Module() {
-    DEBUG_OUT("[destructor] static module has been destructed.");
-  }
 
   void setModContent(const vector<uchar_t> &content) {
     moduleData = move(content);

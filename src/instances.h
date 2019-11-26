@@ -134,6 +134,7 @@ struct WasmInstance {
   // start function, or main function;
   const uchar_t *startPoint = nullptr;
   size_t startCodeLen = 0;
+  bool startEntry = true;
   shared_ptr<WasmModuleInstance> module;
   shared_ptr<Store> store;
   shared_ptr<Stack> stack;

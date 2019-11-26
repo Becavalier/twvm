@@ -4,7 +4,7 @@
 
 <img alt="GitHub Actions status" src="https://github.com/Becavalier/TWVM/workflows/Build CI/badge.svg">
 
-> A tiny and efficient WebAssembly virtual machine.
+> A tiny, lightweight and efficient WebAssembly virtual machine.
 
 ## Getting Started
 

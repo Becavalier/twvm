@@ -129,6 +129,13 @@ struct WasmFunctionSig {
   size_t paramsCount = 0;
   size_t returnCount = 0;
   vector<ValueTypesCode> reps;
+  // TODO(Jason Yu) reduce vector copying overhead;
+  inline vector<ValueTypesCode> getParamTypes() {
+    return vector<ValueTypesCode>(begin(reps), begin(reps) + paramsCount);
+  }
+  inline vector<ValueTypesCode> getReturnTypes() {
+    return vector<ValueTypesCode>(begin(reps) + paramsCount, end(reps));
+  }
 };
 
 // wasm indirect call table;
