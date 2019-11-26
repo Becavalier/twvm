@@ -1,4 +1,4 @@
-<p align="center"><img width="150"src="https://github.com/Becavalier/TWVM/blob/master/arts/brand-150x150.png?raw=true"></p>
+<p align="center"><img width="130"src="https://github.com/Becavalier/TWVM/blob/master/arts/brand-300x300.png?raw=true"></p>
 
 [![experimental](http://badges.github.io/stability-badges/dist/experimental.svg)](http://github.com/badges/stability-badges)
 
