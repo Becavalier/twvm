@@ -17,6 +17,7 @@ using std::shared_ptr;
 using std::is_same;
 using std::ostream;
 using std::dec;
+using std::memcmp;
 
 class ValueFrame {
  public:

@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <cstring>
 #include <sstream>
 
 #define OUTPUT_PREFIX "twvm: "
@@ -35,6 +36,7 @@ using std::endl;
 using std::stringstream;
 using std::istringstream;
 using std::getline;
+using std::memcpy;
 
 class Printer {
  private:
