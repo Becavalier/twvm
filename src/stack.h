@@ -8,7 +8,7 @@
 #include <iostream>
 #include <type_traits>
 #include "src/constants.h"
-#include "src/utilities.h"
+#include "src/utils.h"
 #include "src/macros.h"
 #include "src/types.h"
 
@@ -26,10 +26,10 @@ class ValueFrame {
 
 #define DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS(name, localtype, ctype) \
   ValueFrame(ctype v) : type(localtype), bitPattern{} { \
-    Utilities::writeUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern), v); \
+    Utils::writeUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern), v); \
   } \
   const ctype to##name() { \
-    return Utilities::readUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern)); \
+    return Utils::readUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern)); \
   } 
   ITERATE_WASM_VAL_TYPE(DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS)
 
@@ -87,7 +87,7 @@ class Stack {
   const bool checkStackState(bool startEntry = true) {
     // check the status of stack;
     const auto leftValueSize = valueStack.size();
-    DEBUG_OUT() << "result (" << (startEntry ? "start" : "main") << "): ";
+    Utils::say() << "(" << (startEntry ? "start" : "main") << "): ";
     if (leftValueSize == 1) {
       valueStack.top().outputValue(cout << dec);
       valueStack.pop();

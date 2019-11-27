@@ -1,7 +1,10 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <iostream>
 #include <sstream>
-#include "src/utilities.h"
+#include <string>
+#include <vector>
+#include "src/cmdline.h"
+#include "src/utils.h"
 #include "src/inspector.h"
 #include "src/macros.h"
 
@@ -10,21 +13,27 @@ using std::endl;
 using std::hex;
 using std::showbase;
 using std::stringstream;
+using std::to_string;
 
 void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
+  if (!CommandLine::isDebugMode) {
+    return;
+  }
+
   stringstream line;
   // set up display format;
   line << hex << showbase;
-  const auto printer = Utilities::getPrinter();
+  const auto printer = Utils::getPrinter();
 
-  DEBUG_OUT() << endl;
-  DEBUG_OUT() << hex << showbase << "- [INSPECTING PHASE] -" << endl;
+  Utils::debug();
+  Utils::debug(string("- [INSPECTING PHASE] -"), true);
 
   // WasmFunctionSig;
   const auto &typeSize = wasmIns->module->types.size();
-  DEBUG_OUT() << "# Signatures (" << wasmIns->module->types.size() << "): ";
-  if (typeSize == 0) { cout << "N/A"; }
-  cout << endl;
+  Utils::debug({
+    "# Signatures (",
+    to_string(wasmIns->module->types.size()),
+    "): ", (typeSize == 0 ? "N/A" : string())});
   for (const auto &type : wasmIns->module->types) {
     auto i = 0;
     const auto reps = type->reps;
@@ -46,9 +55,10 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
 
   // WasmFunction;
   const auto &funcSize = wasmIns->module->funcs.size();
-  DEBUG_OUT() << "# Functions (" << wasmIns->module->funcs.size() << "): ";
-  if (funcSize == 0) { cout << "N/A"; }
-  cout << endl;
+  Utils::debug({
+    "# Functions (",
+    to_string(wasmIns->module->funcs.size()), "): ",
+    (funcSize == 0 ? "N/A" : string())});
   for (const auto &func : wasmIns->module->funcs) {
     line << "[";
     line << "sig_index " << func->type->index << " | "
@@ -63,9 +73,10 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
 
   // WasmTable;
   const auto &tableSize = wasmIns->module->tables.size();
-  DEBUG_OUT() << "# Tables (" << tableSize << "): ";
-  if (tableSize == 0) { cout << "N/A"; }
-  cout << endl;
+  Utils::debug({
+    "# Tables (",
+    to_string(tableSize), "): ",
+    (tableSize == 0 ? "N/A" : string())});
   for (const auto &table : wasmIns->module->tables) {
     line << "[";
     line << "max_table_size " << table->maxTableSize << "]";
@@ -75,9 +86,10 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
 
   // WasmMemory;
   const auto &memorySize = wasmIns->module->memories.size();
-  DEBUG_OUT() << "# Memories (" << memorySize << "): ";
-  if (memorySize == 0) { cout << "N/A"; }
-  cout << endl;
+  Utils::debug({
+    "# Memories (",
+    to_string(memorySize), "): ",
+    (memorySize == 0 ? "N/A" : string())});
   for (const auto &memory : wasmIns->module->memories) {
     line << "[";
     line << "memory_size " << (memory->size() * WASM_PAGE_SIZE / 1024) << " kib]";
@@ -87,9 +99,10 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
 
   // WasmGlobal;
   const auto &globalSize = wasmIns->module->globals.size();
-  DEBUG_OUT() << "# Globals (" << globalSize << "): ";
-  if (globalSize == 0) { cout << "N/A"; }
-  cout << endl;
+  Utils::debug({
+    "# Globals (",
+    to_string(globalSize), "): ",
+    (globalSize == 0 ? "N/A" : string())});
   for (const auto &global : wasmIns->module->globals) {
     line << "[";
     line << "global_type " << static_cast<int>(global->type) << " | ";
@@ -100,9 +113,10 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
 
   // WasmExport;
   const auto &exportSize = wasmIns->module->exports.size();
-  DEBUG_OUT() << "# Exports (" << exportSize << "): ";
-  if (exportSize == 0) { cout << "N/A"; }
-  cout << endl;
+  Utils::debug({
+    "# Exports (",
+    to_string(exportSize), "): ",
+    (exportSize == 0 ? "N/A" : string())});
   for (const auto &_export : wasmIns->module->exports) {
     line << "[";
     line << "export_name \"" << _export.name << "\" | ";

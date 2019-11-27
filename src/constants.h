@@ -7,6 +7,6 @@
 #define DEFAULT_BYTE_LENGTH 4
 #define BYTE_LENGTH_4 4
 #define BYTE_LENGTH_8 8
-#define INPUT_ARG_OFFSET 1
+#define SCREEN_WIDTH 80
 
 #endif  // CONSTANTS_H_

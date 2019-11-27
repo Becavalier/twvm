@@ -11,6 +11,7 @@
 #include "src/store.h"
 #include "src/stack.h"
 #include "src/constants.h"
+#include "src/utils.h"
 
 using std::string;
 using std::vector;
@@ -29,10 +30,10 @@ class WasmMemoryInstance {
       if ((data = static_cast<uchar_t*>(malloc(initMemSize * WASM_PAGE_SIZE)))) {
         currentMemSize = initMemSize;
       } else {
-        ERROR_OUT("memory allocating error.");
+        Utils::report("memory allocating error.");
       }
     } else {
-      ERROR_OUT("invalid memory allocation size.");
+      Utils::report("invalid memory allocation size.");
     }
   }
   ~WasmMemoryInstance() {
@@ -45,7 +46,7 @@ class WasmMemoryInstance {
     if (offset + sizeof(T) <= currentMemSize * DEFAULT_BYTE_LENGTH) {
       return *reinterpret_cast<T*>(data + offset);
     } else {
-      ERROR_OUT("memory out of bound.");
+      Utils::report("memory out of bound.");
       // unreachable;
       return false;
     }
@@ -58,7 +59,7 @@ class WasmMemoryInstance {
     if (offset + sizeof(T) <= currentMemSize * DEFAULT_BYTE_LENGTH) {
       *(reinterpret_cast<T*>(data + offset)) = val;
     } else {
-      ERROR_OUT("memory out of bound.");
+      Utils::report("memory out of bound.");
     }
   }
 

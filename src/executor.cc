@@ -3,10 +3,11 @@
 #include "src/macros.h"
 #include "src/opcode.h"
 #include "src/decoder.h"
+#include "src/utils.h"
 
 const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
-  DEBUG_OUT() << endl;
-  DEBUG_OUT() << "- [EXECUTING PHASE] -" << endl;
+  Utils::debug();
+  Utils::debug("- [EXECUTING PHASE] -");
 
   codeLen = wasmIns->startCodeLen;
   pc = wasmIns->startPoint - 1;

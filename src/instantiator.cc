@@ -1,19 +1,22 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <algorithm>
+#include <string>
 #include "src/instantiator.h"
 #include "src/store.h"
 #include "src/decoder.h"
+#include "src/utils.h"
 
 using std::find_if;
 using std::hex;
 using std::showbase;
+using std::to_string;
 
 const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module) {
-  DEBUG_OUT() << endl;
-  DEBUG_OUT("- [INSTANTIATING PHASE] -");
+  Utils::debug();
+  Utils::debug("- [INSTANTIATING PHASE] -");
 
   // produce store, stack and module instance;
-  DEBUG_OUT("instantiating store, stack and module instances.");
+  Utils::debug("instantiating store, stack and module instances.");
   const auto store = make_shared<Store>();
   const auto stack = make_shared<Stack>();
   const auto moduleInst = make_shared<WasmModuleInstance>();
@@ -23,7 +26,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // memory instance;
-  DEBUG_OUT("store: creating memory instances.");
+  Utils::debug("store: creating memory instances.");
   const auto staticMemory = module->getMemory();
   // we can not use "push_back" here, -
   // since the destructor will be called when the temp value is copied by default copy-constructor -
@@ -34,7 +37,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   // TODO(Jason Yu): init data section;
 
   // function instances;
-  DEBUG_OUT("store: creating function instances.");
+  Utils::debug("store: creating function instances.");
   const auto staticFunctions = module->getFunction();
   for (auto &i : *staticFunctions) {
     store->functionInsts.emplace_back();
@@ -53,7 +56,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // global instances;
-  DEBUG_OUT("store: creating global instances.");
+  Utils::debug("store: creating global instances.");
   const auto staticGlobal = module->getGlobal();
   for (auto &i : *staticGlobal) {
     // skip platform-hosting imported global;
@@ -66,7 +69,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // table instances;
-  DEBUG_OUT("store: creating table instances.");
+  Utils::debug("store: creating table instances.");
   const auto staticTable = module->getTable();
   for (auto &i : *staticTable) {
     store->tableInsts.push_back({i.maximumSize});
@@ -85,7 +88,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // export instances;
-  DEBUG_OUT("store: creating export instances.");
+  Utils::debug("store: creating export instances.");
   const auto staticExport = module->getExport();
   for (auto &i : *staticExport) {
     moduleInst->exports.push_back({i.name, i.type, i.index});
@@ -105,7 +108,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     wasmIns->startPoint = wasmFunc.code;
     wasmIns->startCodeLen = wasmFunc.codeLen;
     stack->activationStack.emplace(
-      &wasmFunc, 
+      &wasmFunc,
       stack->valueStack.size(),
       stack->labelStack.size());
   } else {
@@ -121,7 +124,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
       wasmIns->startCodeLen = wasmFunc.codeLen;
       wasmIns->startEntry = false;
       stack->activationStack.emplace(
-        &wasmFunc, 
+        &wasmFunc,
         stack->valueStack.size(),
         stack->labelStack.size());
     } else {
@@ -129,11 +132,11 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     }
   }
   if (hasStartPoint && wasmIns->startPoint != nullptr) {
-    DEBUG_OUT() << "execution start point: " << hex << showbase
-      << reinterpret_cast<uintptr_t>(wasmIns->startPoint)
-      << '.' << endl;
+    Utils::debug({
+      "execution start point: ",
+      to_string(reinterpret_cast<uintptr_t>(wasmIns->startPoint)), "."}, true);
   } else {
-    ERROR_OUT("no start point found!");
+    Utils::report("no start point found!");
   }
 
   return wasmIns;

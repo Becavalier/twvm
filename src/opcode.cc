@@ -4,10 +4,11 @@
 #include "src/opcode.h"
 #include "src/macros.h"
 #include "src/decoder.h"
+#include "src/utils.h"
 
 void OpCode::doUnreachable() {
   // trap;
-  ERROR_OUT("unreachable code!");
+  Utils::report("unreachable code!");
 }
 
 void OpCode::doEnd(shared_ptr<WasmInstance> &wasmIns, Executor *executor) {
@@ -26,7 +27,7 @@ void OpCode::doEnd(shared_ptr<WasmInstance> &wasmIns, Executor *executor) {
           wasmIns->stack->returnValueStack.emplace(move(*topValue));
           wasmIns->stack->valueStack.pop();
         } else {
-          ERROR_OUT("return arity mismatch of the function!");
+          Utils::report("return arity mismatch of the function!");
         }
       }
       for (auto i = 0; i < wasmIns->stack->returnValueStack.size(); i++) {
@@ -36,7 +37,7 @@ void OpCode::doEnd(shared_ptr<WasmInstance> &wasmIns, Executor *executor) {
   } else if (currentLabelStackSize > activationLabelStackHeight) {
     // control structure end;
   } else {
-    ERROR_OUT("invalide \"end(0xb)\" condition!");
+    Utils::report("invalide \"end(0xb)\" condition!");
   }
 }
 

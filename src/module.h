@@ -7,7 +7,6 @@
 #include <memory>
 #include <utility>
 #include "src/types.h"
-#include "src/utilities.h"
 #include "src/macros.h"
 
 using std::vector;

@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 #include "src/macros.h"
-#include "src/utilities.h"
+#include "src/utils.h"
 
 using std::string;
 using std::vector;
@@ -112,7 +112,7 @@ struct WasmInitExpr {
         case InitExprKind::kI32Const: { rtVal.i32 = val.vI32Const; break; }
         case InitExprKind::kI64Const: { rtVal.i64 = val.vI64Const; break; }
         default: {
-          ERROR_OUT("initial expression has not been initialized.");
+          Utils::report("initial expression has not been initialized.");
         }
       }
     } else  {

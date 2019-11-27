@@ -19,6 +19,7 @@
 #include "src/module.h"
 #include "src/decoder.h"
 #include "src/opcode.h"
+#include "src/utils.h"
 
 using std::vector;
 using std::string;
@@ -107,20 +108,20 @@ class Loader {
         WRAP_UINT_FIELD(globalIndex, uint32_t, module);
         const auto moduleGlobal = module->getGlobal(globalIndex);
         if (moduleGlobal->mutability || !moduleGlobal->imported) {
-          ERROR_OUT("only immutable imported globals can be used in initializer expressions.");
+          Utils::report("only immutable imported globals can be used in initializer expressions.");
         }
         expr->kind = InitExprKind::kGlobalIndex;
         expr->val.vGlobalIndex = globalIndex;
         break;
       }
       default: {
-        ERROR_OUT("not supported opcode found in global section.");
+        Utils::report("not supported opcode found in global section.");
         break;
       }
     }
     // "0x0b" ending byte;
     if (static_cast<WasmOpcode>(Decoder::readUint8(module)) != WasmOpcode::kOpcodeEnd) {
-      ERROR_OUT("illegal ending byte.");
+      Utils::report("illegal ending byte.");
     }
   }
 

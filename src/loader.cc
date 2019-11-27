@@ -5,7 +5,7 @@
 #include <iostream>
 #include "src/loader.h"
 #include "src/constants.h"
-#include "src/utilities.h"
+#include "src/utils.h"
 
 vector<uchar_t> Loader::buf;
 
@@ -16,7 +16,7 @@ using std::ios;
 using std::array;
 
 shared_module_t Loader::init(const std::string &fileName) {
-  Utilities::reportDebug("- [LOADING PHASE] -");
+  Utils::debug("- [LOADING PHASE] -");
   ifstream in(fileName, ios::binary);
   char d;
   size_t counter = 1;
@@ -35,7 +35,7 @@ shared_module_t Loader::init(const std::string &fileName) {
       counter++;
     }
   } else {
-    Utilities::reportError("can not reading file.", false);
+    Utils::report("can not reading file.", false);
     return nullptr;
   }
   in.close();
@@ -49,7 +49,7 @@ shared_module_t Loader::init(const std::string &fileName) {
 }
 
 shared_module_t Loader::init(const uchar_t *source, size_t len) {
-  Utilities::reportDebug("- [LOADING PHASE] -");
+  Utils::debug("- [LOADING PHASE] -");
   shared_module_t wasmModule;
 
   // one-time copying;
@@ -62,11 +62,7 @@ shared_module_t Loader::init(const uchar_t *source, size_t len) {
 }
 
 void Loader::parse(const shared_module_t &module) {
-  try {
-    parseSection(module);
-  } catch(const std::exception& e) {
-    Utilities::reportError("exception occur, process terminated.", false);
-  }
+  parseSection(module);
 }
 
 void Loader::parseSection(const shared_module_t &module) {
@@ -98,7 +94,7 @@ void Loader::parseSection(const shared_module_t &module) {
 
 void Loader::parseUnkownSection(uint8_t sectionCode, const shared_module_t &module) {
   // buzzle;
-  Utilities::reportWarning()
+  Utils::warn()
     << "customized section code: 0x"
     << hex << static_cast<int>(sectionCode)
     << '.' << endl;
@@ -107,7 +103,7 @@ void Loader::parseUnkownSection(uint8_t sectionCode, const shared_module_t &modu
 }
 
 void Loader::parseTypeSection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing type section.");
+  Utils::debug("parsing type section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(entryCount, uint32_t, module);
   for (uint32_t i = 0; i < entryCount; i++) {
@@ -127,13 +123,13 @@ void Loader::parseTypeSection(const shared_module_t &module) {
       sig->paramsCount = paramsCount;
       sig->returnCount = returnCount;
     } else {
-      Utilities::reportError("type section code mismatch.");
+      Utils::report("type section code mismatch.");
     }
   }
 }
 
 void Loader::parseImportSection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing import section.");
+  Utils::debug("parsing import section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(importCount, uint32_t, module);
   for (auto i = 0; i < importCount; i++) {
@@ -159,7 +155,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
         // MVP: only support "anyfunc" (by default);
         const auto tableType = static_cast<ValueTypesCode>(Decoder::readUint8(module));
         if (tableType != ValueTypesCode::kFuncRef) {
-          Utilities::reportError("only support \"anyfunc\" type in table.");
+          Utils::report("only support \"anyfunc\" type in table.");
         }
         index = module->getTable()->size();
         module->getImportedTableCount()++;
@@ -181,7 +177,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
         break;
       }
       default: {
-        Utilities::reportError("unkonwn import type.");
+        Utils::report("unkonwn import type.");
       }
     }
     module->getImport()->push_back({moduleName, fieldName, importType, index});
@@ -189,7 +185,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
 }
 
 void Loader::parseFunctionSection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing function section.");
+  Utils::debug("parsing function section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(declaredFuncCount, uint32_t, module);
   for (auto i = 0; i < declaredFuncCount; i++) {
@@ -206,14 +202,14 @@ void Loader::parseFunctionSection(const shared_module_t &module) {
 }
 
 void Loader::parseTableSection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing table section.");
+  Utils::debug("parsing table section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(tableCount, uint32_t, module);
   for (auto i = 0; i < tableCount; i++) {
     // MVP: only support "anyfunc" (by default);
     const auto tableType = static_cast<ValueTypesCode>(Decoder::readUint8(module));
     if (tableType != ValueTypesCode::kFuncRef) {
-      Utilities::reportError("only support \"anyfunc\" type in table.");
+      Utils::report("only support \"anyfunc\" type in table.");
     }
 
     // insert new element by placement-new && move;
@@ -225,34 +221,34 @@ void Loader::parseTableSection(const shared_module_t &module) {
 }
 
 void Loader::parseMemorySection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing memory section.");
+  Utils::debug("parsing memory section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(memeoryCount, uint32_t, module);
 
   // determine whether the memory has been initialized via "import";
   if (memeoryCount > 1 || module->getMemory() != nullptr) {
-    Utilities::reportError("only support one memory in MVP.");
+    Utils::report("only support one memory in MVP.");
   } else {
     consumeMemoryParams(module);
   }
 }
 
 void Loader::parseStartSection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing start section.");
+  Utils::debug("parsing start section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(startFuncIndex, uint32_t, module);
 
   // start function: no arguments or return value;
   const auto sig = module->getFunction(startFuncIndex)->sig;
   if (sig->paramsCount != 0 || sig->returnCount != 0) {
-    Utilities::reportError("the start function must not take any arguments or return value.");
+    Utils::report("the start function must not take any arguments or return value.");
   } else {
     module->getStartFuncIndex() = startFuncIndex;
   }
 }
 
 void Loader::parseGlobalSection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing global section.");
+  Utils::debug("parsing global section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(globalCount, uint32_t, module);
   for (auto i = 0; i < globalCount; i++) {
@@ -271,7 +267,7 @@ void Loader::parseGlobalSection(const shared_module_t &module) {
 }
 
 void Loader::parseExportSection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing export section.");
+  Utils::debug("parsing export section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(exportCount, uint32_t, module);
   for (auto i = 0; i < exportCount; i++) {
@@ -298,7 +294,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         index = WRAP_UINT_FIELD_(uint32_t, module);
         const auto mem = module->getMemory();
         if (index != 0 || mem == nullptr) {
-          Utilities::reportError("invalid memory index.");
+          Utils::report("invalid memory index.");
         } else {
           mem->exported = true;
         }
@@ -313,7 +309,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         break;
       }
       default: {
-        Utilities::reportError("unkonwn export type.");
+        Utils::report("unkonwn export type.");
       }
     }
     module->getExport()->push_back({name, exportType, index});
@@ -321,7 +317,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
 }
 
 void Loader::parseCodeSection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing code section.");
+  Utils::debug("parsing code section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(bodyCount, uint32_t, module);
   for (auto i = 0; i < bodyCount; i++) {
@@ -347,16 +343,16 @@ void Loader::parseCodeSection(const shared_module_t &module) {
 
 // initialize imported/internally-defined table;
 void Loader::parseElementSection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing element section.");
+  Utils::debug("parsing element section.");
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(elemCount, uint32_t, module);
   if (elemCount > 0 && module->getTable()->size() == 0) {
-    Utilities::reportError("no table found to apply the element section.");
+    Utils::report("no table found to apply the element section.");
   }
   for (auto i = 0; i < elemCount; i++) {
     WRAP_UINT_FIELD(tableIndex, uint32_t, module);
     if (tableIndex != 0) {
-      Utilities::reportError("can only manipulate the default table in MVP.");
+      Utils::report("can only manipulate the default table in MVP.");
     }
     module->getElement()->emplace_back();
     auto *elem = &module->getElement()->back();
@@ -375,11 +371,11 @@ void Loader::parseElementSection(const shared_module_t &module) {
 }
 
 void Loader::parseDataSection(const shared_module_t &module) {
-  Utilities::reportDebug("parsing data section.");
+  Utils::debug("parsing data section.");
 }
 
 void Loader::skipKnownSection(uint8_t byte, const shared_module_t &module) {
-  Utilities::reportError()
+  Utils::report()
     << "unknown byte found: 0x"
     << hex << static_cast<int>(byte)
     << '.' << endl;
@@ -388,11 +384,11 @@ void Loader::skipKnownSection(uint8_t byte, const shared_module_t &module) {
 
 bool Loader::validateWords(const vector<uchar_t> &buf) {
   if (!validateMagicWord(buf)) {
-    Utilities::reportError("invalid wasm magic word, expect 0x6d736100.", false);
+    Utils::report("invalid wasm magic word, expect 0x6d736100.", false);
     return false;
   }
   if (!validateVersionWord(buf)) {
-    Utilities::reportError("invalid wasm version, expect 0x01.", false);
+    Utils::report("invalid wasm version, expect 0x01.", false);
     return false;
   }
   return true;

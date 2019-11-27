@@ -13,7 +13,8 @@
 #include <memory>
 #include <string>
 #include <functional>
-#include "src/utilities.h"
+#include <vector>
+#include "src/utils.h"
 #include "src/types.h"
 #include "src/module.h"
 
@@ -21,6 +22,7 @@ using std::function;
 using std::string;
 using std::memcpy;
 using std::malloc;
+using std::vector;
 
 class Decoder {
  private:
@@ -28,7 +30,7 @@ class Decoder {
   static T readLittleEndian(
     const uchar_t* buf,
     const function<void(T)> &callback = nullptr) {
-    auto r = Utilities::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(buf));
+    auto r = Utils::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(buf));
     // callback function;
     if (callback) {
       callback(r);
@@ -52,10 +54,10 @@ class Decoder {
     }
     return typedPointer;
   }
-  
+
   template <typename T>
   static T readVarUint_(
-    vector<uchar_t> t, 
+    vector<uchar_t> t,
     size_t *step = nullptr) {
     T r = 0;
     unsigned shift = 0;
@@ -71,7 +73,7 @@ class Decoder {
 
   template <typename T>
   static T readVarInt_(
-    vector<uchar_t> t, 
+    vector<uchar_t> t,
     size_t *step = nullptr) {
     T r = 0;
     unsigned shift = 0;
@@ -124,7 +126,7 @@ class Decoder {
    */
   template <typename T>
   static T readVarUint(
-    const shared_module_t module, 
+    const shared_module_t module,
     size_t *step = nullptr) {
     if (sizeof(T) == 1) {
       return readUint8(module);
@@ -136,7 +138,7 @@ class Decoder {
 
   template <typename T>
   static T readVarUint(
-    const uchar_t *p, 
+    const uchar_t *p,
     size_t *step = nullptr) {
     if (sizeof(T) == 1) {
       return readUint8(p);
@@ -148,7 +150,7 @@ class Decoder {
 
   template <typename T>
   static T readVarInt(
-    const shared_module_t module, 
+    const shared_module_t module,
     size_t *step = nullptr) {
     vector<uchar_t> t = Decoder::moduleWrapValue(module);
     return Decoder::readVarInt_<T>(t, step);
@@ -156,7 +158,7 @@ class Decoder {
 
   template <typename T>
   static T readVarInt(
-    const uchar_t *p, 
+    const uchar_t *p,
     size_t *step = nullptr) {
     vector<uchar_t> t = Decoder::ptrWrapValue(p);
     return Decoder::readVarInt_<T>(t, step);
