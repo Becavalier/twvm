@@ -216,6 +216,9 @@ class OpCode {
   static inline void doUnreachable();
   static inline void doEnd(shared_ptr<WasmInstance>&, Executor*);
   static inline void doI32Const(shared_ptr<WasmInstance>&, Executor*);
+  static inline void doI64Const(shared_ptr<WasmInstance>&, Executor*);
+  static inline void doF32Const(shared_ptr<WasmInstance>&, Executor*);
+  static inline void doF64Const(shared_ptr<WasmInstance>&, Executor*);
 
  public:
   static void handle(shared_ptr<WasmInstance>, WasmOpcode, Executor*);

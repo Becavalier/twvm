@@ -43,8 +43,26 @@ void OpCode::doEnd(shared_ptr<WasmInstance> &wasmIns, Executor *executor) {
 
 void OpCode::doI32Const(shared_ptr<WasmInstance> &wasmIns, Executor *executor) {
   // push an i32 value onto the stack;
-  auto value = static_cast<int32_t>(Decoder::readVarInt<int32_t>(executor->forward_()));
-  wasmIns->stack->valueStack.push({value});
+  wasmIns->stack->valueStack.push({
+    static_cast<int32_t>(Decoder::readVarInt<int32_t>(executor->forward_()))});
+}
+
+void OpCode::doI64Const(shared_ptr<WasmInstance> &wasmIns, Executor *executor) {
+  // push an i64 value onto the stack;
+  wasmIns->stack->valueStack.push({
+    static_cast<int64_t>(Decoder::readVarInt<int64_t>(executor->forward_()))});
+}
+
+void OpCode::doF32Const(shared_ptr<WasmInstance> &wasmIns, Executor *executor) {
+  // push a f32 value onto the stack;
+  wasmIns->stack->valueStack.push({
+    Utils::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()))});
+}
+
+void OpCode::doF64Const(shared_ptr<WasmInstance> &wasmIns, Executor *executor) {
+  // push a f64 value onto the stack;
+  wasmIns->stack->valueStack.push({
+    Utils::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()))});
 }
 
 void OpCode::handle(shared_ptr<WasmInstance> wasmIns, WasmOpcode opcode, Executor *executor) {
@@ -54,14 +72,11 @@ void OpCode::handle(shared_ptr<WasmInstance> wasmIns, WasmOpcode opcode, Executo
       doUnreachable();
       break;
     }
-    case WasmOpcode::kOpcodeEnd: {
-      doEnd(wasmIns, executor);
-      break;
-    }
-    case WasmOpcode::kOpcodeI32Const: {
-      doI32Const(wasmIns, executor);
-      break;
-    }
+    case WasmOpcode::kOpcodeEnd: { doEnd(wasmIns, executor); break; }
+    case WasmOpcode::kOpcodeI32Const: { doI32Const(wasmIns, executor); break; }
+    case WasmOpcode::kOpcodeI64Const: { doI64Const(wasmIns, executor); break; }
+    case WasmOpcode::kOpcodeF32Const: { doF32Const(wasmIns, executor); break; }
+    case WasmOpcode::kOpcodeF64Const: { doF64Const(wasmIns, executor); break; }
     default:
       break;
   }
