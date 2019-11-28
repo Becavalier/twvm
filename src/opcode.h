@@ -27,7 +27,7 @@
   V(Return, 0x0f)
 
 #define ITERATE_MISC_OPCODE(V) \
-  V(CallFunction, 0x10) \
+  V(Call, 0x10) \
   V(CallIndirect, 0x11) \
   V(Drop, 0x1a) \
   V(Select, 0x1b) \
@@ -201,11 +201,12 @@
 #include "src/instances.h"
 #include "src/executor.h"
 
-using std::shared_ptr;
-
 // ahead declare;
 struct WasmInstance;
 class Executor;
+
+using std::shared_ptr;
+using shared_wasm_t = shared_ptr<WasmInstance>;
 
 enum class WasmOpcode {
   ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
@@ -214,14 +215,27 @@ enum class WasmOpcode {
 class OpCode {
  private:
   static inline void doUnreachable();
-  static inline void doEnd(shared_ptr<WasmInstance>&, Executor*);
-  static inline void doI32Const(shared_ptr<WasmInstance>&, Executor*);
-  static inline void doI64Const(shared_ptr<WasmInstance>&, Executor*);
-  static inline void doF32Const(shared_ptr<WasmInstance>&, Executor*);
-  static inline void doF64Const(shared_ptr<WasmInstance>&, Executor*);
+  static inline void doBlock(shared_wasm_t&, Executor*);
+  static inline void doLoop(shared_wasm_t&, Executor*);
+  static inline void doIf(shared_wasm_t&, Executor*);
+  static inline void doElse(shared_wasm_t&, Executor*);
+  static inline void doEnd(shared_wasm_t&, Executor*);
+  static inline void doBr(shared_wasm_t&, Executor*);
+  static inline void doBrIf(shared_wasm_t&, Executor*);
+  static inline void doBrTable(shared_wasm_t&, Executor*);
+  static inline void doReturn(shared_wasm_t&, Executor*);
+  static inline void doCall(shared_wasm_t&, Executor*);
+  static inline void doLocalGet(shared_wasm_t&, Executor*);
+  static inline void doI32Const(shared_wasm_t&, Executor*);
+  static inline void doI64Const(shared_wasm_t&, Executor*);
+  static inline void doF32Const(shared_wasm_t&, Executor*);
+  static inline void doF64Const(shared_wasm_t&, Executor*);
+  static inline void doI32LoadMem(shared_wasm_t&, Executor*);
+  static inline void doI32GeS(shared_wasm_t&, Executor*);
+  static inline void doI64GeS(shared_wasm_t&, Executor*);
 
  public:
-  static void handle(shared_ptr<WasmInstance>, WasmOpcode, Executor*);
+  static void handle(shared_wasm_t, WasmOpcode, Executor*);
 };
 
 #endif  // OPCODE_H_

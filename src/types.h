@@ -142,8 +142,8 @@ struct WasmFunctionSig {
 struct WasmFunction {
   SET_STRUCT_MOVE_ONLY(WasmFunction);
   WasmFunctionSig* sig;
-  size_t funcIndex;
-  size_t sigIndex;
+  uint32_t funcIndex;
+  uint32_t sigIndex;
   vector<ValueFrameTypes> locals = {};
   const uchar_t *code = nullptr;
   size_t codeLen = 0;
@@ -164,7 +164,7 @@ struct WasmTable {
 template <typename T = WasmFunction>
 struct WasmElement {
   SET_STRUCT_MOVE_ONLY(WasmElement<T>);
-  size_t tableIndex = 0;  // default;
+  uint32_t tableIndex = 0;  // default;
   ExternalTypesCode type = ExternalTypesCode::kExternalException;  // anyfunc;
   WasmInitExpr init = {};  // offset in table (initialization expr);
   vector<T*> entities = {};

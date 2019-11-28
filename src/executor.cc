@@ -13,7 +13,7 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   pc = wasmIns->startPoint - 1;
 
   while (true) {
-    if (currentSteps == codeLen) {
+    if (!runningStatus) {
       // verify running reuslt by the state of final stack;
       return wasmIns->stack->checkStackState(wasmIns->startEntry);
     }

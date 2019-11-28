@@ -8,7 +8,6 @@
   const auto keyName = Decoder::readVarUint<type>(module, step)
 #define WRAP_UINT_FIELD_(type, module) \
   Decoder::readVarUint<type>(module)
-
 #define WRAP_INT_FIELD(keyName, type, module) \
   const auto keyName = Decoder::readVarInt<type>(module)
 

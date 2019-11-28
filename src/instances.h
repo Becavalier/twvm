@@ -17,6 +17,7 @@ using std::string;
 using std::vector;
 using std::shared_ptr;
 
+class Stack;
 struct Store;
 struct WasmModuleInstance;
 enum class WasmOpcode;
@@ -42,8 +43,9 @@ class WasmMemoryInstance {
 
   // memory -> stack;
   template <typename T>
-  T load(uint32_t offset, uint32_t align) {
+  T load(uint32_t offset) {
     if (offset + sizeof(T) <= currentMemSize * DEFAULT_BYTE_LENGTH) {
+      currentUsedMemSize -= sizeof(T);
       return *reinterpret_cast<T*>(data + offset);
     } else {
       Utils::report("memory out of bound.");
@@ -54,21 +56,30 @@ class WasmMemoryInstance {
 
   // stack -> memory;
   template <typename T>
-  void store(uint32_t offset, uint32_t align, T val) {
+  void store(uint32_t offset, T val) {
     // bound check;
     if (offset + sizeof(T) <= currentMemSize * DEFAULT_BYTE_LENGTH) {
       *(reinterpret_cast<T*>(data + offset)) = val;
+      currentUsedMemSize += sizeof(T);
     } else {
       Utils::report("memory out of bound.");
     }
   }
 
   // return the current memory size in Wasm pages;
-  const auto size() {
+  inline const auto usedSize() {
+    return currentUsedMemSize;
+  }
+
+  inline const auto availableSize() {
     return currentMemSize;
   }
 
-  const auto& rawDataBuf() {
+  inline const auto maxSize() {
+    return maxMemSize;
+  }
+
+  inline const auto& rawDataBuf() {
     return data;
   }
 
@@ -88,6 +99,7 @@ class WasmMemoryInstance {
   // 64k per pages;
   uint32_t maxMemSize = 0;
   uint32_t currentMemSize = 0;
+  uint32_t currentUsedMemSize = 0;
   uchar_t* data = nullptr;
   const WasmMemory *staticMemory;
 };

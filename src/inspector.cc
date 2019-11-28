@@ -92,7 +92,7 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
     (memorySize == 0 ? "N/A" : string())});
   for (const auto &memory : wasmIns->module->memories) {
     line << "[";
-    line << "memory_size " << (memory->size() * WASM_PAGE_SIZE / 1024) << " kib]";
+    line << "memory_size " << (memory->availableSize() * WASM_PAGE_SIZE / 1024) << " kib]";
     printer->feedLine(line);
   }
   printer->printTableView();

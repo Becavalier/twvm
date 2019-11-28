@@ -7,6 +7,7 @@
 #include <cstring>
 #include <iostream>
 #include <type_traits>
+#include "src/instances.h"
 #include "src/constants.h"
 #include "src/utils.h"
 #include "src/macros.h"
@@ -18,11 +19,18 @@ using std::is_same;
 using std::ostream;
 using std::dec;
 using std::memcmp;
+using std::memcpy;
+
+struct WasmFuncInstance;
 
 class ValueFrame {
  public:
   SET_STRUCT_MOVE_ONLY(ValueFrame);
   ValueFrame(ValueFrameTypes type) : bitPattern{} {}
+  ValueFrame(const ValueFrame *other) : type(other->type) {
+    // copy "bitPattern";
+    memcpy(bitPattern, other->bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
+  }
 
 #define DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS(name, localtype, ctype) \
   ValueFrame(ctype v) : type(localtype), bitPattern{} { \
@@ -39,6 +47,10 @@ class ValueFrame {
 
   inline ValueTypesCode getValueType() {
     return static_cast<ValueTypesCode>(type);
+  }
+
+  inline bool isValueZero() {
+    
   }
 
   void outputValue(ostream &out) {
@@ -59,18 +71,28 @@ class ValueFrame {
 class LabelFrame {
  public:
   SET_STRUCT_MOVE_ONLY(LabelFrame);
+  LabelFrame(ValueTypesCode resultType) : resultType(resultType) {}
+
  private:
   // for "block", "loop" and "if";
   ValueTypesCode resultType;
+  const uchar_t *endPos;
+  const uchar_t *branchPos;
+  const uchar_t *startPos;
 };
 
 class ActivationFrame {
  public:
   SET_STRUCT_MOVE_ONLY(ActivationFrame);
-  const WasmFunction *pFuncIns = nullptr;
+  const WasmFuncInstance *pFuncIns = nullptr;
+  vector<ValueFrame> locals = {};
 
-  ActivationFrame(const WasmFunction *pFuncIns, size_t valueStackHeight, size_t labelStackHeight) : 
-    pFuncIns(pFuncIns), valueStackHeight(valueStackHeight), labelStackHeight(labelStackHeight) {};
+  ActivationFrame(
+    const WasmFuncInstance *pFuncIns, 
+    size_t valueStackHeight, 
+    size_t labelStackHeight, 
+    vector<ValueFrame> locals = {}) : 
+    pFuncIns(pFuncIns), valueStackHeight(valueStackHeight), labelStackHeight(labelStackHeight), locals(locals) {};
   
   inline auto getValueStackHeight() { return valueStackHeight; }
   inline auto getLabelStackHeight() { return labelStackHeight; }
@@ -104,8 +126,8 @@ class Stack {
   stack<ValueFrame> valueStack;
   stack<LabelFrame> labelStack;
   stack<ActivationFrame> activationStack;
-  // for temporary saving return arity;
-  stack<ValueFrame> returnValueStack;
+  // for temporary saving arity, due to the lack of random accessing of the stack;;
+  stack<ValueFrame> tempValueStack;
 };
 
 #endif  // STACK_H_

@@ -12,6 +12,7 @@ struct WasmInstance;
 // core execution logic;
 class Executor {
  private:
+  bool runningStatus = true;
   size_t codeLen = 0;
 
  public:
@@ -21,6 +22,10 @@ class Executor {
 
   inline void increaseCodeLen(size_t step) {
     codeLen += step;
+  }
+
+  inline void switchStatus(bool flag) {
+    runningStatus = flag;
   }
 
   inline const uchar_t* forward_(size_t step = 1) {

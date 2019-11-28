@@ -104,11 +104,11 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   const auto startFunctionIndex = module->getStartFuncIndex();
   bool hasStartPoint = true;
   if (startFunctionIndex != -1) {
-    const auto &wasmFunc = module->getFunction()->at(startFunctionIndex);
-    wasmIns->startPoint = wasmFunc.code;
-    wasmIns->startCodeLen = wasmFunc.codeLen;
+    const auto wasmFunc = &store->functionInsts.at(startFunctionIndex);
+    wasmIns->startPoint = wasmFunc->staticProto->code;
+    wasmIns->startCodeLen = wasmFunc->staticProto->codeLen;
     stack->activationStack.emplace(
-      &wasmFunc,
+      wasmFunc,
       stack->valueStack.size(),
       stack->labelStack.size());
   } else {
@@ -119,12 +119,12 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
         && exportEntity.type == ExternalTypesCode::kExternalFunction;
     });
     if (it != exportItE) {
-      const auto &wasmFunc = module->getFunction()->at(it->index);
-      wasmIns->startPoint = wasmFunc.code;
-      wasmIns->startCodeLen = wasmFunc.codeLen;
+      const auto wasmFunc = &store->functionInsts.at(it->index);
+      wasmIns->startPoint = wasmFunc->staticProto->code;
+      wasmIns->startCodeLen = wasmFunc->staticProto->codeLen;
       wasmIns->startEntry = false;
       stack->activationStack.emplace(
-        &wasmFunc,
+        wasmFunc,
         stack->valueStack.size(),
         stack->labelStack.size());
     } else {
