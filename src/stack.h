@@ -115,7 +115,7 @@ class ActivationFrame {
     size_t valueStackHeight, 
     size_t labelStackHeight, 
     vector<ValueFrame> locals = {}) : 
-    pFuncIns(pFuncIns), valueStackHeight(valueStackHeight), labelStackHeight(labelStackHeight), locals(locals) {};
+    pFuncIns(pFuncIns), valueStackHeight(valueStackHeight), labelStackHeight(labelStackHeight), locals(move(locals)) {};
   
   inline auto getValueStackHeight() { return valueStackHeight; }
   inline auto getLabelStackHeight() { return labelStackHeight; }
