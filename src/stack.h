@@ -27,13 +27,14 @@ class ValueFrame {
  public:
   SET_STRUCT_MOVE_ONLY(ValueFrame);
   ValueFrame(ValueFrameTypes type) : bitPattern{} {}
-  ValueFrame(const ValueFrame *other) : type(other->type) {
+  ValueFrame(const ValueFrame *other) : type(other->type), isValueZero(other->isValueZero) {
     // copy "bitPattern";
     memcpy(bitPattern, other->bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
   }
 
 #define DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS(name, localtype, ctype) \
   ValueFrame(ctype v) : type(localtype), bitPattern{} { \
+    isValueZero = (v == static_cast<ctype>(0)); \
     Utils::writeUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern), v); \
   } \
   const ctype to##name() { \
@@ -49,9 +50,21 @@ class ValueFrame {
     return static_cast<ValueTypesCode>(type);
   }
 
-  inline bool isValueZero() {
-    
-  }
+  template <typename T>
+  inline void resetValue(T v) {
+    if (is_same<T, int32_t>::value) {
+      type = ValueFrameTypes::kI32Value;
+    } else if (is_same<T, int64_t>::value) {
+      type = ValueFrameTypes::kI64Value;
+    } else if (is_same<T, float>::value) {
+      type = ValueFrameTypes::kF32Value;
+    } else if (is_same<T, double>::value) {
+      type = ValueFrameTypes::kF64Value;
+    } else {
+      Utils::report("invalid type of \"ValueFrame\"!");
+    }
+    Utils::writeUnalignedValue<T>(reinterpret_cast<uintptr_t>(bitPattern), v);
+  }  
 
   void outputValue(ostream &out) {
     switch (type) {
@@ -63,22 +76,32 @@ class ValueFrame {
     }
   }
 
+  const auto isZero() {
+    return isValueZero;
+  }
+
  private:
   ValueFrameTypes type;
+  bool isValueZero;
   uint8_t bitPattern[WASM_VALUE_BIT_PATTERN_WIDTH];
 };
 
 class LabelFrame {
  public:
   SET_STRUCT_MOVE_ONLY(LabelFrame);
-  LabelFrame(ValueTypesCode resultType) : resultType(resultType) {}
+  shared_ptr<PosPtr> end;
+  shared_ptr<PosPtr> branch;
+  shared_ptr<PosPtr> start;
+
+  LabelFrame(
+    ValueTypesCode resultType, 
+    size_t valueStackHeight) : resultType(resultType), valueStackHeight(valueStackHeight) {}
 
  private:
   // for "block", "loop" and "if";
   ValueTypesCode resultType;
-  const uchar_t *endPos;
-  const uchar_t *branchPos;
-  const uchar_t *startPos;
+  // determine the # of returning arity;
+  const size_t valueStackHeight = 0;
 };
 
 class ActivationFrame {
@@ -126,7 +149,7 @@ class Stack {
   stack<ValueFrame> valueStack;
   stack<LabelFrame> labelStack;
   stack<ActivationFrame> activationStack;
-  // for temporary saving arity, due to the lack of random accessing of the stack;;
+  // for temporary saving arity, due to the lack of random accessing of the stack;
   stack<ValueFrame> tempValueStack;
 };
 

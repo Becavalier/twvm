@@ -164,6 +164,14 @@ class Decoder {
     return Decoder::readVarInt_<T>(t, step);
   }
 
+  static size_t calcPassBytes(const uchar_t *p, size_t num = 1) {
+    size_t total = 0;
+    for (auto i = 0; i < num; i++) {
+      total += ptrWrapValue(p).size();
+    }
+    return total;
+  }
+
   static uint8_t readUint8(const uchar_t*);
   static uint16_t readUint16(const uchar_t*);
   static uint32_t readUint32(const uchar_t*);

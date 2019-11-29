@@ -89,6 +89,12 @@ union RTValue {
   double f64;
 };
 
+struct PosPtr {
+  PosPtr(const uchar_t *pc, size_t offset) : pc(pc), offset(offset) {}
+  const uchar_t *pc;
+  const size_t offset;
+};
+
 /* compound types */
 // for initial value of global section, offset of data/elements segment;
 struct WasmInitExpr {

@@ -1,6 +1,7 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <cstdint>
 #include <iostream>
+#include <memory>
 #include "src/types.h"
 #include "src/opcode.h"
 #include "src/macros.h"
@@ -10,19 +11,49 @@
 #define WRAP_FORWARD_INT_FIELD(keyName, type) \
   const auto keyName = Decoder::readVarInt<type>(executor->forward_());
 
+using std::make_shared;
+
 void OpCode::doUnreachable() {
   // trap;
   Utils::report("unreachable code!");
 }
 
 void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
+  const auto labelStack = &wasmIns->stack->labelStack;
   const auto returnType = static_cast<ValueTypesCode>(Decoder::readUint8(executor->forward_()));
-  // record the end entry for br/br_if;
-  wasmIns->stack->labelStack.push({returnType});
+  labelStack->emplace(returnType, wasmIns->stack->valueStack.size());
+  const auto topLabel = &labelStack->top();
+  // find "end" entry;
+  const auto topActivation = &wasmIns->stack->activationStack.top();
+  size_t level = 0;
+  executor->crawler(
+    executor->pc + executor->innerOffset + 1,
+    topActivation->pFuncIns->staticProto->codeLen - executor->innerOffset,
+    [&level, &topLabel, &executor](WasmOpcode opcode, size_t offset) -> auto {
+      switch (opcode) {
+        case WasmOpcode::kOpcodeIf:
+        case WasmOpcode::kOpcodeLoop:
+        case WasmOpcode::kOpcodeBlock: {
+          level++;
+          break;
+        }
+        case WasmOpcode::kOpcodeEnd: {
+          if (level == 0) {
+            topLabel->end = make_shared<PosPtr>(executor->pc, executor->innerOffset + offset);
+            return;
+          } else {
+            level--;
+          }
+          break;
+        }
+        default: break;
+      }
+  });
 }
 
 void OpCode::doLoop(shared_wasm_t &wasmIns, Executor *executor) {
-
+  // "end" should be the start;
+  
 }
 
 void OpCode::doIf(shared_wasm_t &wasmIns, Executor *executor) {
@@ -70,15 +101,22 @@ void OpCode::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor) {
+  WRAP_FORWARD_INT_FIELD(depth, int32_t);
+  if (wasmIns->stack->labelStack.size() >= depth + 1) {
 
+    cout << "br";
+    std::cin.get();
+  } else {
+    Utils::report("invalid branching depth!");
+  }
 }
 
 void OpCode::doBrIf(shared_wasm_t &wasmIns, Executor *executor) {
-  WRAP_FORWARD_INT_FIELD(depth, int32_t);
   const auto valueStack = &wasmIns->stack->valueStack;
   const auto topVal = &valueStack->top();
-  //
-  
+  if (!topVal->isZero()) {
+    doBr(wasmIns, executor);
+  }
   valueStack->pop();
 }
 
@@ -87,7 +125,8 @@ void OpCode::doBrTable(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void OpCode::doReturn(shared_wasm_t &wasmIns, Executor *executor) {
-
+  cout << "return";
+  std::cin.get();
 }
 
 void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
@@ -95,6 +134,7 @@ void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
   WRAP_FORWARD_INT_FIELD(funcIndex, int32_t);
   if (funcIndex < modFuncs.size()) {
     const auto funcIns = modFuncs[funcIndex];
+    executor->innerOffset = 0;
     executor->increaseCodeLen(funcIns->staticProto->codeLen);
     executor->pc = funcIns->staticProto->code - 1;
     // add an activation frame;
@@ -178,11 +218,13 @@ void OpCode::doI32GeS(shared_wasm_t &wasmIns, Executor *executor) {
     valueStack->pop();
     if (valueStack->top() == tempValueStack->top()) {
       // put "i32.const 1" onto the stack;
-      wasmIns->stack->valueStack.push({static_cast<int32_t>(1)});
+      valueStack->top().resetValue<int32_t>(1);
     } else {
       // put "i32.const 0" onto the stack;
-      wasmIns->stack->valueStack.push({static_cast<int32_t>(0)});
+      valueStack->top().resetValue<int32_t>(0);
     }
+    // discard the temp value;
+    tempValueStack->pop();
   }
 }
 
@@ -190,14 +232,27 @@ void OpCode::doI64GeS(shared_wasm_t &wasmIns, Executor *executor) {
   
 }
 
+void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
+  const auto valueStack = &wasmIns->stack->valueStack;
+  const auto tempValueStack = &wasmIns->stack->tempValueStack;
+  if (valueStack->size() >= 2) {
+    const auto topVal = &valueStack->top();
+    tempValueStack->emplace(move(*topVal));
+    valueStack->pop();
+    const auto &firstVal = &valueStack->top();
+    const auto &secondVal = &tempValueStack->top();
+    if (firstVal->getValueType() == secondVal->getValueType()) {
+      firstVal->resetValue<int32_t>(firstVal->toI32() + secondVal->toI32());
+    }
+    // discard the temp value;
+    tempValueStack->pop();
+  }
+}
 
 void OpCode::handle(shared_wasm_t wasmIns, WasmOpcode opcode, Executor *executor) {
-  std::cout << (int) opcode << std::endl;
+  //std::cout << (int) opcode << std::endl;
   switch (opcode) {
-    case WasmOpcode::kOpcodeUnreachable: {
-      doUnreachable();
-      break;
-    }
+    case WasmOpcode::kOpcodeUnreachable: { doUnreachable(); break; }
     case WasmOpcode::kOpcodeBlock: { doBlock(wasmIns, executor); break; }
     case WasmOpcode::kOpcodeLoop: { doLoop(wasmIns, executor); break; }
     case WasmOpcode::kOpcodeIf: { doIf(wasmIns, executor); break; }
@@ -216,7 +271,7 @@ void OpCode::handle(shared_wasm_t wasmIns, WasmOpcode opcode, Executor *executor
     case WasmOpcode::kOpcodeI32LoadMem: { doI32LoadMem(wasmIns, executor); break; }
     case WasmOpcode::kOpcodeI32GeS: { doI32GeS(wasmIns, executor); break; }
     case WasmOpcode::kOpcodeI64GeS: { doI64GeS(wasmIns, executor); break; }
-    default:
-      break;
+    case WasmOpcode::kOpcodeI32Add: { doI32Add(wasmIns, executor); break; }
+    default: break;
   }
 }

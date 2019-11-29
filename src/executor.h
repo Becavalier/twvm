@@ -3,11 +3,13 @@
 #define EXECUTOR_H_
 
 #include <memory>
+#include "src/opcode.h"
 #include "src/instances.h"
 
 using std::shared_ptr;
 
 struct WasmInstance;
+enum class WasmOpcode;
 
 // core execution logic;
 class Executor {
@@ -17,8 +19,9 @@ class Executor {
 
  public:
   const uchar_t *pc;
-  size_t currentSteps = 0;
+  size_t innerOffset = 0;
   const int execute(shared_ptr<WasmInstance>);
+  const void crawler(const uchar_t*, size_t, const function<void(WasmOpcode, size_t)> &callback = nullptr);
 
   inline void increaseCodeLen(size_t step) {
     codeLen += step;
@@ -29,9 +32,8 @@ class Executor {
   }
 
   inline const uchar_t* forward_(size_t step = 1) {
-    currentSteps += step;
-    pc += step;
-    return pc;
+    innerOffset += step;
+    return pc + innerOffset;
   }
 };
 
