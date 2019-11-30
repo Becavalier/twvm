@@ -60,7 +60,7 @@ int main(int argc, const char **argv) {
     if (wasmModule) {
       const auto wasmModuleSize = wasmModule->getModContentLength();
       if (wasmModuleSize > 0) {
-        Utils::debug({"module parsing completed. (", to_string(wasmModuleSize), " bytes"});
+        Utils::debug({"module parsing completed. (", to_string(wasmModuleSize), ") bytes"});
         Utils::debug({"static parsing time: ", to_string(calcTimeInterval(start)), "ms."});
       }
     } else {

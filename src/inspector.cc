@@ -26,7 +26,7 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
   const auto printer = Utils::getPrinter();
 
   Utils::debug();
-  Utils::debug(string("- [INSPECTING PHASE] -"), true);
+  Utils::debug("- [INSPECTING PHASE] -");
 
   // WasmFunctionSig;
   const auto &typeSize = wasmIns->module->types.size();

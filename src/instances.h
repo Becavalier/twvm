@@ -122,7 +122,7 @@ struct WasmFuncInstance {
   WasmFunctionSig* type;
   WasmFunction* staticProto;
   shared_ptr<WasmModuleInstance> module;
-  vector<WasmOpcode> code;
+  vector<uint8_t> code;
 };
 
 struct WasmExportInstance {
@@ -145,8 +145,7 @@ struct WasmModuleInstance {
 struct WasmInstance {
   SET_STRUCT_MOVE_ONLY(WasmInstance);
   // start function, or main function;
-  const uchar_t *startPoint = nullptr;
-  size_t startCodeLen = 0;
+  shared_ptr<PosPtr> startPoint = nullptr;
   bool startEntry = true;
   shared_ptr<WasmModuleInstance> module;
   shared_ptr<Store> store;

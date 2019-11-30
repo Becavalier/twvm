@@ -1,6 +1,7 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <algorithm>
 #include <string>
+#include <memory>
 #include "src/instantiator.h"
 #include "src/store.h"
 #include "src/decoder.h"
@@ -10,6 +11,7 @@ using std::find_if;
 using std::hex;
 using std::showbase;
 using std::to_string;
+using std::make_shared;
 
 const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module) {
   Utils::debug();
@@ -43,7 +45,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     store->functionInsts.emplace_back();
     const auto ins = &store->functionInsts.back();
     for (auto j = 0; j < i.codeLen; j++) {
-      ins->code.push_back(static_cast<WasmOpcode>(Decoder::readUint8(i.code + j)));
+      ins->code.push_back(Decoder::readUint8(i.code + j));
     }
     ins->type = i.sig;
     ins->module = moduleInst;
@@ -105,12 +107,11 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   bool hasStartPoint = true;
   if (startFunctionIndex != -1) {
     const auto wasmFunc = &store->functionInsts.at(startFunctionIndex);
-    wasmIns->startPoint = wasmFunc->staticProto->code;
-    wasmIns->startCodeLen = wasmFunc->staticProto->codeLen;
-    stack->activationStack.emplace(
+    wasmIns->startPoint = make_shared<PosPtr>(&wasmFunc->code);
+    stack->activationStack->emplace({
       wasmFunc,
-      stack->valueStack.size(),
-      stack->labelStack.size());
+      stack->valueStack->size(),
+      stack->labelStack->size()});
   } else {
     const auto exportItB = module->getExport()->begin();
     const auto exportItE = module->getExport()->end();
@@ -120,23 +121,15 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     });
     if (it != exportItE) {
       const auto wasmFunc = &store->functionInsts.at(it->index);
-      wasmIns->startPoint = wasmFunc->staticProto->code;
-      wasmIns->startCodeLen = wasmFunc->staticProto->codeLen;
+      wasmIns->startPoint = make_shared<PosPtr>(&wasmFunc->code);
       wasmIns->startEntry = false;
-      stack->activationStack.emplace(
+      stack->activationStack->emplace({
         wasmFunc,
-        stack->valueStack.size(),
-        stack->labelStack.size());
+        stack->valueStack->size(),
+        stack->labelStack->size()});
     } else {
       hasStartPoint = false;
     }
-  }
-  if (hasStartPoint && wasmIns->startPoint != nullptr) {
-    Utils::debug({
-      "execution start point: ",
-      to_string(reinterpret_cast<uintptr_t>(wasmIns->startPoint)), "."}, true);
-  } else {
-    Utils::report("no start point found!");
   }
 
   return wasmIns;

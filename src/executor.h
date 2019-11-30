@@ -15,16 +15,16 @@ enum class WasmOpcode;
 class Executor {
  private:
   bool runningStatus = true;
-  size_t codeLen = 0;
+  WasmOpcode currentOpcode;
 
  public:
-  const uchar_t *pc;
-  size_t innerOffset = 0;
+  vector<uint8_t> *pc;
+  size_t innerOffset = -1;
   const int execute(shared_ptr<WasmInstance>);
-  const void crawler(const uchar_t*, size_t, const function<void(WasmOpcode, size_t)> &callback = nullptr);
+  const void crawler(const uchar_t*, size_t, const function<bool(WasmOpcode, size_t)> &callback = nullptr);
 
-  inline void increaseCodeLen(size_t step) {
-    codeLen += step;
+  inline const uchar_t* absAddr() {
+    return pc->data() + innerOffset;
   }
 
   inline void switchStatus(bool flag) {
@@ -33,7 +33,11 @@ class Executor {
 
   inline const uchar_t* forward_(size_t step = 1) {
     innerOffset += step;
-    return pc + innerOffset;
+    return absAddr();
+  }
+
+  inline const auto& getCurrentOpcode() {
+    return currentOpcode;
   }
 };
 

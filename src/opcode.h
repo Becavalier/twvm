@@ -212,6 +212,12 @@ enum class WasmOpcode {
   ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
 };
 
+struct PosPtr {
+  PosPtr(vector<uint8_t> *pc, const size_t offset = -1) : pc(pc), offset(offset) {}
+  vector<uint8_t> *pc;
+  const size_t offset;
+};
+
 class OpCode {
  private:
   static inline void doUnreachable();
@@ -220,7 +226,7 @@ class OpCode {
   static inline void doIf(shared_wasm_t&, Executor*);
   static inline void doElse(shared_wasm_t&, Executor*);
   static inline void doEnd(shared_wasm_t&, Executor*);
-  static inline void doBr(shared_wasm_t&, Executor*);
+  static inline void doBr(shared_wasm_t&, Executor*, bool = false);
   static inline void doBrIf(shared_wasm_t&, Executor*);
   static inline void doBrTable(shared_wasm_t&, Executor*);
   static inline void doReturn(shared_wasm_t&, Executor*);

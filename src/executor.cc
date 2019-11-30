@@ -9,27 +9,26 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   Utils::debug();
   Utils::debug("- [EXECUTING PHASE] -");
 
-  codeLen = wasmIns->startCodeLen;
-  pc = wasmIns->startPoint - 1;
-
+  pc = wasmIns->startPoint->pc;
   while (true) {
     if (!runningStatus) {
       // verify running reuslt by the state of final stack;
       return wasmIns->stack->checkStackState(wasmIns->startEntry);
     }
 
-    const WasmOpcode opcode = static_cast<WasmOpcode>(Decoder::readUint8(forward_()));
+    const WasmOpcode opcode = static_cast<WasmOpcode>(pc->at(++innerOffset)); 
+    currentOpcode = opcode;
+    // run;
     OpCode::handle(wasmIns, opcode, this);
   }
-
   return 0;
 }
 
-const void Executor::crawler(const uchar_t* buf, size_t length, const function<void(WasmOpcode, size_t)> &callback) {
+const void Executor::crawler(const uchar_t* buf, size_t length, const function<bool(WasmOpcode, size_t)> &callback) {
   // eat every opcode and immediates;
   size_t offset = 0;
   while (offset != length) {
-    const auto opcode = static_cast<WasmOpcode>(Decoder::readUint8(buf + offset++));
+    const auto opcode = static_cast<WasmOpcode>(*(buf + offset++));
     switch (opcode) {
       case WasmOpcode::kOpcodeI32Const:
       case WasmOpcode::kOpcodeI64Const:
@@ -81,8 +80,8 @@ const void Executor::crawler(const uchar_t* buf, size_t length, const function<v
       }
       default: break;
     }
-    if (callback) {
-      callback(opcode, offset);
+    if (callback && callback(opcode, offset)) {
+      return;
     }
   }
 };

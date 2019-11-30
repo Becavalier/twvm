@@ -42,8 +42,6 @@ using std::istringstream;
 using std::getline;
 using std::memcpy;
 using std::ostream;
-using std::hex;
-using std::showbase;
 
 class Printer {
  private:
@@ -62,19 +60,18 @@ class Printer {
 
 class Utils {
  public:
-  inline static void debug(const string &msg = string(), bool hexFormat = false) {
+  inline static void debug(const string &msg = string(), bool lineBreak = true) {
     if (!CommandLine::isDebugMode) { return; }
     INTERNAL_DEBUG_PREFIX_OUTPUT();
-    if (hexFormat) { cout << hex << showbase; }
-    cout << msg << endl;
+    cout << msg;
+    if (lineBreak) { cout << endl; }
   }
 
-  inline static void debug(const vector<string> msgs, bool hexFormat = false) {
+  inline static void debug(const vector<string> msgs, bool lineBreak = true) {
     if (!CommandLine::isDebugMode) { return; }
     INTERNAL_DEBUG_PREFIX_OUTPUT();
-    if (hexFormat) { cout << hex << showbase; }
     for (auto msg : msgs) { cout << msg; }
-    cout << endl;
+    if (lineBreak) { cout << endl; }
   }
 
   inline static ostream& say(const string &msg = string()) {

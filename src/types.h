@@ -13,6 +13,8 @@ using std::string;
 using std::vector;
 using uchar_t = unsigned char;
 
+enum class WasmOpcode;
+
 constexpr size_t kSpecMaxWasmMemoryPages = 65536;
 constexpr uint32_t kWasmMagicWord = 0x6d736100;
 constexpr uint32_t kWasmVersion = 0x01;
@@ -87,12 +89,6 @@ union RTValue {
   int64_t i64;
   float f32;
   double f64;
-};
-
-struct PosPtr {
-  PosPtr(const uchar_t *pc, size_t offset) : pc(pc), offset(offset) {}
-  const uchar_t *pc;
-  const size_t offset;
 };
 
 /* compound types */
