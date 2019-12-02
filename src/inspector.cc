@@ -10,8 +10,6 @@
 
 using std::cout;
 using std::endl;
-using std::hex;
-using std::showbase;
 using std::stringstream;
 using std::to_string;
 
@@ -20,109 +18,90 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
     return;
   }
 
-  stringstream line;
+  auto &printer = Printer::instance();
   // set up display format;
-  line << hex << showbase;
-  const auto printer = Utils::getPrinter();
+  printer.useHexFormat();
 
-  Utils::debug();
-  Utils::debug("- [INSPECTING PHASE] -");
+  (printer << '\n').debug();
+  (printer << "- [INSPECTING PHASE] -\n").debug();
 
   // WasmFunctionSig;
   const auto &typeSize = wasmIns->module->types.size();
-  Utils::debug({
-    "# Signatures (",
-    to_string(wasmIns->module->types.size()),
-    "): ", (typeSize == 0 ? "N/A" : string())});
+  (printer << "# Signatures (" << typeSize << "): " << (typeSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &type : wasmIns->module->types) {
     auto i = 0;
     const auto reps = type->reps;
-    line << "[";
-    line << type->index << ": ";
+    printer << "[";
+    printer << type->index << ": ";
     for (; i < type->paramsCount; i++) {
-      line << static_cast<int>(reps[i]) << ' ';
+      printer << static_cast<int>(reps[i]) << ' ';
     }
-    if (type->paramsCount == 0) { line << "void"; }
+    if (type->paramsCount == 0) { printer << "void"; }
     const auto slotCount = type->paramsCount + type->returnCount;
     for (; i < slotCount; i++) {
-      line << "-> " << static_cast<int>(reps[i]);
+      printer << "-> " << static_cast<int>(reps[i]);
     }
-    if (type->returnCount == 0) { line << "void"; }
-    line << "]";
-    printer->feedLine(line);
+    if (type->returnCount == 0) { printer << "void"; }
+    printer << "]";
+    printer.makeLine();
   }
-  printer->printTableView();
+  printer.printTableView();
 
   // WasmFunction;
   const auto &funcSize = wasmIns->module->funcs.size();
-  Utils::debug({
-    "# Functions (",
-    to_string(wasmIns->module->funcs.size()), "): ",
-    (funcSize == 0 ? "N/A" : string())});
+  (printer << "# Functions (" << funcSize << "): " << (funcSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &func : wasmIns->module->funcs) {
-    line << "[";
-    line << "sig_index " << func->type->index << " | "
+    printer << "[";
+    printer << "sig_index " << func->type->index << " | "
       << "locals(" << func->staticProto->locals.size() << ")";
     for (const auto &type : func->staticProto->locals) {
-      line << static_cast<int>(type) << endl;
+      printer << static_cast<int>(type) << '\n';
     }
-    line << " | " << "code_size " << func->code.size() << " B]";
-    printer->feedLine(line);
+    printer << " | " << "code_size " << func->code.size() << " B]";
+    printer.makeLine();
   }
-  printer->printTableView();
+  printer.printTableView();
 
   // WasmTable;
   const auto &tableSize = wasmIns->module->tables.size();
-  Utils::debug({
-    "# Tables (",
-    to_string(tableSize), "): ",
-    (tableSize == 0 ? "N/A" : string())});
+  (printer << "# Tables (" << tableSize << "): " << (tableSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &table : wasmIns->module->tables) {
-    line << "[";
-    line << "max_table_size " << table->maxTableSize << "]";
-    printer->feedLine(line);
+    printer << "[";
+    printer << "max_table_size " << table->maxTableSize << "]";
+    printer.makeLine();
   }
-  printer->printTableView();
+  printer.printTableView();
 
   // WasmMemory;
   const auto &memorySize = wasmIns->module->memories.size();
-  Utils::debug({
-    "# Memories (",
-    to_string(memorySize), "): ",
-    (memorySize == 0 ? "N/A" : string())});
+  (printer << "# Memories (" << memorySize << "): " << (memorySize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &memory : wasmIns->module->memories) {
-    line << "[";
-    line << "memory_size " << (memory->availableSize() * WASM_PAGE_SIZE / 1024) << " kib]";
-    printer->feedLine(line);
+    printer << "[";
+    printer << "memory_size " << (memory->availableSize() * WASM_PAGE_SIZE / 1024) << " kib]";
+    printer.makeLine();
   }
-  printer->printTableView();
+  printer.printTableView();
 
   // WasmGlobal;
   const auto &globalSize = wasmIns->module->globals.size();
-  Utils::debug({
-    "# Globals (",
-    to_string(globalSize), "): ",
-    (globalSize == 0 ? "N/A" : string())});
+  (printer << "# Globals (" << globalSize << "): " << (globalSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &global : wasmIns->module->globals) {
-    line << "[";
-    line << "global_type " << static_cast<int>(global->type) << " | ";
-    line << "mutability " << global->mutability << "]";
-    printer->feedLine(line);
+    printer << "[";
+    printer << "global_type " << static_cast<int>(global->type) << " | ";
+    printer << "mutability " << global->mutability << "]";
+    printer.makeLine();
   }
-  printer->printTableView();
+  printer.printTableView();
 
   // WasmExport;
   const auto &exportSize = wasmIns->module->exports.size();
-  Utils::debug({
-    "# Exports (",
-    to_string(exportSize), "): ",
-    (exportSize == 0 ? "N/A" : string())});
+  (printer << "# Exports (" << exportSize << "): " << (exportSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &_export : wasmIns->module->exports) {
-    line << "[";
-    line << "export_name \"" << _export.name << "\" | ";
-    line << "export_type " << static_cast<int>(_export.type) << " | ";
-    line << "index " << _export.index << "]";
-    printer->feedLine(line);
+    printer << "[";
+    printer << "export_name \"" << _export.name << "\" | ";
+    printer << "export_type " << static_cast<int>(_export.type) << " | ";
+    printer << "index " << _export.index << "]";
+    printer.makeLine();
   }
-  printer->printTableView();
+  printer.printTableView();
 }

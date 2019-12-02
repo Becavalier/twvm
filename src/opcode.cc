@@ -18,9 +18,9 @@
     const auto &vs = wasmIns->stack->valueStack; \
     const auto &ls = wasmIns->stack->labelStack; \
     const auto &as = wasmIns->stack->activationStack; \
-    const auto printer = Utils::getPrinter(); \
+    auto &printer = Printer::instance(); \
     stringstream line; \
-    Utils::debug(opcodeName, false); \
+    (printer << opcodeName).debug(); \
     cout << hex << showbase << '(' << static_cast<int>(executor->getCurrentOpcode()) << "):" << endl; \
     line << "VS (values) | "; \
     for (auto i = 0; i < vs->size(); i++) { \
@@ -28,9 +28,9 @@
       if (i < vs->size() - 1) { line << ", "; } \
     } \
     line << " <-"; \
-    printer->feedLine(line); \
+    printer.makeLine(line); \
     line << "# of LS | " << ls->size(); \
-    printer->feedLine(line); \
+    printer.makeLine(line); \
     line << "AS (locals) | "; \
     for (auto i = 0; i < as->size(); i++) { \
       const auto &locals = as->at(i).locals; \
@@ -46,8 +46,8 @@
       if (i < as->size() - 1) { line << ", "; } \
     } \
     line << " <-"; \
-    printer->feedLine(line); \
-    printer->printTableView()
+    printer.makeLine(line); \
+    printer.printTableView()
 #else
   #define RESPECT_STACK(...)
 #endif
@@ -55,7 +55,7 @@
 #define GET_TWO_OPERANDS() \
   const auto valueStack = wasmIns->stack->valueStack; \
   if (valueStack->size() < 2) { \
-    Utils::report("operands not enough to be consumed!"); \
+    (Printer::instance() << "operands not enough to be consumed.\n").error(); \
   } \
   const auto operands = valueStack->topN(2); \
   const auto &c2 = operands.at(1)->toI32(); \
@@ -66,7 +66,7 @@ using std::make_shared;
 
 void OpCode::doUnreachable() {
   // trap;
-  Utils::report("unreachable code!");
+  (Printer::instance() << "unreachable code.\n").error();
 }
 
 void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
@@ -131,7 +131,7 @@ void OpCode::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
       for (auto i = 0; i < returnTypes.size(); i++) {
         const auto topValue = &wasmIns->stack->valueStack->top(i);
         if (topValue->getValueType() != returnTypes.at(i)) {
-          Utils::report("return arity mismatch of the function!");
+          (Printer::instance() << "return arity mismatch of the function.\n").error();
         }
       }
       // top-level function?
@@ -149,7 +149,7 @@ void OpCode::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
     // control structure end;
     wasmIns->stack->labelStack->popN();
   } else {
-    Utils::report("invalide \"end(0xb)\" condition!");
+    (Printer::instance() << "invalide \"end(0xb)\" condition.\n").error();
   }
   RESPECT_STACK("end", wasmIns, executor);
 }
@@ -178,9 +178,9 @@ void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor, bool innerCall) {
       }
     }
   } else {
-    Utils::report("invalid branching depth!");
+    (Printer::instance() << "invalid branching depth.\n").error();
   }
-  RESPECT_STACK(innerCall ? "br_if: br" : "br", wasmIns, executor);
+  RESPECT_STACK((innerCall ? "br_if: br" : "br"), wasmIns, executor);
 }
 
 void OpCode::doBrIf(shared_wasm_t &wasmIns, Executor *executor) {
@@ -223,7 +223,7 @@ void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
     const auto &wasmFunc = wasmIns->module->funcs.at(funcIndex);
     const auto &paramCount = wasmFunc->staticProto->sig->paramsCount;
     if (stack->valueStack->size() < paramCount) {
-      Utils::report("operands not enough to be consumed!");
+      (Printer::instance() << "operands not enough to be consumed.\n").error();
     }
     stack->activationStack->emplace({
       wasmFunc,
@@ -244,7 +244,7 @@ void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
       }
     }
   } else {
-    Utils::report("invalid function index to be called!");
+    (Printer::instance() << "invalid function index to be called.\n").error();
   }
   RESPECT_STACK("call", wasmIns, executor);
 }
@@ -300,10 +300,10 @@ void OpCode::doI32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
     if (ea + 4 <= mem->usedSize()) {
       wasmIns->stack->valueStack->push({mem->load<int32_t>(ea)});
     } else {
-      Utils::report("memory access out of bound!");
+      (Printer::instance() << "memory access out of bound.\n").error();
     }
   } else {
-    Utils::report("invalid stack on-top value type!");
+    (Printer::instance() << "invalid stack on-top value type.\n").error();
   }
   RESPECT_STACK("i32.load", wasmIns, executor);
 }

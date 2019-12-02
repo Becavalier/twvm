@@ -30,7 +30,7 @@ class Loader {
   static vector<uchar_t> buf;
   static bool validateMagicWord(const vector<uchar_t>&);
   static bool validateVersionWord(const vector<uchar_t>&);
-  static bool validateWords(const vector<uchar_t>&);
+  static void validateWords(const vector<uchar_t>&);
 
   // analyzer invokers;
   static void parse(const shared_module_t&);
@@ -107,20 +107,20 @@ class Loader {
         WRAP_UINT_FIELD(globalIndex, uint32_t, module);
         const auto moduleGlobal = module->getGlobal(globalIndex);
         if (moduleGlobal->mutability || !moduleGlobal->imported) {
-          Utils::report("only immutable imported globals can be used in initializer expressions.");
+          (Printer::instance() << "only immutable imported globals can be used in initializer expressions.\n").error();
         }
         expr->kind = InitExprKind::kGlobalIndex;
         expr->val.vGlobalIndex = globalIndex;
         break;
       }
       default: {
-        Utils::report("not supported opcode found in global section.");
+        (Printer::instance() << "not supported opcode found in global section.\n").error();
         break;
       }
     }
     // "0x0b" ending byte;
     if (static_cast<WasmOpcode>(Decoder::readUint8(module)) != WasmOpcode::kOpcodeEnd) {
-      Utils::report("illegal ending byte.");
+      (Printer::instance() << "illegal ending byte.\n").error();
     }
   }
 

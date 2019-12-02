@@ -31,10 +31,10 @@ class WasmMemoryInstance {
       if ((data = static_cast<uchar_t*>(malloc(initMemSize * WASM_PAGE_SIZE)))) {
         currentMemSize = initMemSize;
       } else {
-        Utils::report("memory allocating error.");
+        (Printer::instance() << "memory allocating error.\n").error();
       }
     } else {
-      Utils::report("invalid memory allocation size.");
+      (Printer::instance() << "invalid memory allocation size.\n").error();
     }
   }
   ~WasmMemoryInstance() {
@@ -48,7 +48,7 @@ class WasmMemoryInstance {
       currentUsedMemSize -= sizeof(T);
       return *reinterpret_cast<T*>(data + offset);
     } else {
-      Utils::report("memory out of bound.");
+      (Printer::instance() << "memory out of bound.\n").error();
       // unreachable;
       return false;
     }
@@ -62,7 +62,7 @@ class WasmMemoryInstance {
       *(reinterpret_cast<T*>(data + offset)) = val;
       currentUsedMemSize += sizeof(T);
     } else {
-      Utils::report("memory out of bound.");
+      (Printer::instance() << "memory out of bound.\n").error();
     }
   }
 

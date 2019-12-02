@@ -14,11 +14,11 @@ using std::to_string;
 using std::make_shared;
 
 const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module) {
-  Utils::debug();
-  Utils::debug("- [INSTANTIATING PHASE] -");
+  (Printer::instance() << '\n').debug();
+  (Printer::instance() << "- [INSTANTIATING PHASE] -\n").debug();
 
   // produce store, stack and module instance;
-  Utils::debug("instantiating store, stack and module instances.");
+  (Printer::instance() << "instantiating store, stack and module instances.\n").debug();
   const auto store = make_shared<Store>();
   const auto stack = make_shared<Stack>();
   const auto moduleInst = make_shared<WasmModuleInstance>();
@@ -28,7 +28,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // memory instance;
-  Utils::debug("store: creating memory instances.");
+  (Printer::instance() << "store: creating memory instances.\n").debug();
   const auto staticMemory = module->getMemory();
   // we can not use "push_back" here, -
   // since the destructor will be called when the temp value is copied by default copy-constructor -
@@ -39,7 +39,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   // TODO(Jason Yu): init data section;
 
   // function instances;
-  Utils::debug("store: creating function instances.");
+  (Printer::instance() << "store: creating function instances.\n").debug();
   const auto staticFunctions = module->getFunction();
   for (auto &i : *staticFunctions) {
     store->functionInsts.emplace_back();
@@ -58,7 +58,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // global instances;
-  Utils::debug("store: creating global instances.");
+  (Printer::instance() << "store: creating global instances.\n").debug();
   const auto staticGlobal = module->getGlobal();
   for (auto &i : *staticGlobal) {
     // skip platform-hosting imported global;
@@ -71,7 +71,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // table instances;
-  Utils::debug("store: creating table instances.");
+  (Printer::instance() << "store: creating table instances.\n").debug();
   const auto staticTable = module->getTable();
   for (auto &i : *staticTable) {
     store->tableInsts.push_back({i.maximumSize});
@@ -90,7 +90,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   }
 
   // export instances;
-  Utils::debug("store: creating export instances.");
+  (Printer::instance() << "store: creating export instances.\n").debug();
   const auto staticExport = module->getExport();
   for (auto &i : *staticExport) {
     moduleInst->exports.push_back({i.name, i.type, i.index});

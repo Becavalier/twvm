@@ -6,8 +6,8 @@
 #include "src/utils.h"
 
 const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
-  Utils::debug();
-  Utils::debug("- [EXECUTING PHASE] -");
+  (Printer::instance() << '\n').debug();
+  (Printer::instance() << "- [EXECUTING PHASE] -\n").debug();
 
   pc = wasmIns->startPoint->pc;
   while (true) {

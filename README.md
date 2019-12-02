@@ -1,16 +1,18 @@
 <p align="center"><img width="130"src="https://github.com/Becavalier/TWVM/blob/master/arts/brand-300x300.png?raw=true"></p>
 
-[![experimental](http://badges.github.io/stability-badges/dist/experimental.svg)](http://github.com/badges/stability-badges)
-
 <img alt="GitHub Actions status" src="https://github.com/Becavalier/TWVM/workflows/Build CI/badge.svg">
 
 > A tiny, lightweight and efficient WebAssembly virtual machine.
 
 ## Getting Started
 
+### Status
+
+Not production-ready yet, feel free to keep tracking the project status by clicking "Watch".
+
 ### Compile
 
-If you want to compile and use this project, please install the following software in advance:
+If you want to compile and use this project, please install the following softwares in advance:
 
 * [cmake v3.11 (or above)](https://cmake.org/install/)
 * [nodejs v12.13.0 LTS (or above)](https://nodejs.org/en/download/)
@@ -48,11 +50,9 @@ Then run the following command to detect the memory leak of the binary version p
 
 ## Roadmap
 
-- [ ] Basic Wasm interpreter on main spec;
+- [x] Basic Wasm interpreter on fibonacci;
 - [ ] Full Wasm MVP proposals support;
-- [ ] Stage based lightweight module validation;
-- [ ] Standalone thread execution;
-- [ ] Graph-based IR optimization;
+- [ ] Stage based full-path type validation;
 - [ ] JIT engine based optimization;
 - [ ] Experimental SIMD instructions;
 - [ ] Basic WASI standard libraries;

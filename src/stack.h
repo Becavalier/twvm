@@ -65,7 +65,7 @@ class ValueFrame {
     } else if (is_same<T, double>::value) {
       type = ValueFrameTypes::kF64Value;
     } else {
-      Utils::report("invalid type of \"ValueFrame\"!");
+      (Printer::instance() << "invalid type of \"ValueFrame\".\n").error();
     }
     isValueZero = (v == static_cast<T>(0));
     Utils::writeUnalignedValue<T>(reinterpret_cast<uintptr_t>(bitPattern), v);
@@ -187,7 +187,7 @@ class Stack {
   const bool checkStackState(bool startEntry = true) {
     // check the status of stack;
     const auto leftValueSize = valueStack->size();
-    Utils::say() << "(" << (startEntry ? "start" : "main") << "): ";
+    (Printer::instance() << '(' << (startEntry ? "start" : "main") << "): ").say();
     if (leftValueSize == 1) {
       valueStack->top().outputValue(cout << dec);
       valueStack->popN();

@@ -16,7 +16,7 @@ using std::ios;
 using std::array;
 
 shared_module_t Loader::init(const std::string &fileName) {
-  Utils::debug("- [LOADING PHASE] -");
+  (Printer::instance() << "- [LOADING PHASE] -\n").debug();
   ifstream in(fileName, ios::binary);
   char d;
   size_t counter = 1;
@@ -28,15 +28,12 @@ shared_module_t Loader::init(const std::string &fileName) {
 
       // check magic word / version number in stream;
       if (counter == BYTE_LENGTH_8) {
-        if (!validateWords(buf)) {
-          return wasmModule;
-        }
+        validateWords(buf);
       }
       counter++;
     }
   } else {
-    Utils::report("can not reading file.", false);
-    return nullptr;
+    (Printer::instance() << "can not reading file.\n").error();
   }
   in.close();
 
@@ -49,15 +46,13 @@ shared_module_t Loader::init(const std::string &fileName) {
 }
 
 shared_module_t Loader::init(const uchar_t *source, size_t len) {
-  Utils::debug("- [LOADING PHASE] -");
+  (Printer::instance() << "- [LOADING PHASE] -\n").debug();
   shared_module_t wasmModule;
 
   // one-time copying;
   buf = vector<uchar_t>(source, source + len);
-
-  if (validateWords(buf)) {
-    wasmModule->setModContent(buf);
-  }
+  validateWords(buf);
+  wasmModule->setModContent(buf);
   return wasmModule;
 }
 
@@ -94,16 +89,13 @@ void Loader::parseSection(const shared_module_t &module) {
 
 void Loader::parseUnkownSection(uint8_t sectionCode, const shared_module_t &module) {
   // buzzle;
-  Utils::warn()
-    << "customized section code: 0x"
-    << hex << static_cast<int>(sectionCode)
-    << '.' << endl;
+  Printer::instance().useHexFormat() << "customized section code: " << static_cast<int>(sectionCode) << ".\n";
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   module->increaseBufOffset(payloadLen);
 }
 
 void Loader::parseTypeSection(const shared_module_t &module) {
-  Utils::debug("parsing type section.");
+  (Printer::instance() << "parsing type section.\n").debug();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(entryCount, uint32_t, module);
   for (uint32_t i = 0; i < entryCount; i++) {
@@ -123,13 +115,13 @@ void Loader::parseTypeSection(const shared_module_t &module) {
       sig->paramsCount = paramsCount;
       sig->returnCount = returnCount;
     } else {
-      Utils::report("type section code mismatch.");
+      (Printer::instance() << "type section code mismatch.\n").error();
     }
   }
 }
 
 void Loader::parseImportSection(const shared_module_t &module) {
-  Utils::debug("parsing import section.");
+  (Printer::instance() << "parsing import section.\n").debug();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(importCount, uint32_t, module);
   for (auto i = 0; i < importCount; i++) {
@@ -155,7 +147,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
         // MVP: only support "anyfunc" (by default);
         const auto tableType = static_cast<ValueTypesCode>(Decoder::readUint8(module));
         if (tableType != ValueTypesCode::kFuncRef) {
-          Utils::report("only support \"anyfunc\" type in table.");
+          (Printer::instance() << "only support \"anyfunc\" type in table.\n").error();
         }
         index = module->getTable()->size();
         module->getImportedTableCount()++;
@@ -177,7 +169,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
         break;
       }
       default: {
-        Utils::report("unkonwn import type.");
+        (Printer::instance() << "unkonwn import type.\n").error();
       }
     }
     module->getImport()->push_back({moduleName, fieldName, importType, index});
@@ -185,7 +177,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
 }
 
 void Loader::parseFunctionSection(const shared_module_t &module) {
-  Utils::debug("parsing function section.");
+  (Printer::instance() << "parsing function section.\n").debug();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(declaredFuncCount, uint32_t, module);
   for (auto i = 0; i < declaredFuncCount; i++) {
@@ -202,14 +194,14 @@ void Loader::parseFunctionSection(const shared_module_t &module) {
 }
 
 void Loader::parseTableSection(const shared_module_t &module) {
-  Utils::debug("parsing table section.");
+  (Printer::instance() << "parsing table section.\n").debug();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(tableCount, uint32_t, module);
   for (auto i = 0; i < tableCount; i++) {
     // MVP: only support "anyfunc" (by default);
     const auto tableType = static_cast<ValueTypesCode>(Decoder::readUint8(module));
     if (tableType != ValueTypesCode::kFuncRef) {
-      Utils::report("only support \"anyfunc\" type in table.");
+      (Printer::instance() << "only support \"anyfunc\" type in table.\n").error();
     }
 
     // insert new element by placement-new && move;
@@ -221,34 +213,34 @@ void Loader::parseTableSection(const shared_module_t &module) {
 }
 
 void Loader::parseMemorySection(const shared_module_t &module) {
-  Utils::debug("parsing memory section.");
+  (Printer::instance() << "parsing memory section.\n").debug();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(memeoryCount, uint32_t, module);
 
   // determine whether the memory has been initialized via "import";
   if (memeoryCount > 1 || module->getMemory() != nullptr) {
-    Utils::report("only support one memory in MVP.");
+    (Printer::instance() << "only support one memory in MVP.\n").error();
   } else {
     consumeMemoryParams(module);
   }
 }
 
 void Loader::parseStartSection(const shared_module_t &module) {
-  Utils::debug("parsing start section.");
+  (Printer::instance() << "parsing start section.\n").debug();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(startFuncIndex, uint32_t, module);
 
   // start function: no arguments or return value;
   const auto sig = module->getFunction(startFuncIndex)->sig;
   if (sig->paramsCount != 0 || sig->returnCount != 0) {
-    Utils::report("the start function must not take any arguments or return value.");
+    (Printer::instance() << "the start function must not take any arguments or return value.\n").error();
   } else {
     module->getStartFuncIndex() = startFuncIndex;
   }
 }
 
 void Loader::parseGlobalSection(const shared_module_t &module) {
-  Utils::debug("parsing global section.");
+  (Printer::instance() << "parsing global section.\n").debug();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(globalCount, uint32_t, module);
   for (auto i = 0; i < globalCount; i++) {
@@ -267,7 +259,7 @@ void Loader::parseGlobalSection(const shared_module_t &module) {
 }
 
 void Loader::parseExportSection(const shared_module_t &module) {
-  Utils::debug("parsing export section.");
+  (Printer::instance() << "parsing export section.\n").debug();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(exportCount, uint32_t, module);
   for (auto i = 0; i < exportCount; i++) {
@@ -294,7 +286,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         index = WRAP_UINT_FIELD_(uint32_t, module);
         const auto mem = module->getMemory();
         if (index != 0 || mem == nullptr) {
-          Utils::report("invalid memory index.");
+          (Printer::instance() << "invalid memory index.\n").error();
         } else {
           mem->exported = true;
         }
@@ -309,7 +301,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         break;
       }
       default: {
-        Utils::report("unkonwn export type.");
+        (Printer::instance() << "unkonwn export type.\n").error();
       }
     }
     module->getExport()->push_back({name, exportType, index});
@@ -317,7 +309,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
 }
 
 void Loader::parseCodeSection(const shared_module_t &module) {
-  Utils::debug("parsing code section.");
+  (Printer::instance() << "parsing code section.\n").debug();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(bodyCount, uint32_t, module);
   for (auto i = 0; i < bodyCount; i++) {
@@ -343,16 +335,16 @@ void Loader::parseCodeSection(const shared_module_t &module) {
 
 // initialize imported/internally-defined table;
 void Loader::parseElementSection(const shared_module_t &module) {
-  Utils::debug("parsing element section.");
+  (Printer::instance() << "parsing element section.\n").debug();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   WRAP_UINT_FIELD(elemCount, uint32_t, module);
   if (elemCount > 0 && module->getTable()->size() == 0) {
-    Utils::report("no table found to apply the element section.");
+    (Printer::instance() << "no table found to apply the element section.\n").error();
   }
   for (auto i = 0; i < elemCount; i++) {
     WRAP_UINT_FIELD(tableIndex, uint32_t, module);
     if (tableIndex != 0) {
-      Utils::report("can only manipulate the default table in MVP.");
+      (Printer::instance() << "can only manipulate the default table in MVP.\n").error();
     }
     module->getElement()->emplace_back();
     auto *elem = &module->getElement()->back();
@@ -371,27 +363,21 @@ void Loader::parseElementSection(const shared_module_t &module) {
 }
 
 void Loader::parseDataSection(const shared_module_t &module) {
-  Utils::debug("parsing data section.");
+  (Printer::instance() << "parsing data section.\n").debug();
 }
 
 void Loader::skipKnownSection(uint8_t byte, const shared_module_t &module) {
-  Utils::report()
-    << "unknown byte found: 0x"
-    << hex << static_cast<int>(byte)
-    << '.' << endl;
+  (Printer::instance().useHexFormat() << "unknown byte found: " << static_cast<int>(byte) << ".\n").error();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
 }
 
-bool Loader::validateWords(const vector<uchar_t> &buf) {
+void Loader::validateWords(const vector<uchar_t> &buf) {
   if (!validateMagicWord(buf)) {
-    Utils::report("invalid wasm magic word, expect 0x6d736100.", false);
-    return false;
+    (Printer::instance() << "invalid wasm magic word, expect 0x6d736100.\n").error();
   }
   if (!validateVersionWord(buf)) {
-    Utils::report("invalid wasm version, expect 0x01.", false);
-    return false;
+    (Printer::instance() << "invalid wasm version, expect 0x01.\n").error();
   }
-  return true;
 }
 
 bool Loader::validateMagicWord(const vector<unsigned char> &buf) {

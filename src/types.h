@@ -114,7 +114,7 @@ struct WasmInitExpr {
         case InitExprKind::kI32Const: { rtVal.i32 = val.vI32Const; break; }
         case InitExprKind::kI64Const: { rtVal.i64 = val.vI64Const; break; }
         default: {
-          Utils::report("initial expression has not been initialized.");
+          (Printer::instance() << "initial expression has not been initialized.\n").error();
         }
       }
     } else  {

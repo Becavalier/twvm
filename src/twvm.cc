@@ -45,13 +45,15 @@ int main(int argc, const char **argv) {
     });
   options.parse(argc, argv);
 
-  if (CommandLine::executeModulePath.length() == 0) {
-    Utils::report("no input file.");
-    exit(1);
-  }
+  auto &printer = Printer::instance();
 
   // start executing;
   try {
+    if (CommandLine::executeModulePath.length() == 0) {
+      (printer << "no input file.\n").error();
+      exit(1);
+    }
+
     auto start = high_resolution_clock::now();
 
     // static loading;
@@ -60,8 +62,8 @@ int main(int argc, const char **argv) {
     if (wasmModule) {
       const auto wasmModuleSize = wasmModule->getModContentLength();
       if (wasmModuleSize > 0) {
-        Utils::debug({"module parsing completed. (", to_string(wasmModuleSize), ") bytes"});
-        Utils::debug({"static parsing time: ", to_string(calcTimeInterval(start)), "ms."});
+        (printer << "module parsing completed. (" << wasmModuleSize << ") bytes\n").debug();
+        (printer << "static parsing time: " << calcTimeInterval(start) << "ms.\n").debug();
       }
     } else {
       exit(1);
@@ -71,8 +73,8 @@ int main(int argc, const char **argv) {
     const auto wasmInstance = Instantiator::instantiate(wasmModule);
     // debug;
     if (wasmInstance) {
-      Utils::debug("module instantiating completed.");
-      Utils::debug({"instantiating time: ", to_string(calcTimeInterval(start)), "ms."});
+      (printer << "module instantiating completed.\n").debug();
+      (printer << "instantiating time: " << calcTimeInterval(start) << "ms. \n").debug();
     } else {
       exit(1);
     }
@@ -85,7 +87,7 @@ int main(int argc, const char **argv) {
     const auto result = executor->execute(wasmInstance);
 
     if (!result) {
-      Utils::report("error occured while executing Wasm module!");
+      (printer << "error occured while executing Wasm module.\n").error();
     }
 
     return result;

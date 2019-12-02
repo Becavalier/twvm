@@ -13,6 +13,8 @@ using std::transform;
 using std::accumulate;
 using std::ostream;
 
+shared_ptr<Printer> Printer::singleIns = nullptr;
+
 vector<string> Utils::splitStr(const string &str, char delimiter) {
   vector<string> tokens;
   string token;
