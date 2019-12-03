@@ -46,11 +46,11 @@ class ValueFrame {
   } 
   ITERATE_WASM_VAL_TYPE(DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS)
 
-  const bool operator==(const ValueFrame& other) {
+  const bool operator==(const ValueFrame& other) const {
     return type == other.type && !memcmp(bitPattern, other.bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
   }
 
-  inline ValueTypesCode getValueType() {
+  inline ValueTypesCode getValueType() const {
     return static_cast<ValueTypesCode>(type);
   }
 
@@ -81,7 +81,7 @@ class ValueFrame {
     }
   }
 
-  const auto isZero() {
+  const auto isZero() const {
     return isValueZero;
   }
 
@@ -102,8 +102,8 @@ class LabelFrame {
     ValueTypesCode resultType, 
     size_t valueStackHeight) : resultType(resultType), valueStackHeight(valueStackHeight) {}
 
-  inline const auto& getResultType() { return resultType; }
-  inline const auto& getValueStackHeight() { return valueStackHeight; }
+  inline const auto getResultType() const { return resultType; }
+  inline const auto getValueStackHeight() const { return valueStackHeight; }
   
  private:
   // for "block", "loop" and "if";
@@ -134,8 +134,8 @@ class ActivationFrame {
       }
     };
 
-  inline const auto& getValueStackHeight() { return valueStackHeight; }
-  inline const auto& getLabelStackHeight() { return labelStackHeight; }
+  inline const auto getValueStackHeight() const { return valueStackHeight; }
+  inline const auto getLabelStackHeight() const { return labelStackHeight; }
 
  private:
   // determine the # of returning arity;
@@ -173,7 +173,7 @@ class StackContainer {
     }
     return t;
   }
-  inline const auto size() { return container.size(); }
+  inline const auto size() const { return container.size(); }
   inline const auto& data() { return container; }
 
  private:
@@ -184,7 +184,7 @@ class StackContainer {
 // for saving "Values" / "Labels" / "Activations";
 class Stack {
  public:
-  const bool checkStackState(bool startEntry = true) {
+  const bool checkStackState(bool startEntry = true) const {
     // check the status of stack;
     const auto leftValueSize = valueStack->size();
     (Printer::instance() << '(' << (startEntry ? "start" : "main") << "): ").say();

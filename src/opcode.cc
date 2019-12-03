@@ -47,7 +47,7 @@
     } \
     line << " <-"; \
     printer.makeLine(line); \
-    printer.printTableView()
+    printer.printTableView();
 #else
   #define RESPECT_STACK(...)
 #endif
@@ -60,7 +60,7 @@
   const auto operands = valueStack->topN(2); \
   const auto &c2 = operands.at(1)->toI32(); \
   const auto &c1 = operands.at(0)->toI32(); \
-  valueStack->popN()
+  valueStack->popN();
 
 using std::make_shared;
 
@@ -72,14 +72,9 @@ void OpCode::doUnreachable() {
 void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
   const auto labelStack = wasmIns->stack->labelStack;
   // find immediate in cache first;
-  auto immediate = executor->cache->getValueCache<uint8_t>(executor->contextIndex, executor->innerOffset);
-  cout << (int)immediate << endl;
-  if (immediate == 0) {
-     
-    immediate = Decoder::readUint8(executor->forward_());
-    cout << 33333 << " "<< immediate <<  endl;
-    executor->cache->setValueCache<uint8_t>(executor->contextIndex, executor->innerOffset, immediate);
-  }
+  const auto immediate = executor->uint8SetCache([&executor](...) -> auto {
+    return Decoder::readUint8(executor->forward_());
+  });
   const auto returnType = static_cast<ValueTypesCode>(immediate);
   labelStack->emplace({returnType, wasmIns->stack->valueStack->size()});
   const auto topLabel = &labelStack->top();
@@ -271,7 +266,9 @@ void OpCode::doLocalGet(shared_wasm_t &wasmIns, Executor *executor) {
 void OpCode::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
   // push an i32 value onto the stack;
   wasmIns->stack->valueStack->push({
-    Decoder::readVarInt<int32_t>(executor->forward_())});
+    executor->int32SetCache([&executor](size_t *step) -> auto {
+      return Decoder::readVarInt<int32_t>(executor->forward_(), step);
+    })});
   RESPECT_STACK("i32.const", wasmIns, executor);
 }
 

@@ -9,6 +9,24 @@
 
 using std::shared_ptr;
 
+#define DECLARE_CACHE_OPERATIONS(name, type) \
+  type name##SetCache (function<type(size_t*)> accessor) { \
+    const auto opcodeStaticOffset = innerOffset; \
+    const vector<type>& result = cache->name##GetValueCache( \
+      contextIndex, \
+      opcodeStaticOffset); \
+    type immediate; \
+    if (result.empty()) { \
+      size_t step = 1; \
+      immediate = accessor(&step); \
+      cache->name##SetValueCache(contextIndex, opcodeStaticOffset, immediate, step); \
+    } else {\
+      immediate = result[0]; \
+      innerOffset += (result[1] - 1); \
+    } \
+    return immediate; \
+  }
+
 struct WasmInstance;
 enum class WasmOpcode;
 
@@ -26,7 +44,9 @@ class Executor {
   const int execute(shared_ptr<WasmInstance>);
   const void crawler(const uchar_t*, size_t, const function<bool(WasmOpcode, size_t)> &callback = nullptr);
 
-  inline const uchar_t* absAddr() const {
+  ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_OPERATIONS);
+
+  inline const uchar_t* absAddr() {
     return pc->data() + innerOffset;
   }
 
@@ -39,7 +59,7 @@ class Executor {
     return absAddr();
   }
 
-  inline const auto& getCurrentOpcode() const {
+  inline const auto getCurrentOpcode() const {
     return currentOpcode;
   }
 };

@@ -29,7 +29,7 @@ class Module {
     contentLength = moduleData.size();
   }
 
-  inline size_t getModContentLength() {
+  inline size_t getModContentLength() const {
     return contentLength;
   }
 
@@ -41,7 +41,7 @@ class Module {
     p += step;
   }
 
-  inline bool hasEnd() {
+  inline bool hasEnd() const {
     return contentLength == p;
   }
 
