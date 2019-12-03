@@ -11,6 +11,7 @@
 // #define ENABLE_DEBUG
 #define WRAP_FORWARD_INT_FIELD(keyName, type) \
   const auto keyName = Decoder::readVarInt<type>(executor->forward_());
+  
 #ifdef ENABLE_DEBUG
   using std::hex;
   using std::showbase;
@@ -72,8 +73,10 @@ void OpCode::doUnreachable() {
 void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
   const auto labelStack = wasmIns->stack->labelStack;
   // find immediate in cache first;
-  const auto immediate = executor->uint8SetCache([&executor](...) -> auto {
-    return Decoder::readUint8(executor->forward_());
+  const auto immediate = executor->uint8SetCache([&executor](size_t *step, uint8_t *immediate) -> auto {
+    *immediate = Decoder::readUint8(executor->forward_());
+    // it has already been forward by one "sizeof(uchar_t)", we need to subtract by one here;
+    executor->innerOffset += ((*step = 1) - 1);
   });
   const auto returnType = static_cast<ValueTypesCode>(immediate);
   labelStack->emplace({returnType, wasmIns->stack->valueStack->size()});
@@ -82,7 +85,7 @@ void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
   const auto topActivation = &wasmIns->stack->activationStack->top();
   size_t level = 0;
   executor->crawler(
-    executor->absAddr() + 1,
+    executor->absAddr(),
     topActivation->pFuncIns->staticProto->codeLen - executor->innerOffset,
     [&level, &topLabel, &executor](WasmOpcode opcode, size_t offset) -> auto {
       switch (opcode) {
@@ -159,7 +162,10 @@ void OpCode::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor, bool innerCall) {
-  WRAP_FORWARD_INT_FIELD(depth, int32_t);
+  const auto depth = executor->uint32SetCache([&executor](size_t *step, uint32_t *immediate) -> auto {
+    *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
+    executor->innerOffset += (*step - 1);
+  });
   const auto targetLabel = &wasmIns->stack->labelStack->top(depth);
   size_t skipTopVal = 0;
   if (targetLabel->getResultType() != ValueTypesCode::kVoid) {
@@ -220,7 +226,10 @@ void OpCode::doReturn(shared_wasm_t &wasmIns, Executor *executor) {
 
 void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
   const auto &modFuncs = wasmIns->module->funcs;
-  WRAP_FORWARD_INT_FIELD(funcIndex, int32_t);
+  const auto funcIndex = executor->uint32SetCache([&executor](size_t *step, uint32_t *immediate) -> auto {
+    *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
+    executor->innerOffset += (*step - 1);
+  });
   if (funcIndex < modFuncs.size()) {
     // add an activation frame;
     const auto &stack = wasmIns->stack;
@@ -254,7 +263,10 @@ void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void OpCode::doLocalGet(shared_wasm_t &wasmIns, Executor *executor) {
-  WRAP_FORWARD_INT_FIELD(localIndex, int32_t);
+  const auto localIndex = executor->uint32SetCache([&executor](size_t *step, uint32_t *immediate) -> auto {
+    *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
+    executor->innerOffset += (*step - 1);
+  });
   const auto topActivation = &wasmIns->stack->activationStack->top();
   if (localIndex < topActivation->locals.size()) {
     // keep the "ValueFrames" in locals;
@@ -266,8 +278,9 @@ void OpCode::doLocalGet(shared_wasm_t &wasmIns, Executor *executor) {
 void OpCode::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
   // push an i32 value onto the stack;
   wasmIns->stack->valueStack->push({
-    executor->int32SetCache([&executor](size_t *step) -> auto {
-      return Decoder::readVarInt<int32_t>(executor->forward_(), step);
+    executor->int32SetCache([&executor](size_t *step, int32_t *immediate) -> auto {
+      *immediate = Decoder::readVarInt<int32_t>(executor->forward_(), step);
+      executor->innerOffset += (*step - 1);
     })});
   RESPECT_STACK("i32.const", wasmIns, executor);
 }
@@ -275,21 +288,30 @@ void OpCode::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
 void OpCode::doI64Const(shared_wasm_t &wasmIns, Executor *executor) {
   // push an i64 value onto the stack;
   wasmIns->stack->valueStack->push({
-    Decoder::readVarInt<int64_t>(executor->forward_())});
+    executor->int64SetCache([&executor](size_t *step, int64_t *immediate) -> auto {
+      *immediate = Decoder::readVarInt<int64_t>(executor->forward_(), step);
+      executor->innerOffset += (*step - 1);
+    })});
   RESPECT_STACK("i64.const", wasmIns, executor);
 }
 
 void OpCode::doF32Const(shared_wasm_t &wasmIns, Executor *executor) {
   // push a f32 value onto the stack;
   wasmIns->stack->valueStack->push({
-    Utils::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()))});
+    executor->floatSetCache([&executor](size_t *step, float *immediate) -> auto {
+      *immediate = Utils::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()));
+      executor->innerOffset += ((*step = sizeof(float) / sizeof(uchar_t)) - 1);
+    })});
   RESPECT_STACK("f32.const", wasmIns, executor);
 }
 
 void OpCode::doF64Const(shared_wasm_t &wasmIns, Executor *executor) {
   // push a f64 value onto the stack;
   wasmIns->stack->valueStack->push({
-    Utils::readUnalignedValue<double>(reinterpret_cast<uintptr_t>(executor->forward_()))});
+    executor->doubleSetCache([&executor](size_t *step, double *immediate) -> auto {
+      *immediate = Utils::readUnalignedValue<double>(reinterpret_cast<uintptr_t>(executor->forward_()));
+      executor->innerOffset += ((*step = sizeof(double) / sizeof(uchar_t)) - 1);
+    })});
   RESPECT_STACK("f64.const", wasmIns, executor);
 }
 
@@ -300,6 +322,7 @@ void OpCode::doI32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
   if (topVal->getValueType() == ValueTypesCode::kI32) {
     const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
     // bitfields (alignment hint);
+    // TODO(Jason Yu): refactor by cache;
     WRAP_FORWARD_INT_FIELD(flags, int32_t);
     WRAP_FORWARD_INT_FIELD(offset, int32_t);
     const auto ea = topVal->toI32() + offset;
@@ -332,7 +355,6 @@ void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void OpCode::handle(shared_wasm_t wasmIns, WasmOpcode opcode, Executor *executor) {
-  // std::cout << (int) opcode << std::endl;
   switch (opcode) {
     case WasmOpcode::kOpcodeUnreachable: { doUnreachable(); break; }
     case WasmOpcode::kOpcodeBlock: { doBlock(wasmIns, executor); break; }

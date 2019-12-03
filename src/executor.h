@@ -6,23 +6,24 @@
 #include "src/opcode.h"
 #include "src/cache.h"
 #include "src/instances.h"
+#include "src/constants.h"
 
 using std::shared_ptr;
 
 #define DECLARE_CACHE_OPERATIONS(name, type) \
-  type name##SetCache (function<type(size_t*)> accessor) { \
+  type name##SetCache (function<void(size_t*, type*)> accessor) { \
     const auto opcodeStaticOffset = innerOffset; \
     const vector<type>& result = cache->name##GetValueCache( \
       contextIndex, \
       opcodeStaticOffset); \
-    type immediate; \
+    type immediate = 0; \
     if (result.empty()) { \
-      size_t step = 1; \
-      immediate = accessor(&step); \
+      size_t step = 0; \
+      accessor(&step, &immediate); \
       cache->name##SetValueCache(contextIndex, opcodeStaticOffset, immediate, step); \
     } else {\
-      immediate = result[0]; \
-      innerOffset += (result[1] - 1); \
+      immediate = result[DEFAULT_ELEMENT_INDEX]; \
+      innerOffset += (result[DEFAULT_ELEMENT_INDEX + 1]); \
     } \
     return immediate; \
   }

@@ -28,7 +28,7 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
 
 const void Executor::crawler(const uchar_t* buf, size_t length, const function<bool(WasmOpcode, size_t)> &callback) {
   // eat every opcode and immediates;
-  size_t offset = 0;
+  size_t offset = 1;
   while (offset != length) {
     const auto opcode = static_cast<WasmOpcode>(*(buf + offset++));
     switch (opcode) {
