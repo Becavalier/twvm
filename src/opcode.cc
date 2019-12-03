@@ -71,7 +71,16 @@ void OpCode::doUnreachable() {
 
 void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
   const auto labelStack = wasmIns->stack->labelStack;
-  const auto returnType = static_cast<ValueTypesCode>(Decoder::readUint8(executor->forward_()));
+  // find immediate in cache first;
+  auto immediate = executor->cache->getValueCache<uint8_t>(executor->contextIndex, executor->innerOffset);
+  cout << (int)immediate << endl;
+  if (immediate == 0) {
+     
+    immediate = Decoder::readUint8(executor->forward_());
+    cout << 33333 << " "<< immediate <<  endl;
+    executor->cache->setValueCache<uint8_t>(executor->contextIndex, executor->innerOffset, immediate);
+  }
+  const auto returnType = static_cast<ValueTypesCode>(immediate);
   labelStack->emplace({returnType, wasmIns->stack->valueStack->size()});
   const auto topLabel = &labelStack->top();
   // find "end" entry;
@@ -90,7 +99,7 @@ void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
         }
         case WasmOpcode::kOpcodeEnd: {
           if (level == 0) {
-            topLabel->end = make_shared<PosPtr>(executor->pc, executor->innerOffset + offset - 1);
+            topLabel->end = make_shared<PosPtr>(0, executor->pc, executor->innerOffset + offset - 1);
             return true;
           } else {
             level--;
@@ -230,7 +239,7 @@ void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
       // subtract the count of locals for initialization;
       stack->valueStack->size() - paramCount,
       stack->labelStack->size(),
-      make_shared<PosPtr>(executor->pc, executor->innerOffset)});
+      make_shared<PosPtr>(funcIndex, executor->pc, executor->innerOffset)});
     // redirect;
     const auto funcIns = modFuncs[funcIndex];
     executor->innerOffset = -1;

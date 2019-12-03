@@ -61,7 +61,10 @@ class Printer {
     return *this;
   }
   inline void debug() {
-    if (!CommandLine::isDebugMode) { return; }
+    if (!CommandLine::isDebugMode) {
+      ss.str(string());
+      return; 
+    }
     INTERNAL_DEBUG_PREFIX_OUTPUT() << ss.str();
     ss.str(string());
   }

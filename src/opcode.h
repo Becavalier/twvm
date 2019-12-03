@@ -213,7 +213,11 @@ enum class WasmOpcode {
 };
 
 struct PosPtr {
-  PosPtr(vector<uint8_t> *pc, const size_t offset = -1) : pc(pc), offset(offset) {}
+  PosPtr(
+    uint32_t index,
+    vector<uint8_t> *pc,
+    const size_t offset = -1) : index(index), pc(pc), offset(offset) {}
+  uint32_t index;
   vector<uint8_t> *pc;
   const size_t offset;
 };

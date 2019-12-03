@@ -10,6 +10,8 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   (Printer::instance() << "- [EXECUTING PHASE] -\n").debug();
 
   pc = wasmIns->startPoint->pc;
+  contextIndex = wasmIns->startPoint->index;
+
   while (true) {
     if (!runningStatus) {
       // verify running reuslt by the state of final stack;

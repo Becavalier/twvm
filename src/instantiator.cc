@@ -107,7 +107,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   bool hasStartPoint = true;
   if (startFunctionIndex != -1) {
     const auto wasmFunc = &store->functionInsts.at(startFunctionIndex);
-    wasmIns->startPoint = make_shared<PosPtr>(&wasmFunc->code);
+    wasmIns->startPoint = make_shared<PosPtr>(startFunctionIndex, &wasmFunc->code);
     stack->activationStack->emplace({
       wasmFunc,
       stack->valueStack->size(),
@@ -121,7 +121,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     });
     if (it != exportItE) {
       const auto wasmFunc = &store->functionInsts.at(it->index);
-      wasmIns->startPoint = make_shared<PosPtr>(&wasmFunc->code);
+      wasmIns->startPoint = make_shared<PosPtr>(it->index, &wasmFunc->code);
       wasmIns->startEntry = false;
       stack->activationStack->emplace({
         wasmFunc,

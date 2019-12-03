@@ -85,6 +85,7 @@ int main(int argc, const char **argv) {
     // execution
     const auto executor = make_unique<Executor>();
     const auto result = executor->execute(wasmInstance);
+    (printer << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();
 
     if (!result) {
       (printer << "error occured while executing Wasm module.\n").error();

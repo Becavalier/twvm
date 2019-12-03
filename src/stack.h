@@ -133,7 +133,7 @@ class ActivationFrame {
         locals = move(inputLocals);
       }
     };
-  
+
   inline const auto& getValueStackHeight() { return valueStackHeight; }
   inline const auto& getLabelStackHeight() { return labelStackHeight; }
 
