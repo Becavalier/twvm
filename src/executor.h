@@ -3,15 +3,19 @@
 #define EXECUTOR_H_
 
 #include <memory>
+#include <functional>
+#include <vector>
 #include "src/opcode.h"
 #include "src/cache.h"
 #include "src/instances.h"
 #include "src/constants.h"
 
 using std::shared_ptr;
+using std::function;
+using std::vector;
 
 #define DECLARE_CACHE_OPERATIONS(name, type) \
-  type name##SetCache (function<void(size_t*, type*)> accessor) { \
+  type name##UseImmesCache(function<void(size_t*, type*)> accessor) { \
     const auto opcodeStaticOffset = innerOffset; \
     const vector<type>& result = cache->name##GetValueCache( \
       contextIndex, \
@@ -46,6 +50,16 @@ class Executor {
   const void crawler(const uchar_t*, size_t, const function<bool(WasmOpcode, size_t)> &callback = nullptr);
 
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_OPERATIONS);
+  int64_t int64UseMetaCache(OpcodeMeta type, function<void(int64_t*)> accessor) {
+    const auto opcodeStaticOffset = innerOffset;
+    const auto cacheVal = cache->int64GetMetaCache(contextIndex, opcodeStaticOffset, type);
+    int64_t value = 0;
+    if (cacheVal == 0) {
+      accessor(&value);
+      cache->int64SetMetaCache(contextIndex, opcodeStaticOffset, type, value);
+    } else { value = cacheVal; }
+    return value;
+  }
 
   inline const uchar_t* absAddr() {
     return pc->data() + innerOffset;

@@ -89,7 +89,8 @@ void Loader::parseSection(const shared_module_t &module) {
 
 void Loader::parseUnkownSection(uint8_t sectionCode, const shared_module_t &module) {
   // buzzle;
-  Printer::instance().useHexFormat() << "customized section code: " << static_cast<int>(sectionCode) << ".\n";
+  Printer::instance().useHexFormat()
+    << "customized section code: " << static_cast<int>(sectionCode) << ".\n";
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
   module->increaseBufOffset(payloadLen);
 }
@@ -233,7 +234,8 @@ void Loader::parseStartSection(const shared_module_t &module) {
   // start function: no arguments or return value;
   const auto sig = module->getFunction(startFuncIndex)->sig;
   if (sig->paramsCount != 0 || sig->returnCount != 0) {
-    (Printer::instance() << "the start function must not take any arguments or return value.\n").error();
+    (Printer::instance()
+      << "the start function must not take any arguments or return value.\n").error();
   } else {
     module->getStartFuncIndex() = startFuncIndex;
   }
@@ -367,7 +369,8 @@ void Loader::parseDataSection(const shared_module_t &module) {
 }
 
 void Loader::skipKnownSection(uint8_t byte, const shared_module_t &module) {
-  (Printer::instance().useHexFormat() << "unknown byte found: " << static_cast<int>(byte) << ".\n").error();
+  (Printer::instance().useHexFormat()
+    << "unknown byte found: " << static_cast<int>(byte) << ".\n").error();
   WRAP_UINT_FIELD(payloadLen, uint32_t, module);
 }
 

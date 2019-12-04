@@ -198,6 +198,7 @@
   V(F64ReinterpretI64, 0xbf)
 
 #include <memory>
+#include <vector>
 #include "src/instances.h"
 #include "src/executor.h"
 
@@ -206,6 +207,7 @@ struct WasmInstance;
 class Executor;
 
 using std::shared_ptr;
+using std::vector;
 using shared_wasm_t = shared_ptr<WasmInstance>;
 
 enum class WasmOpcode {

@@ -51,9 +51,10 @@ Then run the following command to detect the memory leak of the binary version p
 ## Roadmap
 
 - [x] Basic Wasm interpreter on fibonacci;
-- [ ] Full Wasm MVP proposals support;
+- [ ] Cache based opcode&immediates optimization;
+- [ ] JIT compiler based optimization;
 - [ ] Stage based full-path type validation;
-- [ ] JIT engine based optimization;
+- [ ] Full Wasm MVP proposals support;
 - [ ] Experimental SIMD instructions;
 - [ ] Basic WASI standard libraries;
 

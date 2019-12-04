@@ -18,7 +18,7 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
       return wasmIns->stack->checkStackState(wasmIns->startEntry);
     }
 
-    const WasmOpcode opcode = static_cast<WasmOpcode>(pc->at(++innerOffset)); 
+    const WasmOpcode opcode = static_cast<WasmOpcode>(pc->at(++innerOffset));
     currentOpcode = opcode;
     // run;
     OpCode::handle(wasmIns, opcode, this);
@@ -26,9 +26,10 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   return 0;
 }
 
-const void Executor::crawler(const uchar_t* buf, size_t length, const function<bool(WasmOpcode, size_t)> &callback) {
+const void Executor::crawler(
+    const uchar_t* buf, size_t length, const function<bool(WasmOpcode, size_t)> &callback) {
   // eat every opcode and immediates;
-  size_t offset = 1;
+  size_t offset = 0;
   while (offset != length) {
     const auto opcode = static_cast<WasmOpcode>(*(buf + offset++));
     switch (opcode) {
@@ -77,7 +78,7 @@ const void Executor::crawler(const uchar_t* buf, size_t length, const function<b
         break;
       }
       case WasmOpcode::kOpcodeBrTable: {
-        // 
+        //
         break;
       }
       default: break;
@@ -86,4 +87,4 @@ const void Executor::crawler(const uchar_t* buf, size_t length, const function<b
       return;
     }
   }
-};
+}

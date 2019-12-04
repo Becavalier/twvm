@@ -107,7 +107,8 @@ class Loader {
         WRAP_UINT_FIELD(globalIndex, uint32_t, module);
         const auto moduleGlobal = module->getGlobal(globalIndex);
         if (moduleGlobal->mutability || !moduleGlobal->imported) {
-          (Printer::instance() << "only immutable imported globals can be used in initializer expressions.\n").error();
+          (Printer::instance()
+            << "only immutable imported globals can be used in initializer expressions.\n").error();
         }
         expr->kind = InitExprKind::kGlobalIndex;
         expr->val.vGlobalIndex = globalIndex;

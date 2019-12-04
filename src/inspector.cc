@@ -14,10 +14,6 @@ using std::stringstream;
 using std::to_string;
 
 void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
-  if (!CommandLine::isDebugMode) {
-    return;
-  }
-
   auto &printer = Printer::instance();
   // set up display format;
   printer.useHexFormat();
@@ -27,7 +23,9 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
 
   // WasmFunctionSig;
   const auto &typeSize = wasmIns->module->types.size();
-  (printer << "# Signatures (" << typeSize << "): " << (typeSize == 0 ? "N/A" : string()) << '\n').debug();
+  (printer
+    << "# Signatures (" << typeSize << "): "
+    << (typeSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &type : wasmIns->module->types) {
     auto i = 0;
     const auto reps = type->reps;
@@ -49,7 +47,9 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
 
   // WasmFunction;
   const auto &funcSize = wasmIns->module->funcs.size();
-  (printer << "# Functions (" << funcSize << "): " << (funcSize == 0 ? "N/A" : string()) << '\n').debug();
+  (printer
+    << "# Functions (" << funcSize << "): "
+    << (funcSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &func : wasmIns->module->funcs) {
     printer << "[";
     printer << "sig_index " << func->type->index << " | "
@@ -64,7 +64,9 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
 
   // WasmTable;
   const auto &tableSize = wasmIns->module->tables.size();
-  (printer << "# Tables (" << tableSize << "): " << (tableSize == 0 ? "N/A" : string()) << '\n').debug();
+  (printer
+    << "# Tables (" << tableSize << "): "
+    << (tableSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &table : wasmIns->module->tables) {
     printer << "[";
     printer << "max_table_size " << table->maxTableSize << "]";
@@ -84,7 +86,9 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
 
   // WasmGlobal;
   const auto &globalSize = wasmIns->module->globals.size();
-  (printer << "# Globals (" << globalSize << "): " << (globalSize == 0 ? "N/A" : string()) << '\n').debug();
+  (printer
+    << "# Globals (" << globalSize << "): "
+    << (globalSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &global : wasmIns->module->globals) {
     printer << "[";
     printer << "global_type " << static_cast<int>(global->type) << " | ";
@@ -95,7 +99,9 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
 
   // WasmExport;
   const auto &exportSize = wasmIns->module->exports.size();
-  (printer << "# Exports (" << exportSize << "): " << (exportSize == 0 ? "N/A" : string()) << '\n').debug();
+  (printer
+    << "# Exports (" << exportSize << "): "
+    << (exportSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &_export : wasmIns->module->exports) {
     printer << "[";
     printer << "export_name \"" << _export.name << "\" | ";

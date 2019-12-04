@@ -2,11 +2,12 @@
 #ifndef STACK_H_
 #define STACK_H_
 
-#include <stack>
 #include <memory>
 #include <cstring>
 #include <iostream>
 #include <type_traits>
+#include <utility>
+#include <vector>
 #include "src/instances.h"
 #include "src/constants.h"
 #include "src/utils.h"
@@ -14,7 +15,6 @@
 #include "src/types.h"
 #include "src/opcode.h"
 
-using std::stack;
 using std::shared_ptr;
 using std::make_shared;
 using std::is_same;
@@ -23,6 +23,7 @@ using std::dec;
 using std::memcmp;
 using std::memcpy;
 using std::forward;
+using std::vector;
 
 struct WasmFuncInstance;
 struct PosPtr;
@@ -43,11 +44,12 @@ class ValueFrame {
   } \
   const ctype to##name() const { \
     return Utils::readUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern)); \
-  } 
+  }
   ITERATE_WASM_VAL_TYPE(DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS)
 
   const bool operator==(const ValueFrame& other) const {
-    return type == other.type && !memcmp(bitPattern, other.bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
+    return type == other.type &&
+      !memcmp(bitPattern, other.bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
   }
 
   inline ValueTypesCode getValueType() const {
@@ -69,7 +71,7 @@ class ValueFrame {
     }
     isValueZero = (v == static_cast<T>(0));
     Utils::writeUnalignedValue<T>(reinterpret_cast<uintptr_t>(bitPattern), v);
-  }  
+  }
 
   void outputValue(ostream &out) const {
     switch (type) {
@@ -99,12 +101,12 @@ class LabelFrame {
   shared_ptr<PosPtr> start;
 
   LabelFrame(
-    ValueTypesCode resultType, 
+    ValueTypesCode resultType,
     size_t valueStackHeight) : resultType(resultType), valueStackHeight(valueStackHeight) {}
 
   inline const auto getResultType() const { return resultType; }
   inline const auto getValueStackHeight() const { return valueStackHeight; }
-  
+
  private:
   // for "block", "loop" and "if";
   ValueTypesCode resultType;
@@ -124,15 +126,15 @@ class ActivationFrame {
     size_t valueStackHeight,
     size_t labelStackHeight,
     shared_ptr<PosPtr> leaveEntry = nullptr,
-    vector<ValueFrame> inputLocals = {}) : 
+    vector<ValueFrame> inputLocals = {}) :
     pFuncIns(pFuncIns),
-    valueStackHeight(valueStackHeight), 
-    labelStackHeight(labelStackHeight),
-    leaveEntry(leaveEntry) {
+    leaveEntry(leaveEntry),
+    valueStackHeight(valueStackHeight),
+    labelStackHeight(labelStackHeight) {
       if (locals.size() != 0) {
         locals = move(inputLocals);
       }
-    };
+    }
 
   inline const auto getValueStackHeight() const { return valueStackHeight; }
   inline const auto getLabelStackHeight() const { return labelStackHeight; }
@@ -153,7 +155,7 @@ class StackContainer {
     if (n <= size()) {
       for (auto i = 0; i < n; i++) {
         container.pop_back();
-      } 
+      }
     }
   }
   inline void erase(size_t start, size_t height) {
@@ -169,7 +171,7 @@ class StackContainer {
     if (n <= size()) {
       for (auto i = size() - n; i < size(); i++) {
         t.push_back(&at(i));
-      } 
+      }
     }
     return t;
   }

@@ -4,6 +4,7 @@
 #include <string>
 #include <chrono>
 #include <memory>
+#include <thread>
 #include "src/macros.h"
 #include "src/utils.h"
 #include "src/constants.h"
@@ -22,6 +23,7 @@ using std::chrono::duration_cast;
 using std::chrono::microseconds;
 using std::make_unique;
 using std::exit;
+using std::thread;
 
 const auto calcTimeInterval(decltype(high_resolution_clock::now()) &previous) {
   const auto stop = high_resolution_clock::now();
@@ -80,19 +82,30 @@ int main(int argc, const char **argv) {
     }
 
     // inspect;
-    Inspector::inspect(wasmInstance);
-
-    // execution
-    const auto executor = make_unique<Executor>();
-    const auto result = executor->execute(wasmInstance);
-    (printer << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();
-
-    if (!result) {
-      (printer << "error occured while executing Wasm module.\n").error();
+    if (CommandLine::isDebugMode) {
+      Inspector::inspect(wasmInstance);
     }
 
-    return result;
+    // execution
+    /*
+    thread execThread([](shared_wasm_t &wasmInstance) -> void {
+      const auto executor = make_unique<Executor>();
+      executor->execute(wasmInstance);
+    }, std::ref(wasmInstance));
+    execThread.join();
+    (printer << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();
+    */
+
+    const auto executor = make_unique<Executor>();
+      const auto result = executor->execute(wasmInstance);
+      (printer << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();
+
+      if (!result) {
+        (printer << "error occured while executing Wasm module.\n").error();
+    }
+    
   } catch(const std::exception& e) {
+    (printer << "error occured while executing Wasm module.\n").error();
     exit(1);
   }
 

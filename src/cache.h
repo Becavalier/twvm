@@ -8,6 +8,7 @@
 #include <typeindex>
 #include <string>
 #include <vector>
+#include "src/types.h"
 #include "src/utils.h"
 
 using std::unordered_map;
@@ -42,8 +43,10 @@ class Cache {
  private:
   // id + offset;
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_CONTAINER);
+  // meta cache container;
+  unordered_map<uint64_t, unordered_map<OpcodeMeta, int64_t>> metaContainer = {};
 
-  uint64_t hashLoc(uint32_t index, size_t offset) {
+  inline uint64_t hashLoc(uint32_t index, size_t offset) const {
     // avaiable size: 131072;
     return index * (2 << 16) + offset;
   }
@@ -51,6 +54,14 @@ class Cache {
  public:
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_SET_METHODS)
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_GET_METHODS)
+
+  inline void int64SetMetaCache(uint32_t index, size_t offset, OpcodeMeta key, int64_t val) {
+    metaContainer[hashLoc(index, offset)][key] = val;
+  }
+
+  inline auto int64GetMetaCache(uint32_t index, size_t offset, OpcodeMeta key) {
+    return metaContainer[hashLoc(index, offset)][key];
+  }
 };
 
 #endif  // CACHE_H_

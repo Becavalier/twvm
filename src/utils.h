@@ -50,7 +50,7 @@ class Printer {
       singleIns = make_shared<Printer>();
     }
     return *singleIns;
-  };
+  }
   template <typename T>
   Printer& operator << (const T &x) {
     ss << x;
@@ -63,7 +63,7 @@ class Printer {
   inline void debug() {
     if (!CommandLine::isDebugMode) {
       ss.str(string());
-      return; 
+      return;
     }
     INTERNAL_DEBUG_PREFIX_OUTPUT() << ss.str();
     ss.str(string());

@@ -91,6 +91,11 @@ union RTValue {
   double f64;
 };
 
+enum class OpcodeMeta {
+  EndOffset,
+  BranchOfset,
+};
+
 /* compound types */
 // for initial value of global section, offset of data/elements segment;
 struct WasmInitExpr {
