@@ -87,23 +87,13 @@ int main(int argc, const char **argv) {
     }
 
     // execution
-    /*
-    thread execThread([](shared_wasm_t &wasmInstance) -> void {
+    thread execThread([&wasmInstance]() -> void {
       const auto executor = make_unique<Executor>();
       executor->execute(wasmInstance);
-    }, std::ref(wasmInstance));
-    execThread.join();
+    });
+    if (execThread.joinable()) { execThread.join(); }
     (printer << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();
-    */
 
-    const auto executor = make_unique<Executor>();
-      const auto result = executor->execute(wasmInstance);
-      (printer << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();
-
-      if (!result) {
-        (printer << "error occured while executing Wasm module.\n").error();
-    }
-    
   } catch(const std::exception& e) {
     (printer << "error occured while executing Wasm module.\n").error();
     exit(1);
