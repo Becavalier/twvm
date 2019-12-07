@@ -48,7 +48,7 @@ class WasmMemoryInstance {
       currentUsedMemSize -= sizeof(T);
       return *reinterpret_cast<T*>(data + offset);
     } else {
-      (Printer::instance() << "memory out of bound.\n").error();
+      (Printer::instance() << "memory access out of bound.\n").error();
       // unreachable;
       return false;
     }
@@ -62,7 +62,7 @@ class WasmMemoryInstance {
       *(reinterpret_cast<T*>(data + offset)) = val;
       currentUsedMemSize += sizeof(T);
     } else {
-      (Printer::instance() << "memory out of bound.\n").error();
+      (Printer::instance() << "memory access out of bound.\n").error();
     }
   }
 
@@ -72,7 +72,7 @@ class WasmMemoryInstance {
   }
 
   inline const auto availableSize() {
-    return currentMemSize;
+    return currentMemSize * WASM_PAGE_SIZE;
   }
 
   inline const auto maxSize() {

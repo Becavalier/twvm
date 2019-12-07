@@ -18,15 +18,15 @@ using std::type_index;
 using std::vector;
 
 #define DECLARE_CACHE_CONTAINER(name, type) \
-  unordered_map<uint64_t, vector<type>> name##Vector = {};
+  unordered_map<uint64_t, vector<type>> name##Map = {};
 
 #define DECLARE_CACHE_SET_METHODS(name, type) \
   void name##SetValueCache(uint32_t index, size_t offset, type v, size_t step) { \
-    name##Vector[hashLoc(index, offset)] = {v, static_cast<type>(step)}; \
+    name##Map[hashLoc(index, offset)] = {v, static_cast<type>(step)}; \
   }
 #define DECLARE_CACHE_GET_METHODS(name, type) \
   const auto& name##GetValueCache(uint32_t index, size_t offset) { \
-    return name##Vector[hashLoc(index, offset)]; \
+    return name##Map[hashLoc(index, offset)]; \
   }
 
 #define ITERATE_IMMEDIATES_VALUE_TYPES(V) \
@@ -45,6 +45,8 @@ class Cache {
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_CONTAINER);
   // meta cache container;
   unordered_map<uint64_t, unordered_map<OpcodeMeta, int64_t>> metaContainer = {};
+  // memarg cache container;
+  unordered_map<uint64_t, vector<uint32_t>> memargContainer = {};
 
   inline uint64_t hashLoc(uint32_t index, size_t offset) const {
     // avaiable size: 131072;
@@ -56,11 +58,19 @@ class Cache {
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_GET_METHODS)
 
   inline void int64SetMetaCache(uint32_t index, size_t offset, OpcodeMeta key, int64_t val) {
-    metaContainer[hashLoc(index, offset)][key] = val;
+    metaContainer[hashLoc(index, offset)].insert({key, val});
   }
 
   inline auto int64GetMetaCache(uint32_t index, size_t offset, OpcodeMeta key) {
     return metaContainer[hashLoc(index, offset)][key];
+  }
+
+  inline auto& uint32GetMemargCache(uint32_t index, size_t offset) {
+    return memargContainer[hashLoc(index, offset)];
+  }
+
+  inline void uint32SetMemargCache(uint32_t index, size_t offset, uint32_t memAlign, uint32_t memOffset, size_t step) {
+    memargContainer[hashLoc(index, offset)] = {memAlign, memOffset, static_cast<uint32_t>(step)};
   }
 };
 

@@ -9,9 +9,9 @@ include_directories(.)
 
 # set c++ config;
 set (CMAKE_VERBOSE_MAKEFILE "OFF")
-set (CMAKE_CXX_STANDARD 14)
-set (CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
-set (CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -pthread -O0 -Wall -g -ggdb")
+set (CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -pthread -O3 -Wall")
 
 set (OUTPUT "twvm")
 set (STATE $ENV{CMAKE_TARGET})
@@ -54,6 +54,9 @@ endif()
 
 # add executable;
 add_executable(${OUTPUT} ${DIR_SRCS})
+
+# linker;
+target_link_libraries (${OUTPUT} pthread)
 
 install(TARGETS ${OUTPUT} RUNTIME DESTINATION bin)
 

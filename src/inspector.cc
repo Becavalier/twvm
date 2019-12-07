@@ -27,7 +27,7 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
     << "# Signatures (" << typeSize << "): "
     << (typeSize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &type : wasmIns->module->types) {
-    auto i = 0;
+    size_t i = 0;
     const auto reps = type->reps;
     printer << "[";
     printer << type->index << ": ";
@@ -79,7 +79,7 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
   (printer << "# Memories (" << memorySize << "): " << (memorySize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &memory : wasmIns->module->memories) {
     printer << "[";
-    printer << "memory_size " << (memory->availableSize() * WASM_PAGE_SIZE / 1024) << " kib]";
+    printer << "memory_size " << (memory->availableSize() / 1024) << " kib]";
     printer.makeLine();
   }
   printer.printTableView();

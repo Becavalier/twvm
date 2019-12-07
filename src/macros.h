@@ -13,12 +13,12 @@
   TypeName& operator=(TypeName&&) noexcept = default; \
   SET_STRUCT_DISABLE_COPY_CONSTUCT(TypeName);
 
+#if __has_include(<src/types.h>)
 #define ITERATE_WASM_VAL_TYPE(V) \
   V(I32, ValueFrameTypes::kI32Value, int32_t) \
   V(I64, ValueFrameTypes::kI64Value, int64_t) \
   V(F32, ValueFrameTypes::kF32Value, float) \
   V(F64, ValueFrameTypes::kF64Value, double)
+#endif
 
 #endif  // MACROS_H_
-
-#include <src/types.h>

@@ -243,6 +243,7 @@ class OpCode {
   static inline void doF32Const(shared_wasm_t&, Executor*);
   static inline void doF64Const(shared_wasm_t&, Executor*);
   static inline void doI32LoadMem(shared_wasm_t&, Executor*);
+  static inline void doI32StoreMem(shared_wasm_t&, Executor*);
   static inline void doI32GeS(shared_wasm_t&, Executor*);
   static inline void doI64GeS(shared_wasm_t&, Executor*);
   static inline void doI32Add(shared_wasm_t&, Executor*);

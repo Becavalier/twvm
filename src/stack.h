@@ -111,7 +111,7 @@ class LabelFrame {
   // for "block", "loop" and "if";
   ValueTypesCode resultType;
   // determine the # of returning arity;
-  const size_t valueStackHeight = 0;
+  size_t valueStackHeight = 0;
 };
 
 class ActivationFrame {
@@ -141,9 +141,9 @@ class ActivationFrame {
 
  private:
   // determine the # of returning arity;
-  const size_t valueStackHeight = 0;
+  size_t valueStackHeight = 0;
   // determine whether we reach the "end" of the function;
-  const size_t labelStackHeight = 0;
+  size_t labelStackHeight = 0;
 };
 
 // use vector to simulate stack, then we can have the ability of random-access,
@@ -151,13 +151,14 @@ class ActivationFrame {
 template <typename T>
 class StackContainer {
  public:
-  inline void popN(size_t n = 1) {
-    if (n <= size()) {
-      for (auto i = 0; i < n; i++) {
+  inline void popN(size_t n) {
+    if (n > 0 && n <= size()) {
+      for (uint32_t i = 0; i < n; i++) {
         container.pop_back();
       }
     }
   }
+  inline void pop() { container.pop_back(); }
   inline void erase(size_t start, size_t height) {
     container.erase(end(container) - start - height, end(container) - start);
   }
@@ -166,10 +167,12 @@ class StackContainer {
   // back index, start from 0;
   inline auto& top(size_t i = 0) { return at(size() - 1 - i); }
   inline auto& at(size_t i) { return container.at(i); }
-  inline vector<T*> topN(size_t n = 1) {
+  inline vector<T*> topN(size_t n) {
     vector<T*> t;
-    if (n <= size()) {
-      for (auto i = size() - n; i < size(); i++) {
+    if (n > 0 && n <= size()) {
+      bool stop = false;
+      for (uint32_t i = size() - 1; (i >= size() - n) && !stop; i--) {
+        if (i == 0) { stop = true; }
         t.push_back(&at(i));
       }
     }
@@ -192,7 +195,7 @@ class Stack {
     (Printer::instance() << '(' << (startEntry ? "start" : "main") << "): ").say();
     if (leftValueSize == 1) {
       valueStack->top().outputValue(cout << dec);
-      valueStack->popN();
+      valueStack->pop();
     } else {
       cout << "(void)";
     }

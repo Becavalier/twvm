@@ -44,7 +44,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   for (auto &i : *staticFunctions) {
     store->functionInsts.emplace_back();
     const auto ins = &store->functionInsts.back();
-    for (auto j = 0; j < i.codeLen; j++) {
+    for (size_t j = 0; j < i.codeLen; j++) {
       ins->code.push_back(Decoder::readUint8(i.code + j));
     }
     ins->type = i.sig;

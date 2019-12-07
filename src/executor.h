@@ -17,7 +17,7 @@ using std::vector;
 #define DECLARE_CACHE_OPERATIONS(name, type) \
   type name##UseImmesCache(function<void(size_t*, type*)> accessor) { \
     const auto opcodeStaticOffset = innerOffset; \
-    const vector<type>& result = cache->name##GetValueCache( \
+    const auto& result = cache->name##GetValueCache( \
       contextIndex, \
       opcodeStaticOffset); \
     type immediate = 0; \
@@ -59,6 +59,19 @@ class Executor {
       cache->int64SetMetaCache(contextIndex, opcodeStaticOffset, type, value);
     } else { value = cacheVal; }
     return value;
+  }
+
+  const auto& uint32UseMemargCache(function<void(uint32_t*, uint32_t*, size_t*)> accessor) {
+    const auto opcodeStaticOffset = innerOffset;
+    auto& argsVal = cache->uint32GetMemargCache(contextIndex, opcodeStaticOffset);
+    if (argsVal.empty()) {
+      size_t step = 0;
+      uint32_t align = 0, offset = 0;
+      accessor(&align, &offset, &step);
+      // prevent from copy-constructing;
+      cache->uint32SetMemargCache(contextIndex, opcodeStaticOffset, align, offset, step);
+    }
+    return argsVal; 
   }
 
   inline const uchar_t* absAddr() {
