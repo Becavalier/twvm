@@ -11,7 +11,7 @@
 #include "src/opcode.h"
 #include "src/cache.h"
 #include "src/instances.h"
-#include "src/constants.h"
+#include "src/include/constants.h"
 
 using std::shared_ptr;
 using std::function;

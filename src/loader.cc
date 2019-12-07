@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <iostream>
 #include "src/loader.h"
-#include "src/constants.h"
+#include "src/include/constants.h"
 #include "src/utils.h"
 
 vector<uchar_t> Loader::buf;
