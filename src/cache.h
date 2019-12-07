@@ -42,7 +42,7 @@ using std::vector;
 class Cache {
  private:
   // id + offset;
-  ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_CONTAINER);
+  ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_CONTAINER)
   // meta cache container;
   unordered_map<uint64_t, unordered_map<OpcodeMeta, int64_t>> metaContainer = {};
   // memarg cache container;

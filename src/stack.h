@@ -4,147 +4,18 @@
 
 #include <memory>
 #include <cstring>
-#include <iostream>
-#include <type_traits>
 #include <utility>
 #include <vector>
-#include "src/instances.h"
+#include "src/frames.h"
 #include "src/constants.h"
 #include "src/utils.h"
-#include "src/macros.h"
 #include "src/types.h"
-#include "src/opcode.h"
 
 using std::shared_ptr;
 using std::make_shared;
-using std::is_same;
-using std::ostream;
 using std::dec;
-using std::memcmp;
-using std::memcpy;
 using std::forward;
 using std::vector;
-
-struct WasmFuncInstance;
-struct PosPtr;
-
-class ValueFrame {
- public:
-  SET_STRUCT_MOVE_ONLY(ValueFrame);
-  ValueFrame(ValueFrameTypes type) : bitPattern{} {}
-  ValueFrame(const ValueFrame *other) : type(other->type), isValueZero(other->isValueZero) {
-    // copy "bitPattern";
-    memcpy(bitPattern, other->bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
-  }
-
-#define DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS(name, localtype, ctype) \
-  ValueFrame(ctype v) : type(localtype), bitPattern{} { \
-    isValueZero = (v == static_cast<ctype>(0)); \
-    Utils::writeUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern), v); \
-  } \
-  const ctype to##name() const { \
-    return Utils::readUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern)); \
-  }
-  ITERATE_WASM_VAL_TYPE(DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS)
-
-  const bool operator==(const ValueFrame& other) const {
-    return type == other.type &&
-      !memcmp(bitPattern, other.bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
-  }
-
-  inline ValueTypesCode getValueType() const {
-    return static_cast<ValueTypesCode>(type);
-  }
-
-  template <typename T>
-  inline void resetValue(T v) {
-    if (is_same<T, int32_t>::value) {
-      type = ValueFrameTypes::kI32Value;
-    } else if (is_same<T, int64_t>::value) {
-      type = ValueFrameTypes::kI64Value;
-    } else if (is_same<T, float>::value) {
-      type = ValueFrameTypes::kF32Value;
-    } else if (is_same<T, double>::value) {
-      type = ValueFrameTypes::kF64Value;
-    } else {
-      (Printer::instance() << "invalid type of \"ValueFrame\".\n").error();
-    }
-    isValueZero = (v == static_cast<T>(0));
-    Utils::writeUnalignedValue<T>(reinterpret_cast<uintptr_t>(bitPattern), v);
-  }
-
-  void outputValue(ostream &out) const {
-    switch (type) {
-      case ValueFrameTypes::kF32Value: { out << toF32(); break; }
-      case ValueFrameTypes::kF64Value: { out << toF64(); break; }
-      case ValueFrameTypes::kI32Value: { out << toI32(); break; }
-      case ValueFrameTypes::kI64Value: { out << toI64(); break; }
-      default: break;
-    }
-  }
-
-  const auto isZero() const {
-    return isValueZero;
-  }
-
- private:
-  ValueFrameTypes type;
-  bool isValueZero;
-  uint8_t bitPattern[WASM_VALUE_BIT_PATTERN_WIDTH];
-};
-
-class LabelFrame {
- public:
-  SET_STRUCT_MOVE_ONLY(LabelFrame);
-  shared_ptr<PosPtr> end;
-  shared_ptr<PosPtr> branch;
-  shared_ptr<PosPtr> start;
-
-  LabelFrame(
-    ValueTypesCode resultType,
-    size_t valueStackHeight) : resultType(resultType), valueStackHeight(valueStackHeight) {}
-
-  inline const auto getResultType() const { return resultType; }
-  inline const auto getValueStackHeight() const { return valueStackHeight; }
-
- private:
-  // for "block", "loop" and "if";
-  ValueTypesCode resultType;
-  // determine the # of returning arity;
-  size_t valueStackHeight = 0;
-};
-
-class ActivationFrame {
- public:
-  SET_STRUCT_MOVE_ONLY(ActivationFrame);
-  const WasmFuncInstance *pFuncIns = nullptr;
-  vector<ValueFrame> locals = {};
-  shared_ptr<PosPtr> leaveEntry;
-
-  ActivationFrame(
-    const WasmFuncInstance *pFuncIns,
-    size_t valueStackHeight,
-    size_t labelStackHeight,
-    shared_ptr<PosPtr> leaveEntry = nullptr,
-    vector<ValueFrame> inputLocals = {}) :
-    pFuncIns(pFuncIns),
-    leaveEntry(leaveEntry),
-    valueStackHeight(valueStackHeight),
-    labelStackHeight(labelStackHeight) {
-      if (locals.size() != 0) {
-        locals = move(inputLocals);
-      }
-    }
-
-  inline const auto getValueStackHeight() const { return valueStackHeight; }
-  inline const auto getLabelStackHeight() const { return labelStackHeight; }
-
- private:
-  // determine the # of returning arity;
-  size_t valueStackHeight = 0;
-  // determine whether we reach the "end" of the function;
-  size_t labelStackHeight = 0;
-};
 
 // use vector to simulate stack, then we can have the ability of random-access,
 // and high-efficient element accessing (without "stack->deque");
@@ -194,7 +65,7 @@ class Stack {
     const auto leftValueSize = valueStack->size();
     (Printer::instance() << '(' << (startEntry ? "start" : "main") << "): ").say();
     if (leftValueSize == 1) {
-      valueStack->top().outputValue(cout << dec);
+      valueStack->top()->outputValue(cout << dec);
       valueStack->pop();
     } else {
       cout << "(void)";
@@ -206,7 +77,7 @@ class Stack {
   // in order to reduce the overhead from casting between parent and child types -
   // caused by "dynamic_cast" and "static_cast", we'd better store these three kinds of Frames -
   // separately.
-  using ValueFrameStack = StackContainer<ValueFrame>;
+  using ValueFrameStack = StackContainer<ValueFrame*>;
   using LabelFrameStack = StackContainer<LabelFrame>;
   using ActivationFrameStack = StackContainer<ActivationFrame>;
   shared_ptr<ValueFrameStack> valueStack = make_shared<ValueFrameStack>();

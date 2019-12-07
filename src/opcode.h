@@ -214,16 +214,6 @@ enum class WasmOpcode {
   ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
 };
 
-struct PosPtr {
-  PosPtr(
-    uint32_t index,
-    vector<uint8_t> *pc,
-    const size_t offset = -1) : index(index), pc(pc), offset(offset) {}
-  uint32_t index;
-  vector<uint8_t> *pc;
-  const size_t offset;
-};
-
 class OpCode {
  private:
   static inline void doUnreachable();
