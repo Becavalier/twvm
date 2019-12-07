@@ -140,7 +140,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
         WRAP_UINT_FIELD(sigIndex, uint32_t, module);
         const auto sig = module->getFunctionSig(sigIndex);
         index = module->getFunction()->size();
-        module->getImportedFuncCount()++;
+        module->importedFuncCount++;
         module->getFunction()->push_back({sig, index, sigIndex, {}, nullptr, 0, true, false});
         break;
       }
@@ -151,7 +151,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
           (Printer::instance() << "only support \"anyfunc\" type in table.\n").error();
         }
         index = module->getTable()->size();
-        module->getImportedTableCount()++;
+        module->importedTableCount++;
 
         // insert new element by placement-new && move;
         module->getTable()->emplace_back();
@@ -237,7 +237,8 @@ void Loader::parseStartSection(const shared_module_t &module) {
     (Printer::instance()
       << "the start function must not take any arguments or return value.\n").error();
   } else {
-    module->getStartFuncIndex() = startFuncIndex;
+    module->startFuncIndex = startFuncIndex;
+    module->hasValidStartFunc = true;
   }
 }
 
@@ -317,7 +318,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
   for (uint32_t i = 0; i < bodyCount; i++) {
     WRAP_UINT_FIELD(bodySize, uint32_t, module);
     // update function body;
-    const auto function = module->getFunction(module->getImportedFuncCount() + i);
+    const auto function = module->getFunction(module->importedFuncCount + i);
     // resolve locals;
     size_t step = 0;
     WRAP_UINT_FIELD_WITH_STEP(localEntryCount, uint32_t, module, &step);

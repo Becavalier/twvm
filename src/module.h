@@ -22,6 +22,10 @@ using std::move;
 class Module {
  public:
   Module() = default;
+  uint32_t importedFuncCount = 0;
+  uint32_t importedTableCount = 0;
+  uint32_t startFuncIndex = 0;
+  bool hasValidStartFunc = false;
 
   void setModContent(const vector<uchar_t> &content) {
     moduleData = move(content);
@@ -54,9 +58,6 @@ class Module {
   WRAP_SELECT_METHOD(getElement, elements)
 
   inline auto& getMemory() { return memory; }
-  inline auto& getImportedFuncCount() { return importedFuncCount; }
-  inline auto& getImportedTableCount() { return importedTableCount; }
-  inline auto& getStartFuncIndex() { return startFuncIndex; }
 
  private:
   vector<uchar_t> moduleData;
@@ -64,9 +65,6 @@ class Module {
   size_t contentLength;
   // start from the first section;
   size_t p = 8;
-  size_t importedFuncCount = 0;
-  size_t importedTableCount = 0;
-  size_t startFuncIndex = -1;
   // params, returns;
   vector<WasmFunctionSig> funcSignatures;
   // order: external imported | internal defined;

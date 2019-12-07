@@ -103,9 +103,9 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   wasmIns->stack = stack;
 
   // setup start point;
-  const auto startFunctionIndex = module->getStartFuncIndex();
   bool hasStartPoint = true;
-  if (startFunctionIndex != -1) {
+  if (module->hasValidStartFunc) {
+    const uint32_t startFunctionIndex = module->startFuncIndex;
     const auto wasmFunc = &store->functionInsts.at(startFunctionIndex);
     wasmIns->startPoint = make_shared<PosPtr>(startFunctionIndex, &wasmFunc->code);
     stack->activationStack->emplace({

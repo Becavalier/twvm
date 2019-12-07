@@ -380,10 +380,14 @@ void OpCode::doI32GeS(shared_wasm_t &wasmIns, Executor *executor) {
     (Printer::instance() << "operands not enough to be consumed.\n").error();
   }
   const auto operands = valueStack->topN(2);
-  const auto &y = operands.at(0)->toI32();
-  const auto &x = operands.at(1)->toI32();
-  valueStack->pop();
-  valueStack->top().resetValue<int32_t>(x >= y ? 1 : 0);
+  const auto &y = operands.at(0);
+  const auto &x = operands.at(1);
+  if (y->getValueType() == ValueTypesCode::kI32 && x->getValueType() == ValueTypesCode::kI32) {
+    valueStack->pop();
+    valueStack->top().resetValue<int32_t>(x->toI32() >= y->toI32() ? 1 : 0);
+  } else {
+    (Printer::instance() << "wrong operands type.\n").error();
+  } 
   INSPECT_STACK("i32.ge_s", wasmIns, executor);
 }
 
@@ -396,10 +400,14 @@ void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
     (Printer::instance() << "operands not enough to be consumed.\n").error();
   }
   const auto operands = valueStack->topN(2);
-  const auto &y = operands.at(0)->toI32();
-  const auto &x = operands.at(1)->toI32();
-  valueStack->pop();
-  valueStack->top().resetValue<int32_t>(x + y);
+  const auto &y = operands.at(0);
+  const auto &x = operands.at(1);
+  if (y->getValueType() == ValueTypesCode::kI32 && x->getValueType() == ValueTypesCode::kI32) {
+    valueStack->pop();
+    valueStack->top().resetValue<int32_t>(x->toI32() + y->toI32());
+  } else {
+    (Printer::instance() << "wrong operands type.\n").error();
+  } 
   INSPECT_STACK("i32.add", wasmIns, executor);
 }
 
