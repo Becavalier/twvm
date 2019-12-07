@@ -13,8 +13,6 @@ using std::string;
 using std::vector;
 using uchar_t = unsigned char;
 
-enum class WasmOpcode;
-
 constexpr size_t kSpecMaxWasmMemoryPages = 65536;
 constexpr uint32_t kWasmMagicWord = 0x6d736100;
 constexpr uint32_t kWasmVersion = 0x01;
@@ -94,6 +92,16 @@ union RTValue {
 enum class OpcodeMeta {
   EndOffset,
   BranchOfset,
+};
+
+struct PosPtr {
+  PosPtr(
+    uint32_t index,
+    vector<uint8_t> *pc,
+    const size_t offset = -1) : index(index), pc(pc), offset(offset) {}
+  uint32_t index;
+  vector<uint8_t> *pc;
+  const size_t offset;
 };
 
 /* compound types */

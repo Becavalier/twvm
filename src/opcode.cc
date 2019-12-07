@@ -9,6 +9,8 @@
 #include "src/decoder.h"
 #include "src/utils.h"
 
+using std::forward;
+
 // #define ENABLE_DEBUG
 #define WRAP_FORWARD_INT_FIELD(keyName, type) \
   const auto keyName = Decoder::readVarInt<type>(executor->forward_());
@@ -27,7 +29,7 @@
       << '(' << static_cast<int>(executor->getCurrentOpcode()) << "):" << endl; \
     line << "VS (values) | "; \
     for (uint32_t i = 0; i < vs->size(); i++) { \
-      vs->at(i).outputValue(line); \
+      vs->at(i)->outputValue(line); \
       if (i < vs->size() - 1) { line << ", "; } \
     } \
     line << " <-"; \
@@ -41,7 +43,7 @@
       if (localSize == 0) { line << "void"; } else { \
         line << '['; \
         for (uint32_t j = 0; j < localSize; j ++) { \
-          locals.at(j).outputValue(line); \
+          locals.at(j)->outputValue(line); \
           if (j < localSize - 1) { line << ", "; } \
         } \
         line << ']'; \
@@ -49,6 +51,18 @@
       if (i < as->size() - 1) { line << ", "; } \
     } \
     line << " <-"; \
+    printer.makeLine(line); \
+    line << "CP (i32) | "; \
+    executor->int32ConstantPoolDebug(line); \
+    printer.makeLine(line); \
+    line << "CP (i64) | "; \
+    executor->int64ConstantPoolDebug(line); \
+    printer.makeLine(line); \
+    line << "CP (f32) | "; \
+    executor->floatConstantPoolDebug(line); \
+    printer.makeLine(line); \
+    line << "CP (f64) | "; \
+    executor->doubleConstantPoolDebug(line); \
     printer.makeLine(line); \
     printer.printTableView();
 #else
@@ -132,7 +146,7 @@ void OpCode::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
       const auto returnTypes = funcProto->sig->getReturnTypes();
       // check the type of return operands;
       for (size_t i = 0; i < returnTypes.size(); i++) {
-        const auto topValue = &wasmIns->stack->valueStack->top(i);
+        const auto topValue = wasmIns->stack->valueStack->top(i);
         if (topValue->getValueType() != returnTypes.at(i)) {
           (Printer::instance() << "return arity mismatch of the function.\n").error();
         }
@@ -192,7 +206,7 @@ void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor, bool innerCall) {
 
 void OpCode::doBrIf(shared_wasm_t &wasmIns, Executor *executor) {
   const auto valueStack = wasmIns->stack->valueStack;
-  const auto isZero = valueStack->top().isZero();
+  const auto isZero = valueStack->top()->isZero();
   valueStack->pop();
   if (!isZero) {
     doBr(wasmIns, executor, true);
@@ -247,9 +261,9 @@ void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
     executor->pc = &funcIns->code;
     // initialize locals;
     for (const auto &paramType : wasmFunc->staticProto->sig->getParamTypes()) {
-      const auto topVal = &wasmIns->stack->valueStack->top();
+      const auto topVal = wasmIns->stack->valueStack->top();
       if (topVal->getValueType() == paramType) {
-        stack->activationStack->top().locals.emplace_back(move(*topVal));
+        stack->activationStack->top().locals.emplace_back(topVal);
         wasmIns->stack->valueStack->pop();
       }
     }
@@ -268,59 +282,63 @@ void OpCode::doLocalGet(shared_wasm_t &wasmIns, Executor *executor) {
   const auto topActivation = &wasmIns->stack->activationStack->top();
   if (localIndex < topActivation->locals.size()) {
     // keep the "ValueFrames" in locals;
-    wasmIns->stack->valueStack->push({&topActivation->locals.at(localIndex)});
+    wasmIns->stack->valueStack->emplace(forward<ValueFrame*>(topActivation->locals[localIndex]));
   }
   INSPECT_STACK("get_local", wasmIns, executor);
 }
 
 void OpCode::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
   // push an i32 value onto the stack;
-  wasmIns->stack->valueStack->push({
-    executor->int32UseImmesCache(
-      [&executor](size_t *step, int32_t *immediate) -> auto {
-        *immediate = Decoder::readVarInt<int32_t>(executor->forward_(), step);
-        executor->innerOffset += (*step - 1);
-      })});
+  wasmIns->stack->valueStack->emplace(
+    executor->checkUpConstant(
+      executor->int32UseImmesCache(
+        [&executor](size_t *step, int32_t *immediate) -> auto {
+          *immediate = Decoder::readVarInt<int32_t>(executor->forward_(), step);
+          executor->innerOffset += (*step - 1);
+        })));
   INSPECT_STACK("i32.const", wasmIns, executor);
 }
 
 void OpCode::doI64Const(shared_wasm_t &wasmIns, Executor *executor) {
   // push an i64 value onto the stack;
-  wasmIns->stack->valueStack->push({
-    executor->int64UseImmesCache(
-      [&executor](size_t *step, int64_t *immediate) -> auto {
-        *immediate = Decoder::readVarInt<int64_t>(executor->forward_(), step);
-        executor->innerOffset += (*step - 1);
-      })});
+  wasmIns->stack->valueStack->emplace(
+    executor->checkUpConstant(
+      executor->int64UseImmesCache(
+        [&executor](size_t *step, int64_t *immediate) -> auto {
+          *immediate = Decoder::readVarInt<int64_t>(executor->forward_(), step);
+          executor->innerOffset += (*step - 1);
+        })));
   INSPECT_STACK("i64.const", wasmIns, executor);
 }
 
 void OpCode::doF32Const(shared_wasm_t &wasmIns, Executor *executor) {
   // push a f32 value onto the stack;
-  wasmIns->stack->valueStack->push({
-    executor->floatUseImmesCache(
-      [&executor](size_t *step, float *immediate) -> auto {
-        *immediate = Utils::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()));
-        executor->innerOffset += ((*step = sizeof(float) / sizeof(uchar_t)) - 1);
-      })});
+  wasmIns->stack->valueStack->emplace(
+    executor->checkUpConstant(
+      executor->floatUseImmesCache(
+        [&executor](size_t *step, float *immediate) -> auto {
+          *immediate = Utils::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()));
+          executor->innerOffset += ((*step = sizeof(float) / sizeof(uchar_t)) - 1);
+        })));
   INSPECT_STACK("f32.const", wasmIns, executor);
 }
 
 void OpCode::doF64Const(shared_wasm_t &wasmIns, Executor *executor) {
   // push a f64 value onto the stack;
-  wasmIns->stack->valueStack->push({
-    executor->doubleUseImmesCache(
-      [&executor](size_t *step, double *immediate) -> auto {
-        *immediate = Utils::readUnalignedValue<double>(reinterpret_cast<uintptr_t>(executor->forward_()));
-        executor->innerOffset += ((*step = sizeof(double) / sizeof(uchar_t)) - 1);
-      })});
+  wasmIns->stack->valueStack->emplace(
+    executor->checkUpConstant(
+      executor->doubleUseImmesCache(
+        [&executor](size_t *step, double *immediate) -> auto {
+          *immediate = Utils::readUnalignedValue<double>(reinterpret_cast<uintptr_t>(executor->forward_()));
+          executor->innerOffset += ((*step = sizeof(double) / sizeof(uchar_t)) - 1);
+        })));
   INSPECT_STACK("f64.const", wasmIns, executor);
 }
 
 // operands: [baseAddr]; immes: [flags, offset]; return: [loadVal];
 void OpCode::doI32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
   // pop an i32 value from the stack (base address);
-  const auto topVal = &wasmIns->stack->valueStack->top();
+  const auto topVal = wasmIns->stack->valueStack->top();
   constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
   if (topVal->getValueType() == ValueTypesCode::kI32) {
     const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
@@ -333,10 +351,12 @@ void OpCode::doI32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
     const auto ea = topVal->toI32() + v[y];
     // "sizeof(int32_t / 8)";
     if (ea + 4 <= mem->availableSize()) {
-      topVal->resetValue<int32_t>(mem->load<int32_t>(ea));
+      // update directly;
+      wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<int32_t>(ea));
     } else {
       (Printer::instance() << "memory access out of bound.\n").error();
     }
+    // wasmIns->stack->valueStack->pop();
   } else {
     (Printer::instance() << "invalid stack on-top value type.\n").error();
   }
@@ -349,18 +369,18 @@ void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
   auto topNVal = wasmIns->stack->valueStack->topN(2);
   constexpr auto x = DEFAULT_ELEMENT_INDEX;
   constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
-  if (topNVal[x]->getValueType() == ValueTypesCode::kI32) {
+  if ((*topNVal[x])->getValueType() == ValueTypesCode::kI32) {
     const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
-    const auto storeVal = topNVal[x]->toI32();
+    const auto storeVal = (*topNVal[x])->toI32();
     // retrive base address;
-    if (topNVal[y]->getValueType() == ValueTypesCode::kI32) {
+    if ((*topNVal[y])->getValueType() == ValueTypesCode::kI32) {
       auto &v = executor->uint32UseMemargCache(
         [&executor](uint32_t *a, uint32_t *o, size_t *step) -> void {
           *a = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
           *o = Decoder::readVarUint<uint32_t>(executor->forward_() + *step - 1, step);
           executor->innerOffset += (*step - 2);
         });
-      const int32_t ea = topNVal[y]->toI32() + v[y];
+      const int32_t ea = (*topNVal[y])->toI32() + v[y];
       // "sizeof(int32_t / 8)";
       if (ea + 4 <= mem->availableSize()) {
         mem->store<int32_t>(ea, storeVal);
@@ -368,7 +388,7 @@ void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
         (Printer::instance() << "memory access out of bound.\n").error();
       }
       wasmIns->stack->valueStack->popN(2);
-    } 
+    }
   }
   INSPECT_STACK("i32.store", wasmIns, executor);
 }
@@ -380,14 +400,15 @@ void OpCode::doI32GeS(shared_wasm_t &wasmIns, Executor *executor) {
     (Printer::instance() << "operands not enough to be consumed.\n").error();
   }
   const auto operands = valueStack->topN(2);
-  const auto &y = operands.at(0);
-  const auto &x = operands.at(1);
+  const auto &y = *operands.at(0);
+  const auto &x = *operands.at(1);
   if (y->getValueType() == ValueTypesCode::kI32 && x->getValueType() == ValueTypesCode::kI32) {
+    const int32_t result = x->toI32() >= y->toI32() ? 1 : 0;
     valueStack->pop();
-    valueStack->top().resetValue<int32_t>(x->toI32() >= y->toI32() ? 1 : 0);
+    valueStack->top() = executor->checkUpConstant(result);
   } else {
     (Printer::instance() << "wrong operands type.\n").error();
-  } 
+  }
   INSPECT_STACK("i32.ge_s", wasmIns, executor);
 }
 
@@ -400,14 +421,15 @@ void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
     (Printer::instance() << "operands not enough to be consumed.\n").error();
   }
   const auto operands = valueStack->topN(2);
-  const auto &y = operands.at(0);
-  const auto &x = operands.at(1);
+  const auto &y = *operands.at(0);
+  const auto &x = *operands.at(1);
   if (y->getValueType() == ValueTypesCode::kI32 && x->getValueType() == ValueTypesCode::kI32) {
+    const int32_t result = x->toI32() + y->toI32();
     valueStack->pop();
-    valueStack->top().resetValue<int32_t>(x->toI32() + y->toI32());
+    valueStack->top() = executor->checkUpConstant(result);
   } else {
     (Printer::instance() << "wrong operands type.\n").error();
-  } 
+  }
   INSPECT_STACK("i32.add", wasmIns, executor);
 }
 

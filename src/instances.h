@@ -7,7 +7,6 @@
 #include <vector>
 #include "src/types.h"
 #include "src/macros.h"
-#include "src/opcode.h"
 #include "src/store.h"
 #include "src/stack.h"
 #include "src/constants.h"
@@ -20,7 +19,6 @@ using std::shared_ptr;
 class Stack;
 struct Store;
 struct WasmModuleInstance;
-enum class WasmOpcode;
 
 class WasmMemoryInstance {
  public:

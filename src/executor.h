@@ -5,6 +5,9 @@
 #include <memory>
 #include <functional>
 #include <vector>
+#include <unordered_map>
+#include "src/types.h"
+#include "src/frames.h"
 #include "src/opcode.h"
 #include "src/cache.h"
 #include "src/instances.h"
@@ -13,6 +16,32 @@
 using std::shared_ptr;
 using std::function;
 using std::vector;
+using std::unordered_map;
+
+#define ITERATE_OPERANDS_VALUE_TYPES(V) \
+  V(int32, int32_t) \
+  V(int64, int64_t) \
+  V(float, float) \
+  V(double, double)
+
+#define DECLARE_CONSTANT_POOL(name, type) \
+  unordered_map<type, ValueFrame> name##ConstantPool = {};
+
+#define DECLARE_CONSTANT_POOL_SETTERS(name, type) \
+  inline auto checkUpConstant(type val) { \
+    return &((name##ConstantPool.try_emplace(val, val).first->second)); \
+  }
+
+#define DECLARE_CONSTANT_POOL_DEBUGGER(name, type) \
+  inline void name##ConstantPoolDebug(stringstream &ss) { \
+    type counter = 0; \
+    for (const auto& val : name##ConstantPool) { \
+      val.second.outputValue(ss); \
+      if (++counter != name##ConstantPool.size()) { \
+        ss << ", "; \
+      } \
+    } \
+  }
 
 #define DECLARE_CACHE_OPERATIONS(name, type) \
   type name##UseImmesCache(function<void(size_t*, type*)> accessor) { \
@@ -32,14 +61,15 @@ using std::vector;
     return immediate; \
   }
 
-struct WasmInstance;
 enum class WasmOpcode;
+struct WasmInstance;
 
 // core execution logic;
 class Executor {
  private:
   bool runningStatus = true;
   WasmOpcode currentOpcode;
+  ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL)
 
  public:
   vector<uint8_t> *pc;
@@ -49,7 +79,10 @@ class Executor {
   const int execute(shared_ptr<WasmInstance>);
   const void crawler(const uchar_t*, size_t, const function<bool(WasmOpcode, size_t)> &callback = nullptr);
 
-  ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_OPERATIONS);
+  ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL_SETTERS)
+  ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL_DEBUGGER)
+  ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_OPERATIONS)
+
   int64_t int64UseMetaCache(OpcodeMeta type, function<void(int64_t*)> accessor) {
     const auto opcodeStaticOffset = innerOffset;
     const auto cacheVal = cache->int64GetMetaCache(contextIndex, opcodeStaticOffset, type);
@@ -71,7 +104,7 @@ class Executor {
       // prevent from copy-constructing;
       cache->uint32SetMemargCache(contextIndex, opcodeStaticOffset, align, offset, step);
     }
-    return argsVal; 
+    return argsVal;
   }
 
   inline const uchar_t* absAddr() {

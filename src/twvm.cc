@@ -93,7 +93,6 @@ int main(int argc, const char **argv) {
     });
     if (execThread.joinable()) { execThread.join(); }
     (printer << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();
-
   } catch(const std::exception& e) {
     (printer << "error occured while executing Wasm module.\n").error();
     exit(1);
