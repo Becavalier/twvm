@@ -5,9 +5,9 @@
 #include <chrono>
 #include <memory>
 #include <thread>
-#include "src/macros.h"
+#include "src/include/macros.h"
 #include "src/utils.h"
-#include "src/constants.h"
+#include "src/include/constants.h"
 #include "src/loader.h"
 #include "src/module.h"
 #include "src/executor.h"

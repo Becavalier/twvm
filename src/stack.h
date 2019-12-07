@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 #include "src/frames.h"
-#include "src/constants.h"
+#include "src/include/constants.h"
 #include "src/utils.h"
 #include "src/types.h"
 
@@ -60,19 +60,7 @@ class StackContainer {
 // for saving "Values" / "Labels" / "Activations";
 class Stack {
  public:
-  const bool checkStackState(bool startEntry = true) const {
-    // check the status of stack;
-    const auto leftValueSize = valueStack->size();
-    (Printer::instance() << '(' << (startEntry ? "start" : "main") << "): ").say();
-    if (leftValueSize == 1) {
-      valueStack->top()->outputValue(cout << dec);
-      valueStack->pop();
-    } else {
-      cout << "(void)";
-    }
-    cout << endl;
-    return leftValueSize <= 1;
-  }
+  const bool checkStackState(bool startEntry = true) const;
 
   // in order to reduce the overhead from casting between parent and child types -
   // caused by "dynamic_cast" and "static_cast", we'd better store these three kinds of Frames -

@@ -3,7 +3,7 @@
 #define STORE_H_
 
 #include <vector>
-#include "src/macros.h"
+#include "src/include/macros.h"
 #include "src/instances.h"
 
 using std::vector;

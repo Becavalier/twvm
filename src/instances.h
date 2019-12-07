@@ -6,10 +6,10 @@
 #include <string>
 #include <vector>
 #include "src/types.h"
-#include "src/macros.h"
+#include "src/include/macros.h"
 #include "src/store.h"
 #include "src/stack.h"
-#include "src/constants.h"
+#include "src/include/constants.h"
 #include "src/utils.h"
 
 using std::string;

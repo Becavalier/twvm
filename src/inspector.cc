@@ -6,7 +6,7 @@
 #include "src/cmdline.h"
 #include "src/utils.h"
 #include "src/inspector.h"
-#include "src/macros.h"
+#include "src/include/macros.h"
 
 using std::cout;
 using std::endl;
