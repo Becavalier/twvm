@@ -2,18 +2,19 @@
 #ifndef LOADER_H_
 #define LOADER_H_
 
-#define WRAP_UINT_FIELD(keyName, type, module) \
-  const auto keyName = Decoder::readVarUint<type>(module)
-#define WRAP_UINT_FIELD_WITH_STEP(keyName, type, module, step) \
-  const auto keyName = Decoder::readVarUint<type>(module, step)
-#define WRAP_UINT_FIELD_(type, module) \
-  Decoder::readVarUint<type>(module)
-#define WRAP_INT_FIELD(keyName, type, module) \
-  const auto keyName = Decoder::readVarInt<type>(module)
+#define WRAP_UINT_FIELD(keyName, type, accessor) \
+  const auto keyName = Decoder::readVarUint<type>(accessor)
+#define WRAP_UINT_FIELD_WITH_STEP(keyName, type, accessor, step) \
+  const auto keyName = Decoder::readVarUint<type>(accessor, step)
+#define WRAP_UINT_FIELD_(type, accessor) \
+  Decoder::readVarUint<type>(accessor)
+#define WRAP_INT_FIELD(keyName, type, accessor) \
+  const auto keyName = Decoder::readVarInt<type>(accessor)
 
 #include <string>
 #include <vector>
 #include <memory>
+#include <fstream>
 #include "src/types.h"
 #include "src/module.h"
 #include "src/decoder.h"
@@ -24,13 +25,13 @@ using std::vector;
 using std::string;
 using std::shared_ptr;
 using std::make_shared;
+using std::ifstream;
 
 class Loader {
  private:
+  static ifstream* reader;
   static vector<uchar_t> buf;
-  static bool validateMagicWord(const vector<uchar_t>&);
-  static bool validateVersionWord(const vector<uchar_t>&);
-  static void validateWords(const vector<uchar_t>&);
+  static uint32_t byteCounter;
 
   // analyzer invokers;
   static void parse(const shared_module_t&);
@@ -50,6 +51,19 @@ class Loader {
   static void parseElementSection(const shared_module_t&);
   static void parseDataSection(const shared_module_t&);
   static void skipKnownSection(uint8_t, const shared_module_t&);
+
+  static auto& retrieveBytes(uint32_t count) {
+    buf.clear();
+    char d;
+    while (reader->read(&d, sizeof(d))) {
+      buf.push_back(static_cast<uchar_t>(d));
+      if (++byteCounter == count) {
+        byteCounter = 0;
+        break;
+      }
+    }
+    return buf;
+  }
 
   // feeding module pointer directly (due to MVP version);
   static void consumeMemoryParams(const shared_module_t& module) {

@@ -14,6 +14,7 @@
 #include <string>
 #include <functional>
 #include <vector>
+#include <fstream>
 #include "src/utils.h"
 #include "src/types.h"
 #include "src/module.h"
@@ -23,6 +24,9 @@ using std::string;
 using std::memcpy;
 using std::malloc;
 using std::vector;
+using std::ifstream;
+
+constexpr size_t charSize = sizeof(char);
 
 class Decoder {
  private:
@@ -93,6 +97,19 @@ class Decoder {
     return r;
   }
 
+  static vector<uchar_t> ifsWrapValue(ifstream *&reader) {
+    vector<uchar_t> t;
+    char d;
+    while (true) {
+      reader->read(&d, charSize);
+      t.push_back(static_cast<uchar_t>(d));
+      if (!(d & 0x80)) {
+        break;
+      }
+    }
+    return t;
+  }
+
   static vector<uchar_t> moduleWrapValue(const shared_module_t module) {
     vector<uchar_t> t;
     while (true) {
@@ -132,6 +149,21 @@ class Decoder {
       return readUint8(module);
     } else {
       vector<uchar_t> t = Decoder::moduleWrapValue(module);
+      return Decoder::readVarUint_<T>(t, step);
+    }
+  }
+
+  template <typename T>
+  static T readVarUint(
+    ifstream *&reader,
+    size_t *step = nullptr) {
+    if (sizeof(T) == 1) {
+      // uint8_t;
+      char d;
+      reader->read(&d, charSize);
+      return static_cast<T>(d);
+    } else {
+      vector<uchar_t> t = Decoder::ifsWrapValue(reader);
       return Decoder::readVarUint_<T>(t, step);
     }
   }

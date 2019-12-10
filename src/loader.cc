@@ -8,6 +8,8 @@
 #include "src/utils.h"
 
 vector<uchar_t> Loader::buf;
+ifstream* Loader::reader;
+uint32_t Loader::byteCounter = 0;
 
 using std::endl;
 using std::hex;
@@ -18,41 +20,27 @@ using std::array;
 shared_module_t Loader::init(const std::string &fileName) {
   (Printer::instance() << "- [LOADING PHASE] -\n").debug();
   ifstream in(fileName, ios::binary);
-  char d;
-  size_t counter = 1;
-  shared_module_t wasmModule(new Module());
-
+  shared_module_t wasmModule = make_shared<Module>();
   if (in.is_open() && in.good()) {
-    while (in.read(&d, sizeof(d))) {
-      buf.push_back(d);
-
-      // check magic word / version number in stream;
-      if (counter == BYTE_LENGTH_8) {
-        validateWords(buf);
-      }
-      counter++;
+    reader = &in;
+    // magic# and verison validations;
+    retrieveBytes(BYTE_LENGTH_8);
+    if (Decoder::readUint32(buf.data()) != kWasmMagicWord) {
+      (Printer::instance() << "invalid wasm magic word, expect 0x6d736100.\n").error();
+    }
+    // offset;
+    if (Decoder::readUint32(buf.data() + BYTE_LENGTH_4) != kWasmVersion) {
+      (Printer::instance() << "invalid wasm version, expect 0x01.\n").error();
     }
   } else {
     (Printer::instance() << "can not reading file.\n").error();
   }
-  in.close();
 
   // wrap and return a module instance;
-  wasmModule->setModContent(buf);
+  // wasmModule->setModContent(buf);
 
   // parsing start;
   parse(wasmModule);
-  return wasmModule;
-}
-
-shared_module_t Loader::init(const uchar_t *source, size_t len) {
-  (Printer::instance() << "- [LOADING PHASE] -\n").debug();
-  shared_module_t wasmModule;
-
-  // one-time copying;
-  buf = vector<uchar_t>(source, source + len);
-  validateWords(buf);
-  wasmModule->setModContent(buf);
   return wasmModule;
 }
 
@@ -62,7 +50,7 @@ void Loader::parse(const shared_module_t &module) {
 
 void Loader::parseSection(const shared_module_t &module) {
   while (!module->hasEnd()) {
-    const auto sectionCode = Decoder::readVarUint<uint8_t>(module);
+    const auto sectionCode = Decoder::readVarUint<uint8_t>(reader);
     const auto sectionCodeType = static_cast<SectionTypesCode>(sectionCode);
 
     switch (sectionCodeType) {
@@ -97,18 +85,20 @@ void Loader::parseUnkownSection(uint8_t sectionCode, const shared_module_t &modu
 
 void Loader::parseTypeSection(const shared_module_t &module) {
   (Printer::instance() << "parsing type section.\n").debug();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  WRAP_UINT_FIELD(entryCount, uint32_t, module);
+  // payload length;
+  retrieveBytes(Decoder::readVarUint<uint32_t>(reader));
+  const auto &sectionDataBuf = buf.data();
+  const auto entryCount = Decoder::readVarUint<uint32_t>(sectionDataBuf);
   for (uint32_t i = 0; i < entryCount; i++) {
-    if (static_cast<ValueTypesCode>(Decoder::readUint8(module)) == ValueTypesCode::kFunc) {
+    if (static_cast<ValueTypesCode>(Decoder::readUint8(sectionDataBuf)) == ValueTypesCode::kFunc) {
       // allocate vector on heap;
       module->getFunctionSig()->emplace_back();
       const auto sig = &module->getFunctionSig()->back();
-      WRAP_UINT_FIELD(paramsCount, uint32_t, module);
+      WRAP_UINT_FIELD(paramsCount, uint32_t, sectionDataBuf);
       for (uint32_t j = 0; j < paramsCount; j++) {
         sig->reps.push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
       }
-      WRAP_UINT_FIELD(returnCount, uint8_t, module);
+      WRAP_UINT_FIELD(returnCount, uint8_t, sectionDataBuf);
       for (uint32_t j = 0; j < returnCount; j++) {
         sig->reps.push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
       }
@@ -373,23 +363,4 @@ void Loader::skipKnownSection(uint8_t byte, const shared_module_t &module) {
   (Printer::instance().useHexFormat()
     << "unknown byte found: " << static_cast<int>(byte) << ".\n").error();
   [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-}
-
-void Loader::validateWords(const vector<uchar_t> &buf) {
-  if (!validateMagicWord(buf)) {
-    (Printer::instance() << "invalid wasm magic word, expect 0x6d736100.\n").error();
-  }
-  if (!validateVersionWord(buf)) {
-    (Printer::instance() << "invalid wasm version, expect 0x01.\n").error();
-  }
-}
-
-bool Loader::validateMagicWord(const vector<unsigned char> &buf) {
-  return Decoder::readUint32(buf.data()) == kWasmMagicWord;
-}
-
-bool Loader::validateVersionWord(const vector<unsigned char> &buf) {
-  // set offset;
-  auto sp = buf.data() + BYTE_LENGTH_4;
-  return Decoder::readUint32(sp) == kWasmVersion;
 }
