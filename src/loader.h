@@ -50,7 +50,7 @@ class Loader {
   static size_t currentReaderOffset;
 
   // analyzer invokers;
-  static void parse(const shared_module_t&);
+  static shared_module_t parse(const shared_module_t&);
 
   // analyzer helpers;
   static void parseSection(const shared_module_t&);

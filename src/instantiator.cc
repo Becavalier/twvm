@@ -44,9 +44,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   for (auto &i : *staticFunctions) {
     store->functionInsts.emplace_back();
     const auto ins = &store->functionInsts.back();
-    for (size_t j = 0; j < i.codeLen; j++) {
-      ins->code.push_back(Decoder::readUint8(i.code + j));
-    }
+    ins->code = &i.code;
     ins->type = i.sig;
     ins->module = moduleInst;
     ins->staticProto = &i;
@@ -107,7 +105,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   if (module->hasValidStartFunc) {
     const uint32_t startFunctionIndex = module->startFuncIndex;
     const auto wasmFunc = &store->functionInsts.at(startFunctionIndex);
-    wasmIns->startPoint = make_shared<PosPtr>(startFunctionIndex, &wasmFunc->code);
+    wasmIns->startPoint = make_shared<PosPtr>(startFunctionIndex, wasmFunc->code);
     stack->activationStack->emplace({
       wasmFunc,
       stack->valueStack->size(),
@@ -121,7 +119,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     });
     if (it != exportItE) {
       const auto wasmFunc = &store->functionInsts.at(it->index);
-      wasmIns->startPoint = make_shared<PosPtr>(it->index, &wasmFunc->code);
+      wasmIns->startPoint = make_shared<PosPtr>(it->index, wasmFunc->code);
       wasmIns->startEntry = false;
       stack->activationStack->emplace({
         wasmFunc,
