@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef CONSTANTS_H_
-#define CONSTANTS_H_
+#ifndef INCLUDE_CONSTANTS_H_
+#define INCLUDE_CONSTANTS_H_
 
 #define DEFAULT_ELEMENT_INDEX 0
 #define WASM_PAGE_SIZE 64 * 1024
@@ -10,4 +10,4 @@
 #define BYTE_LENGTH_8 8
 #define SCREEN_WIDTH 80
 
-#endif  // CONSTANTS_H_
+#endif  // INCLUDE_CONSTANTS_H_

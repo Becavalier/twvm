@@ -65,8 +65,7 @@ void Loader::parseSection(const shared_module_t &module) {
       case SectionTypesCode::kElementSection: { parseElementSection(module); break; }
       case SectionTypesCode::kDataSection: { parseDataSection(module); break; }
       default: {
-        // skip unknown sections;
-        skipKnownSection(sectionCode, module);
+        (Printer::instance() << "unidentified section found.\n").error();
         break;
       }
     }
@@ -78,8 +77,7 @@ void Loader::parseUnkownSection(uint8_t sectionCode, const shared_module_t &modu
   // buzzle;
   Printer::instance().useHexFormat()
     << "customized section code: " << static_cast<int>(sectionCode) << ".\n";
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  module->increaseBufOffset(payloadLen);
+  retrieveBytes(WRAP_READER_VARUINT(uint32_t));
 }
 
 void Loader::parseTypeSection(const shared_module_t &module) {
@@ -111,21 +109,19 @@ void Loader::parseTypeSection(const shared_module_t &module) {
 
 void Loader::parseImportSection(const shared_module_t &module) {
   (Printer::instance() << "parsing import section.\n").debug();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  WRAP_UINT_FIELD(importCount, uint32_t, module);
+  retrieveBytes(WRAP_READER_VARUINT(uint32_t));
+  const auto importCount = WRAP_BUF_VARUINT(uint32_t);
   for (uint32_t i = 0; i < importCount; i++) {
     // set module name;
-    WRAP_UINT_FIELD(moduleNameLen, uint32_t, module);
-    const auto moduleName = WRAP_BUF_STRING(moduleNameLen);
+    const auto moduleName = WRAP_BUF_STRING(WRAP_BUF_VARUINT(uint32_t));
 
     // set field name;
-    WRAP_UINT_FIELD(fieldNameLen, uint32_t, module);
-    const auto fieldName = WRAP_BUF_STRING(fieldNameLen);
-    const auto importType = static_cast<ExternalTypesCode>(Decoder::readUint8(module));
+    const auto fieldName = WRAP_BUF_STRING(WRAP_BUF_VARUINT(uint32_t));
+    const auto importType = static_cast<ExternalTypesCode>(WRAP_BUF_UINT8());
     uint32_t index = 0;
     switch (importType) {
       case ExternalTypesCode::kExternalFunction: {
-        WRAP_UINT_FIELD(sigIndex, uint32_t, module);
+        const auto sigIndex = WRAP_BUF_VARUINT(uint32_t);
         const auto sig = module->getFunctionSig(sigIndex);
         index = module->getFunction()->size();
         module->importedFuncCount++;
@@ -134,7 +130,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
       }
       case ExternalTypesCode::kExternalTable: {
         // MVP: only support "anyfunc" (by default);
-        const auto tableType = static_cast<ValueTypesCode>(Decoder::readUint8(module));
+        const auto tableType = static_cast<ValueTypesCode>(WRAP_BUF_UINT8());
         if (tableType != ValueTypesCode::kFuncRef) {
           (Printer::instance() << "only support \"anyfunc\" type in table.\n").error();
         }
@@ -215,9 +211,8 @@ void Loader::parseMemorySection(const shared_module_t &module) {
 
 void Loader::parseStartSection(const shared_module_t &module) {
   (Printer::instance() << "parsing start section.\n").debug();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  WRAP_UINT_FIELD(startFuncIndex, uint32_t, module);
-
+  retrieveBytes(WRAP_READER_VARUINT(uint32_t));
+  const auto startFuncIndex = WRAP_BUF_VARUINT(uint32_t);
   // start function: no arguments or return value;
   const auto sig = module->getFunction(startFuncIndex)->sig;
   if (sig->paramsCount != 0 || sig->returnCount != 0) {
@@ -308,7 +303,6 @@ void Loader::parseCodeSection(const shared_module_t &module) {
     // update function body;
     const auto function = module->getFunction(module->importedFuncCount + i);
     // resolve locals;
-    size_t step = 0;
     const auto localEntryCount = WRAP_BUF_VARUINT(uint32_t);
     for (uint32_t j = 0; j < localEntryCount; j++) {
       const auto localCount = WRAP_BUF_VARUINT(uint32_t);
@@ -328,13 +322,13 @@ void Loader::parseCodeSection(const shared_module_t &module) {
 // initialize imported/internally-defined table;
 void Loader::parseElementSection(const shared_module_t &module) {
   (Printer::instance() << "parsing element section.\n").debug();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  WRAP_UINT_FIELD(elemCount, uint32_t, module);
+  retrieveBytes(WRAP_READER_VARUINT(uint32_t));
+  const auto elemCount = WRAP_BUF_VARUINT(uint32_t);
   if (elemCount > 0 && module->getTable()->size() == 0) {
     (Printer::instance() << "no table found to apply the element section.\n").error();
   }
   for (uint32_t i = 0; i < elemCount; i++) {
-    WRAP_UINT_FIELD(tableIndex, uint32_t, module);
+    const auto tableIndex = WRAP_BUF_VARUINT(uint32_t);
     if (tableIndex != 0) {
       (Printer::instance() << "can only manipulate the default table in MVP.\n").error();
     }
@@ -346,20 +340,13 @@ void Loader::parseElementSection(const shared_module_t &module) {
     consumeInitExpr(module, &elem->init);
 
     // # of the element exprs;
-    WRAP_UINT_FIELD(elemExprCount, uint32_t, module);
+    const auto elemExprCount = WRAP_BUF_VARUINT(uint32_t);
     for (uint32_t j = 0; j < elemExprCount; j++) {
-      WRAP_UINT_FIELD(index, uint32_t, module);
-      elem->entities.push_back(module->getFunction(index));
+      elem->entities.push_back(module->getFunction(WRAP_BUF_VARUINT(uint32_t)));
     }
   }
 }
 
 void Loader::parseDataSection(const shared_module_t &module) {
   (Printer::instance() << "parsing data section.\n").debug();
-}
-
-void Loader::skipKnownSection(uint8_t byte, const shared_module_t &module) {
-  (Printer::instance().useHexFormat()
-    << "unknown byte found: " << static_cast<int>(byte) << ".\n").error();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
 }

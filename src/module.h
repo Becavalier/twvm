@@ -21,33 +21,10 @@ using std::move;
 
 class Module {
  public:
-  Module() = default;
   uint32_t importedFuncCount = 0;
   uint32_t importedTableCount = 0;
   uint32_t startFuncIndex = 0;
   bool hasValidStartFunc = false;
-
-  void setModContent(const vector<uchar_t> &content) {
-    moduleData = move(content);
-    moduleDataBuf = moduleData.data();
-    contentLength = moduleData.size();
-  }
-
-  inline size_t getModContentLength() const {
-    return contentLength;
-  }
-
-  inline const uchar_t* getCurrentOffsetBuf() {
-    return (moduleDataBuf + p);
-  }
-
-  inline void increaseBufOffset(size_t step) {
-    p += step;
-  }
-
-  inline bool hasEnd() const {
-    return contentLength == p;
-  }
 
   WRAP_SELECT_METHOD(getTable, tables)
   WRAP_SELECT_METHOD(getFunctionSig, funcSignatures)
@@ -60,11 +37,6 @@ class Module {
   inline auto& getMemory() { return memory; }
 
  private:
-  vector<uchar_t> moduleData;
-  const uchar_t *moduleDataBuf;
-  size_t contentLength;
-  // start from the first section;
-  size_t p = 8;
   // params, returns;
   vector<WasmFunctionSig> funcSignatures;
   // order: external imported | internal defined;

@@ -2,15 +2,6 @@
 #ifndef LOADER_H_
 #define LOADER_H_
 
-#define WRAP_UINT_FIELD(keyName, type, accessor) \
-  const auto keyName = Decoder::readVarUint<type>(accessor)
-#define WRAP_UINT_FIELD_WITH_STEP(keyName, type, accessor, step) \
-  const auto keyName = Decoder::readVarUint<type>(accessor, step)
-#define WRAP_UINT_FIELD_(type, accessor) \
-  Decoder::readVarUint<type>(accessor)
-#define WRAP_INT_FIELD(keyName, type, accessor) \
-  const auto keyName = Decoder::readVarInt<type>(accessor)
-
 #define WRAP_BUF_VARUINT(type) \
   Decoder::readVarUint<type>(getAbsReaderEndpoint(), &currentReaderOffset)
 #define WRAP_READER_VARUINT(type) \
@@ -134,7 +125,7 @@ class Loader {
         break;
       }
       case WasmOpcode::kOpcodeGlobalSet: {
-        WRAP_UINT_FIELD(globalIndex, uint32_t, module);
+        const auto globalIndex = WRAP_BUF_VARUINT(uint32_t);
         const auto moduleGlobal = module->getGlobal(globalIndex);
         if (moduleGlobal->mutability || !moduleGlobal->imported) {
           (Printer::instance()

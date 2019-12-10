@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef MACROS_H_
-#define MACROS_H_
+#ifndef INCLUDE_MACROS_H_
+#define INCLUDE_MACROS_H_
 
 // 1. user-defined destructor will prevent compiler from calling explicit move-constructor;
 #define SET_STRUCT_DISABLE_COPY_CONSTUCT(TypeName) \
@@ -21,4 +21,4 @@
   V(F64, ValueFrameTypes::kF64Value, double)
 #endif
 
-#endif  // MACROS_H_
+#endif  // INCLUDE_MACROS_H_
