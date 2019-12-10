@@ -2,18 +2,13 @@
 #ifndef DECODER_H_
 #define DECODER_H_
 
-#define READ_AND_MOVE(module, T) \
-  readLittleEndian<T>(module->getCurrentOffsetBuf(), \
-    [&module](T val) -> void { \
-      module->increaseBufOffset(sizeof(T)); \
-    })
-
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
 #include <functional>
 #include <vector>
+#include <fstream>
 #include "src/utils.h"
 #include "src/types.h"
 #include "src/module.h"
@@ -23,6 +18,9 @@ using std::string;
 using std::memcpy;
 using std::malloc;
 using std::vector;
+using std::ifstream;
+
+constexpr size_t charSize = sizeof(char);
 
 class Decoder {
  private:
@@ -93,11 +91,12 @@ class Decoder {
     return r;
   }
 
-  static vector<uchar_t> moduleWrapValue(const shared_module_t module) {
+  static vector<uchar_t> ifsWrapValue(ifstream *reader) {
     vector<uchar_t> t;
+    char d;
     while (true) {
-      uchar_t d = READ_AND_MOVE(module, uchar_t);
-      t.push_back(d);
+      reader->read(&d, charSize);
+      t.push_back(static_cast<uchar_t>(d));
       if (!(d & 0x80)) {
         break;
       }
@@ -125,14 +124,15 @@ class Decoder {
    * 01111000 10111011 11000000 -123456 (Signed);
    */
   template <typename T>
-  static T readVarUint(
-    const shared_module_t module,
-    size_t *step = nullptr) {
+  static T readVarUint(ifstream *reader) {
     if (sizeof(T) == 1) {
-      return readUint8(module);
+      // uint8_t;
+      char d;
+      reader->read(&d, charSize);
+      return static_cast<T>(d);
     } else {
-      vector<uchar_t> t = Decoder::moduleWrapValue(module);
-      return Decoder::readVarUint_<T>(t, step);
+      vector<uchar_t> t = Decoder::ifsWrapValue(reader);
+      return Decoder::readVarUint_<T>(t);
     }
   }
 
@@ -141,19 +141,11 @@ class Decoder {
     const uchar_t *p,
     size_t *step = nullptr) {
     if (sizeof(T) == 1) {
-      return readUint8(p);
+      return readUint8(p, step);
     } else {
       vector<uchar_t> t = Decoder::ptrWrapValue(p);
       return Decoder::readVarUint_<T>(t, step);
     }
-  }
-
-  template <typename T>
-  static T readVarInt(
-    const shared_module_t module,
-    size_t *step = nullptr) {
-    vector<uchar_t> t = Decoder::moduleWrapValue(module);
-    return Decoder::readVarInt_<T>(t, step);
   }
 
   template <typename T>
@@ -172,17 +164,11 @@ class Decoder {
     return total;
   }
 
-  static uint8_t readUint8(const uchar_t*);
-  static uint16_t readUint16(const uchar_t*);
-  static uint32_t readUint32(const uchar_t*);
-  static uint64_t readUint64(const uchar_t*);
-
-  static uint8_t readUint8(const shared_module_t);
-  static uint16_t readUint16(const shared_module_t);
-  static uint32_t readUint32(const shared_module_t);
-  static uint64_t readUint64(const shared_module_t);
-
-  static string decodeName(const shared_module_t, size_t);
+  static string decodeName(const uchar_t*, size_t, size_t* = nullptr);
+  static uint8_t readUint8(const uchar_t*, size_t* = nullptr);
+  static uint16_t readUint16(const uchar_t*, size_t* = nullptr);
+  static uint32_t readUint32(const uchar_t*, size_t* = nullptr);
+  static uint64_t readUint64(const uchar_t*, size_t* = nullptr);
 };
 
 #endif  // DECODER_H_

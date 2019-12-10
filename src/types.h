@@ -160,7 +160,7 @@ struct WasmFunction {
   uint32_t funcIndex;
   uint32_t sigIndex;
   vector<ValueFrameTypes> locals = {};
-  const uchar_t *code = nullptr;
+  vector<uint8_t> code;
   size_t codeLen = 0;
   bool imported = false;
   bool exported = false;

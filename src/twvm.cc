@@ -62,11 +62,7 @@ int main(int argc, const char **argv) {
     const auto wasmModule = Loader::init(CommandLine::executeModulePath);
     // debug;
     if (wasmModule) {
-      const auto wasmModuleSize = wasmModule->getModContentLength();
-      if (wasmModuleSize > 0) {
-        (printer << "module parsing completed. (" << wasmModuleSize << ") bytes\n").debug();
-        (printer << "static parsing time: " << calcTimeInterval(start) << "ms.\n").debug();
-      }
+      (printer << "static parsing time: " << calcTimeInterval(start) << "ms.\n").debug();
     } else {
       exit(1);
     }

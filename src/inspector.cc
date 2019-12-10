@@ -1,5 +1,4 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -8,8 +7,6 @@
 #include "src/inspector.h"
 #include "src/include/macros.h"
 
-using std::cout;
-using std::endl;
 using std::stringstream;
 using std::to_string;
 
@@ -57,7 +54,7 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
     for (const auto &type : func->staticProto->locals) {
       printer << static_cast<int>(type) << '\n';
     }
-    printer << " | " << "code_size " << func->code.size() << " B]";
+    printer << " | " << "code_size " << func->code->size() << " B]";
     printer.makeLine();
   }
   printer.printTableView();

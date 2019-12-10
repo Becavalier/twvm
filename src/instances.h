@@ -120,7 +120,7 @@ struct WasmFuncInstance {
   WasmFunctionSig* type;
   WasmFunction* staticProto;
   shared_ptr<WasmModuleInstance> module;
-  vector<uint8_t> code;
+  vector<uint8_t> *code;
 };
 
 struct WasmExportInstance {

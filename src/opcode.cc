@@ -258,7 +258,7 @@ void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
     // redirect;
     const auto funcIns = modFuncs[funcIndex];
     executor->innerOffset = -1;
-    executor->pc = &funcIns->code;
+    executor->pc = funcIns->code;
     // initialize locals;
     for (const auto &paramType : wasmFunc->staticProto->sig->getParamTypes()) {
       const auto topVal = wasmIns->stack->valueStack->top();
