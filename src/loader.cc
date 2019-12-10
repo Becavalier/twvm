@@ -10,6 +10,7 @@
 vector<uchar_t> Loader::buf;
 ifstream* Loader::reader;
 uint32_t Loader::byteCounter = 0;
+size_t Loader::currentReaderOffset = 0;
 
 using std::endl;
 using std::hex;
@@ -25,11 +26,11 @@ shared_module_t Loader::init(const std::string &fileName) {
     reader = &in;
     // magic# and verison validations;
     retrieveBytes(BYTE_LENGTH_8);
-    if (Decoder::readUint32(buf.data()) != kWasmMagicWord) {
+    if (WRAP_BUF_UINT32() != kWasmMagicWord) {
       (Printer::instance() << "invalid wasm magic word, expect 0x6d736100.\n").error();
     }
     // offset;
-    if (Decoder::readUint32(buf.data() + BYTE_LENGTH_4) != kWasmVersion) {
+    if (WRAP_BUF_UINT32() != kWasmVersion) {
       (Printer::instance() << "invalid wasm version, expect 0x01.\n").error();
     }
   } else {
@@ -50,7 +51,7 @@ void Loader::parse(const shared_module_t &module) {
 
 void Loader::parseSection(const shared_module_t &module) {
   while (!module->hasEnd()) {
-    const auto sectionCode = Decoder::readVarUint<uint8_t>(reader);
+    const auto sectionCode = WRAP_READER_VARUINT(uint8_t);
     const auto sectionCodeType = static_cast<SectionTypesCode>(sectionCode);
 
     switch (sectionCodeType) {
@@ -86,21 +87,20 @@ void Loader::parseUnkownSection(uint8_t sectionCode, const shared_module_t &modu
 void Loader::parseTypeSection(const shared_module_t &module) {
   (Printer::instance() << "parsing type section.\n").debug();
   // payload length;
-  retrieveBytes(Decoder::readVarUint<uint32_t>(reader));
-  const auto &sectionDataBuf = buf.data();
-  const auto entryCount = Decoder::readVarUint<uint32_t>(sectionDataBuf);
+  retrieveBytes(WRAP_READER_VARUINT(uint32_t));
+  // self-counting from "buf";
+  const auto entryCount = WRAP_BUF_VARUINT(uint32_t);
   for (uint32_t i = 0; i < entryCount; i++) {
-    if (static_cast<ValueTypesCode>(Decoder::readUint8(sectionDataBuf)) == ValueTypesCode::kFunc) {
-      // allocate vector on heap;
+    if (static_cast<ValueTypesCode>(WRAP_BUF_UINT8()) == ValueTypesCode::kFunc) {
       module->getFunctionSig()->emplace_back();
       const auto sig = &module->getFunctionSig()->back();
-      WRAP_UINT_FIELD(paramsCount, uint32_t, sectionDataBuf);
+      const auto paramsCount = WRAP_BUF_VARUINT(uint32_t);
       for (uint32_t j = 0; j < paramsCount; j++) {
-        sig->reps.push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
+        sig->reps.push_back(static_cast<ValueTypesCode>(WRAP_BUF_VARINT(int8_t)));
       }
-      WRAP_UINT_FIELD(returnCount, uint8_t, sectionDataBuf);
+      const auto returnCount = WRAP_BUF_VARUINT(uint8_t);
       for (uint32_t j = 0; j < returnCount; j++) {
-        sig->reps.push_back(static_cast<ValueTypesCode>(Decoder::readUint8(module)));
+        sig->reps.push_back(static_cast<ValueTypesCode>(WRAP_BUF_VARINT(int8_t)));
       }
       sig->index = i;
       sig->paramsCount = paramsCount;
@@ -118,11 +118,11 @@ void Loader::parseImportSection(const shared_module_t &module) {
   for (uint32_t i = 0; i < importCount; i++) {
     // set module name;
     WRAP_UINT_FIELD(moduleNameLen, uint32_t, module);
-    const auto moduleName = Decoder::decodeName(module, moduleNameLen);
+    const auto moduleName = WRAP_BUF_STRING(moduleNameLen);
 
     // set field name;
     WRAP_UINT_FIELD(fieldNameLen, uint32_t, module);
-    const auto fieldName = Decoder::decodeName(module, fieldNameLen);
+    const auto fieldName = WRAP_BUF_STRING(fieldNameLen);
     const auto importType = static_cast<ExternalTypesCode>(Decoder::readUint8(module));
     uint32_t index = 0;
     switch (importType) {
@@ -169,13 +169,13 @@ void Loader::parseImportSection(const shared_module_t &module) {
 
 void Loader::parseFunctionSection(const shared_module_t &module) {
   (Printer::instance() << "parsing function section.\n").debug();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  WRAP_UINT_FIELD(declaredFuncCount, uint32_t, module);
+  retrieveBytes(WRAP_READER_VARUINT(uint32_t));
+  const auto declaredFuncCount = WRAP_BUF_VARUINT(uint32_t);
   for (uint32_t i = 0; i < declaredFuncCount; i++) {
     module->getFunction()->emplace_back();
     const auto func = &module->getFunction()->back();
     // indices: uint32_t;
-    WRAP_UINT_FIELD(sigIndex, uint32_t, module);
+    const auto sigIndex = WRAP_BUF_VARUINT(uint32_t);
     const auto sig = module->getFunctionSig(sigIndex);
     const auto funcIndex = module->getFunction()->size();
     func->sig = sig;
@@ -186,11 +186,11 @@ void Loader::parseFunctionSection(const shared_module_t &module) {
 
 void Loader::parseTableSection(const shared_module_t &module) {
   (Printer::instance() << "parsing table section.\n").debug();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  WRAP_UINT_FIELD(tableCount, uint32_t, module);
+  retrieveBytes(WRAP_READER_VARUINT(uint32_t));
+  const auto tableCount = WRAP_BUF_VARUINT(uint32_t);
   for (uint32_t i = 0; i < tableCount; i++) {
     // MVP: only support "anyfunc" (by default);
-    const auto tableType = static_cast<ValueTypesCode>(Decoder::readUint8(module));
+    const auto tableType = static_cast<ValueTypesCode>(WRAP_BUF_UINT8());
     if (tableType != ValueTypesCode::kFuncRef) {
       (Printer::instance() << "only support \"anyfunc\" type in table.\n").error();
     }
@@ -205,9 +205,8 @@ void Loader::parseTableSection(const shared_module_t &module) {
 
 void Loader::parseMemorySection(const shared_module_t &module) {
   (Printer::instance() << "parsing memory section.\n").debug();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  WRAP_UINT_FIELD(memeoryCount, uint32_t, module);
-
+  retrieveBytes(WRAP_READER_VARUINT(uint32_t));
+  const auto memeoryCount = WRAP_BUF_VARUINT(uint32_t);
   // determine whether the memory has been initialized via "import";
   if (memeoryCount > 1 || module->getMemory() != nullptr) {
     (Printer::instance() << "only support one memory in MVP.\n").error();
@@ -234,11 +233,11 @@ void Loader::parseStartSection(const shared_module_t &module) {
 
 void Loader::parseGlobalSection(const shared_module_t &module) {
   (Printer::instance() << "parsing global section.\n").debug();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  WRAP_UINT_FIELD(globalCount, uint32_t, module);
+  retrieveBytes(WRAP_READER_VARUINT(uint32_t));
+  const auto globalCount = WRAP_BUF_VARUINT(uint32_t);
   for (uint32_t i = 0; i < globalCount; i++) {
-    const auto contentType = static_cast<ValueTypesCode>(Decoder::readUint8(module));
-    const auto mutability = Decoder::readUint8(module) == kWasmTrue;
+    const auto contentType = static_cast<ValueTypesCode>(WRAP_BUF_UINT8());
+    const auto mutability = WRAP_BUF_UINT8() == kWasmTrue;
 
     // insert new element by placement-new && move;
     module->getGlobal()->emplace_back();
@@ -253,22 +252,22 @@ void Loader::parseGlobalSection(const shared_module_t &module) {
 
 void Loader::parseExportSection(const shared_module_t &module) {
   (Printer::instance() << "parsing export section.\n").debug();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  WRAP_UINT_FIELD(exportCount, uint32_t, module);
+  retrieveBytes(WRAP_READER_VARUINT(uint32_t));
+  const auto exportCount = WRAP_BUF_VARUINT(uint32_t);
   for (uint32_t i = 0; i < exportCount; i++) {
-    WRAP_UINT_FIELD(nameLen, uint32_t, module);
-    const auto name = Decoder::decodeName(module, nameLen);
-    const auto exportType = static_cast<ExternalTypesCode>(Decoder::readUint8(module));
+    const auto nameLen = WRAP_BUF_VARUINT(uint32_t);
+    const auto name = WRAP_BUF_STRING(nameLen);
+    const auto exportType = static_cast<ExternalTypesCode>(WRAP_BUF_UINT8());
     uint32_t index = 0;
     switch (exportType) {
       case ExternalTypesCode::kExternalFunction: {
-        index = WRAP_UINT_FIELD_(uint32_t, module);
+        const auto index = WRAP_BUF_VARUINT(uint32_t);
         const auto funcIns = module->getFunction(index);
         funcIns->exported = true;
         break;
       }
       case ExternalTypesCode::kExternalTable: {
-        index = WRAP_UINT_FIELD_(uint32_t, module);
+        const auto index = WRAP_BUF_VARUINT(uint32_t);
         const auto table = module->getTable(index);
         if (table != nullptr) {
           table->exported = true;
@@ -276,7 +275,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         break;
       }
       case ExternalTypesCode::kExternalMemory: {
-        index = WRAP_UINT_FIELD_(uint32_t, module);
+        const auto index = WRAP_BUF_VARUINT(uint32_t);
         const auto mem = module->getMemory();
         if (index != 0 || mem == nullptr) {
           (Printer::instance() << "invalid memory index.\n").error();
@@ -286,7 +285,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         break;
       }
       case ExternalTypesCode::kExternalGlobal: {
-        index = WRAP_UINT_FIELD_(uint32_t, module);
+        const auto index = WRAP_BUF_VARUINT(uint32_t);
         const auto global = module->getGlobal(index);
         if (global != nullptr) {
           global->exported = true;
@@ -303,14 +302,16 @@ void Loader::parseExportSection(const shared_module_t &module) {
 
 void Loader::parseCodeSection(const shared_module_t &module) {
   (Printer::instance() << "parsing code section.\n").debug();
-  [[maybe_unused]] WRAP_UINT_FIELD(payloadLen, uint32_t, module);
-  WRAP_UINT_FIELD(bodyCount, uint32_t, module);
+  [[maybe_unused]] const auto payloadLen = WRAP_READER_VARUINT(uint32_t);
+  const auto bodyCount = WRAP_READER_VARUINT(uint32_t);
   for (uint32_t i = 0; i < bodyCount; i++) {
-    WRAP_UINT_FIELD(bodySize, uint32_t, module);
+    const auto bodySize = WRAP_READER_VARUINT(uint32_t);
+    retrieveBytes(bodySize);
     // update function body;
     const auto function = module->getFunction(module->importedFuncCount + i);
     // resolve locals;
     size_t step = 0;
+    cout << "counting" << endl;
     WRAP_UINT_FIELD_WITH_STEP(localEntryCount, uint32_t, module, &step);
     for (uint32_t j = 0; j < localEntryCount; j++) {
       WRAP_UINT_FIELD_WITH_STEP(localCount, uint32_t, module, &step);

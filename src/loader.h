@@ -11,6 +11,21 @@
 #define WRAP_INT_FIELD(keyName, type, accessor) \
   const auto keyName = Decoder::readVarInt<type>(accessor)
 
+#define WRAP_BUF_VARUINT(type) \
+  Decoder::readVarUint<type>(getAbsReaderEndpoint(), &currentReaderOffset)
+#define WRAP_READER_VARUINT(type) \
+  Decoder::readVarUint<type>(reader)
+#define WRAP_BUF_VARINT(type) \
+  Decoder::readVarInt<type>(getAbsReaderEndpoint(), &currentReaderOffset)
+#define WRAP_BUF_UINT8() \
+  Decoder::readUint8(getAbsReaderEndpoint(), &currentReaderOffset)
+#define WRAP_BUF_UINT32() \
+  Decoder::readUint32(getAbsReaderEndpoint(), &currentReaderOffset)
+#define WRAP_BUF_UINT64() \
+  Decoder::readUint64(getAbsReaderEndpoint(), &currentReaderOffset)
+#define WRAP_BUF_STRING(strLen) \
+  Decoder::decodeName(getAbsReaderEndpoint(), strLen, &currentReaderOffset)
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -32,6 +47,7 @@ class Loader {
   static ifstream* reader;
   static vector<uchar_t> buf;
   static uint32_t byteCounter;
+  static size_t currentReaderOffset;
 
   // analyzer invokers;
   static void parse(const shared_module_t&);
@@ -54,6 +70,7 @@ class Loader {
 
   static auto& retrieveBytes(uint32_t count) {
     buf.clear();
+    currentReaderOffset = 0;
     char d;
     while (reader->read(&d, sizeof(d))) {
       buf.push_back(static_cast<uchar_t>(d));
@@ -67,14 +84,13 @@ class Loader {
 
   // feeding module pointer directly (due to MVP version);
   static void consumeMemoryParams(const shared_module_t& module) {
-    WRAP_UINT_FIELD(memoryFlags, uint8_t, module);
-    WRAP_UINT_FIELD(initialPages, uint32_t, module);
+    const auto memoryFlags = WRAP_BUF_VARUINT(uint8_t);
+    const auto initialPages = WRAP_BUF_VARUINT(uint32_t);
     auto memory = make_shared<WasmMemory>();
     memory->initialPages = initialPages;
-
     // (0 : no /1: has) maximum field;
     if (memoryFlags == kWasmTrue) {
-      WRAP_UINT_FIELD(maximumPages, uint32_t, module);
+      const auto maximumPages = WRAP_BUF_VARUINT(uint32_t);
       memory->maximumPages = maximumPages;
       memory->hasMaximumPages = true;
     }
@@ -82,39 +98,39 @@ class Loader {
   }
 
   static void consumeTableParams(const shared_module_t& module, WasmTable *const table) {
-    WRAP_UINT_FIELD(tableFlags, uint8_t, module);
-    WRAP_UINT_FIELD(initialSize, uint32_t, module);
+    const auto tableFlags = WRAP_BUF_VARUINT(uint8_t);
+    const auto initialSize = WRAP_BUF_VARUINT(uint32_t);
     table->initialSize = initialSize;
     if (tableFlags == kWasmTrue) {
-      WRAP_UINT_FIELD(maximumSize, uint32_t, module);
+      const auto maximumSize = WRAP_BUF_VARUINT(uint32_t);
       table->maximumSize = maximumSize;
       table->hasMaximumSize = true;
     }
   }
 
   static void consumeInitExpr(const shared_module_t& module, WasmInitExpr *const  expr) {
-    const auto opcode = static_cast<WasmOpcode>(Decoder::readUint8(module));
+    const auto opcode = static_cast<WasmOpcode>(WRAP_BUF_UINT8());
 
     // MVP: i32.const / i64.const / f32.const / f64.const / get_global;
     switch (opcode) {
       case WasmOpcode::kOpcodeI32Const: {
         expr->kind = InitExprKind::kI32Const;
-        expr->val.vI32Const = Decoder::readVarInt<int32_t>(module);
+        expr->val.vI32Const = WRAP_BUF_VARINT(int32_t);
         break;
       }
       case WasmOpcode::kOpcodeI64Const: {
         expr->kind = InitExprKind::kI64Const;
-        expr->val.vI64Const = Decoder::readVarInt<int64_t>(module);
+        expr->val.vI64Const = WRAP_BUF_VARINT(int64_t);
         break;
       }
       case WasmOpcode::kOpcodeF32Const: {
         expr->kind = InitExprKind::kF32Const;
-        expr->val.vF32Const = Decoder::readUint32(module);
+        expr->val.vF32Const = WRAP_BUF_UINT32();
         break;
       }
       case WasmOpcode::kOpcodeF64Const: {
         expr->kind = InitExprKind::kF64Const;
-        expr->val.vF64Const = Decoder::readUint64(module);
+        expr->val.vF64Const = WRAP_BUF_UINT64();
         break;
       }
       case WasmOpcode::kOpcodeGlobalSet: {
@@ -134,7 +150,7 @@ class Loader {
       }
     }
     // "0x0b" ending byte;
-    if (static_cast<WasmOpcode>(Decoder::readUint8(module)) != WasmOpcode::kOpcodeEnd) {
+    if (static_cast<WasmOpcode>(WRAP_BUF_UINT8()) != WasmOpcode::kOpcodeEnd) {
       (Printer::instance() << "illegal ending byte.\n").error();
     }
   }
@@ -142,6 +158,10 @@ class Loader {
  public:
   static shared_module_t init(const string&);
   static shared_module_t init(const uchar_t*, size_t);
+
+  static inline uchar_t* getAbsReaderEndpoint() {
+    return buf.data() + currentReaderOffset;
+  }
 };
 
 #endif  // LOADER_H_
