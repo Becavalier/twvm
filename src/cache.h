@@ -45,7 +45,7 @@ class Cache {
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_CONTAINER)
   // meta cache container;
   unordered_map<uint64_t, unordered_map<OpcodeMeta, int64_t>> metaContainer = {};
-  // memarg cache container;
+  // "memarg" cache container;
   unordered_map<uint64_t, vector<uint32_t>> memargContainer = {};
 
   inline uint64_t hashLoc(uint32_t index, size_t offset) const {

@@ -382,7 +382,7 @@ void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
         });
       const int32_t ea = (*topNVal[y])->toI32() + v[y];
       // "sizeof(int32_t / 8)";
-      if (ea + 4 <= mem->availableSize()) {
+      if (ea > 0 && ea + 4 <= mem->availableSize()) {
         mem->store<int32_t>(ea, storeVal);
       } else {
         (Printer::instance() << "memory access out of bound.\n").error();
@@ -433,6 +433,7 @@ void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("i32.add", wasmIns, executor);
 }
 
+// "switch-case" overhead: (Branch-Table -> Binary-Decision-Tree -> if-else);
 void OpCode::handle(shared_wasm_t wasmIns, WasmOpcode opcode, Executor *executor) {
   switch (opcode) {
     case WasmOpcode::kOpcodeUnreachable: { doUnreachable(); break; }

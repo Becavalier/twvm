@@ -101,7 +101,6 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   wasmIns->stack = stack;
 
   // setup start point;
-  bool hasStartPoint = true;
   if (module->hasValidStartFunc) {
     const uint32_t startFunctionIndex = module->startFuncIndex;
     const auto wasmFunc = &store->functionInsts.at(startFunctionIndex);
@@ -125,8 +124,6 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
         wasmFunc,
         stack->valueStack->size(),
         stack->labelStack->size()});
-    } else {
-      hasStartPoint = false;
     }
   }
 

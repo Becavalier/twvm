@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include "src/cmdline.h"
+#include "src/utils.h"
 #include "src/include/constants.h"
 
 using std::ostream;
@@ -99,15 +100,15 @@ void Options::parse(int argc, const char* argv[]) {
     if (dashes(currentOption) == 0) {
       switch (positional) {
         case Arguments::Zero: {
-          cerr << "Unexpected positional argument \'" << currentOption << "\'.\n";
+          (Printer::instance() << "Unexpected positional argument \'" << currentOption << "\'.\n").error(false);
           exit(EXIT_FAILURE);
         }
         case Arguments::One:
         case Arguments::Optional: {
           if (positionalsSeen) {
-            cerr
+            (Printer::instance() 
               << "Unexpected second positional argument \'"
-              << currentOption << "\' for " << positionalName << '\n';
+              << currentOption << "\' for " << positionalName << '\n').error(false);
             exit(EXIT_FAILURE);
           }
         }
@@ -132,31 +133,32 @@ void Options::parse(int argc, const char* argv[]) {
         option = &o;
       }
     if (!option) {
-      cerr << "Unknown option \'" << currentOption << "\'\n";
+      (Printer::instance() 
+              << "Unknown option \'" << currentOption << "\'\n").error(false);
       exit(EXIT_FAILURE);
     }
     switch (option->arguments) {
       case Arguments::Zero: {
         if (argument.size()) {
-          cerr
+          (Printer::instance() 
             << "Unexpected argument \'" << argument
-            << "\' for option \'" << currentOption << "\'.\n";
+            << "\' for option \'" << currentOption << "\'.\n").error(false);
           exit(EXIT_FAILURE);
         }
         break;
       }
       case Arguments::One: {
         if (option->seen) {
-          cerr
+          (Printer::instance() 
             << "Unexpected second argument \'" << argument
-            << "\' for \'" << currentOption << "\'.\n";
+            << "\' for \'" << currentOption << "\'.\n").error(false);
           exit(EXIT_FAILURE);
         }
       }
       case Arguments::N: {
         if (!argument.size()) {
           if (i + 1 == e) {
-            cerr << "Couldn\'t find expected argument for \'" << currentOption << "\'.\n";
+            (Printer::instance() << "Couldn\'t find expected argument for \'" << currentOption << "\'.\n").error(false);
             exit(EXIT_FAILURE);
           }
           argument = argv[++i];

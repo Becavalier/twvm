@@ -34,7 +34,7 @@ using std::unordered_map;
 
 #define DECLARE_CONSTANT_POOL_DEBUGGER(name, type) \
   inline void name##ConstantPoolDebug(stringstream &ss) { \
-    type counter = 0; \
+    unordered_map<type, ValueFrame>::size_type counter = 0; \
     for (const auto& val : name##ConstantPool) { \
       val.second.outputValue(ss); \
       if (++counter != name##ConstantPool.size()) { \
