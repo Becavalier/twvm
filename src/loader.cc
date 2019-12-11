@@ -6,6 +6,7 @@
 #include "src/loader.h"
 #include "src/include/constants.h"
 #include "src/utils.h"
+#include "src/opcode.h"
 
 vector<uchar_t> Loader::buf;
 ifstream* Loader::reader;
@@ -314,7 +315,11 @@ void Loader::parseCodeSection(const shared_module_t &module) {
     }
     function->codeLen = bodySize - currentReaderOffset;
     for (size_t j = 0; j < function->codeLen; j++) {
-      function->code.push_back(WRAP_BUF_UINT8());
+      const auto opcode = WRAP_BUF_UINT8();
+      // threading;
+      cout << sizeof(uint8_t) << endl;
+      cout << reinterpret_cast<uintptr_t>(&OpCode::doBrIf) << endl;
+      function->code.push_back(opcode);
     }
   }
 }

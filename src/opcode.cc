@@ -11,7 +11,7 @@
 
 using std::forward;
 
-// #define ENABLE_DEBUG
+#define ENABLE_DEBUG
 #define WRAP_FORWARD_INT_FIELD(keyName, type) \
   const auto keyName = Decoder::readVarInt<type>(executor->forward_());
 
@@ -171,7 +171,7 @@ void OpCode::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("end", wasmIns, executor);
 }
 
-void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor, bool innerCall) {
+void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor) {
   const auto depth = executor->uint32UseImmesCache(
     [&executor](size_t *step, uint32_t *immediate) -> auto {
       *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
@@ -201,7 +201,7 @@ void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor, bool innerCall) {
   } else {
     (Printer::instance() << "invalid branching depth.\n").error();
   }
-  INSPECT_STACK((innerCall ? "br_if: br" : "br"), wasmIns, executor);
+  INSPECT_STACK("br", wasmIns, executor);
 }
 
 void OpCode::doBrIf(shared_wasm_t &wasmIns, Executor *executor) {
@@ -209,7 +209,7 @@ void OpCode::doBrIf(shared_wasm_t &wasmIns, Executor *executor) {
   const auto isZero = valueStack->top()->isZero();
   valueStack->pop();
   if (!isZero) {
-    doBr(wasmIns, executor, true);
+    doBr(wasmIns, executor);
   } else {
     // remove "depth" field;
     executor->innerOffset += Decoder::calcPassBytes(executor->absAddr() + 1);

@@ -215,14 +215,14 @@ enum class WasmOpcode {
 };
 
 class OpCode {
- private:
+ public:
   static inline void doUnreachable();
   static inline void doBlock(shared_wasm_t&, Executor*);
   static inline void doLoop(shared_wasm_t&, Executor*);
   static inline void doIf(shared_wasm_t&, Executor*);
   static inline void doElse(shared_wasm_t&, Executor*);
   static inline void doEnd(shared_wasm_t&, Executor*);
-  static inline void doBr(shared_wasm_t&, Executor*, bool = false);
+  static inline void doBr(shared_wasm_t&, Executor*);
   static inline void doBrIf(shared_wasm_t&, Executor*);
   static inline void doBrTable(shared_wasm_t&, Executor*);
   static inline void doReturn(shared_wasm_t&, Executor*);
@@ -237,8 +237,7 @@ class OpCode {
   static inline void doI32GeS(shared_wasm_t&, Executor*);
   static inline void doI64GeS(shared_wasm_t&, Executor*);
   static inline void doI32Add(shared_wasm_t&, Executor*);
-
- public:
+  // main handler;
   static void handle(shared_wasm_t, WasmOpcode, Executor*);
 };
 
