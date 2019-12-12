@@ -68,7 +68,6 @@ struct WasmInstance;
 class Executor {
  private:
   bool runningStatus = true;
-  WasmOpcode currentOpcode;
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL)
 
  public:
@@ -118,10 +117,6 @@ class Executor {
   inline const uchar_t* forward_(size_t step = 1) {
     innerOffset += step;
     return absAddr();
-  }
-
-  inline const auto getCurrentOpcode() const {
-    return currentOpcode;
   }
 };
 

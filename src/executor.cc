@@ -18,10 +18,16 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
       return wasmIns->stack->checkStackState(wasmIns->startEntry);
     }
 
+    uintptr_t r;
+    memcpy(&r, pc->data() + (++innerOffset), sizeof(r));
+    reinterpret_cast<handlerSig*>(r)(wasmIns, this);
+    innerOffset+=sizeof(r);
+
+/*
     const WasmOpcode opcode = static_cast<WasmOpcode>(pc->at(++innerOffset));
-    currentOpcode = opcode;
     // run;
     OpCode::handle(wasmIns, opcode, this);
+    */
   }
   return 0;
 }

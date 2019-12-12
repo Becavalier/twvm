@@ -315,11 +315,56 @@ void Loader::parseCodeSection(const shared_module_t &module) {
     }
     function->codeLen = bodySize - currentReaderOffset;
     for (size_t j = 0; j < function->codeLen; j++) {
-      const auto opcode = WRAP_BUF_UINT8();
+      const auto byte = WRAP_BUF_UINT8();
+      const auto opcode = static_cast<WasmOpcode>(byte);
+      auto codeBucket = &function->code;
       // threading;
-      cout << sizeof(uint8_t) << endl;
-      cout << reinterpret_cast<uintptr_t>(&OpCode::doBrIf) << endl;
-      function->code.push_back(opcode);
+      switch (opcode) {
+        case WasmOpcode::kOpcodeBlock: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doBlock); break; }
+        case WasmOpcode::kOpcodeLoop: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doLoop); break; }
+        case WasmOpcode::kOpcodeIf: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doIf); break; }
+        case WasmOpcode::kOpcodeElse: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doElse); break; }
+        case WasmOpcode::kOpcodeEnd: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doEnd); break; }
+        case WasmOpcode::kOpcodeBr: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doBr); break; }
+        case WasmOpcode::kOpcodeBrIf: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doBrIf); break; }
+        case WasmOpcode::kOpcodeBrTable: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doBrTable); break; }
+        case WasmOpcode::kOpcodeReturn: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doReturn); break; }
+        case WasmOpcode::kOpcodeCall: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doCall); break; }
+        case WasmOpcode::kOpcodeLocalGet: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doLocalGet); break; }
+        case WasmOpcode::kOpcodeI32Const: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doI32Const); break; }
+        case WasmOpcode::kOpcodeI64Const: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doI64Const); break; }
+        case WasmOpcode::kOpcodeF32Const: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doF32Const); break; }
+        case WasmOpcode::kOpcodeF64Const: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doF64Const); break; }
+        case WasmOpcode::kOpcodeI32LoadMem: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doI32LoadMem); break; }
+        case WasmOpcode::kOpcodeI32StoreMem: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doI32StoreMem); break; }
+        case WasmOpcode::kOpcodeI32GeS: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doI32GeS); break; }
+        case WasmOpcode::kOpcodeI64GeS: {
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doI64GeS); break; }
+        case WasmOpcode::kOpcodeI32Add: { 
+          Utils::savePtrIntoBytes<handlerSig>(codeBucket, &OpCode::doI32Add); break; }
+        default: {
+          (Printer::instance() << "unsupported opcode found.\n").error();
+          // codeBucket->push_back(byte);
+        };
+      }
     }
   }
 }

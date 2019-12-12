@@ -24,9 +24,7 @@ using std::forward;
     const auto &as = wasmIns->stack->activationStack; \
     auto &printer = Printer::instance(); \
     stringstream line; \
-    (printer << opcodeName).debug(); \
-    cout << hex << showbase \
-      << '(' << static_cast<int>(executor->getCurrentOpcode()) << "):" << endl; \
+    (printer << opcodeName << '\n').debug(); \
     line << "VS (values) | "; \
     for (uint32_t i = 0; i < vs->size(); i++) { \
       vs->at(i)->outputValue(line); \
@@ -434,6 +432,7 @@ void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 // "switch-case" overhead: (Branch-Table -> Binary-Decision-Tree -> if-else);
+/*
 void OpCode::handle(shared_wasm_t wasmIns, WasmOpcode opcode, Executor *executor) {
   switch (opcode) {
     case WasmOpcode::kOpcodeUnreachable: { doUnreachable(); break; }
@@ -460,3 +459,4 @@ void OpCode::handle(shared_wasm_t wasmIns, WasmOpcode opcode, Executor *executor
     default: break;
   }
 }
+*/

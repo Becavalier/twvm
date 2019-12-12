@@ -112,6 +112,15 @@ class Utils {
     memcpy(&r, reinterpret_cast<void*>(p), sizeof(T));
     return r;
   }
+
+  template <typename T>
+  static inline void savePtrIntoBytes(vector<uint8_t> *v, T *ptr) {
+    const auto ptrVal = reinterpret_cast<uintptr_t>(ptr);
+    #pragma omp simd
+    for (auto i = 0; i < 8; i++) {
+      v->push_back(ptrVal >> (8 * i) & 0x000000FF);
+    }
+  }
 };
 
 #endif  // UTILS_H_

@@ -209,6 +209,7 @@ class Executor;
 using std::shared_ptr;
 using std::vector;
 using shared_wasm_t = shared_ptr<WasmInstance>;
+typedef void (handlerSig)(shared_wasm_t&, Executor*);
 
 enum class WasmOpcode {
   ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
@@ -216,29 +217,27 @@ enum class WasmOpcode {
 
 class OpCode {
  public:
-  static inline void doUnreachable();
-  static inline void doBlock(shared_wasm_t&, Executor*);
-  static inline void doLoop(shared_wasm_t&, Executor*);
-  static inline void doIf(shared_wasm_t&, Executor*);
-  static inline void doElse(shared_wasm_t&, Executor*);
-  static inline void doEnd(shared_wasm_t&, Executor*);
-  static inline void doBr(shared_wasm_t&, Executor*);
-  static inline void doBrIf(shared_wasm_t&, Executor*);
-  static inline void doBrTable(shared_wasm_t&, Executor*);
-  static inline void doReturn(shared_wasm_t&, Executor*);
-  static inline void doCall(shared_wasm_t&, Executor*);
-  static inline void doLocalGet(shared_wasm_t&, Executor*);
-  static inline void doI32Const(shared_wasm_t&, Executor*);
-  static inline void doI64Const(shared_wasm_t&, Executor*);
-  static inline void doF32Const(shared_wasm_t&, Executor*);
-  static inline void doF64Const(shared_wasm_t&, Executor*);
-  static inline void doI32LoadMem(shared_wasm_t&, Executor*);
-  static inline void doI32StoreMem(shared_wasm_t&, Executor*);
-  static inline void doI32GeS(shared_wasm_t&, Executor*);
-  static inline void doI64GeS(shared_wasm_t&, Executor*);
-  static inline void doI32Add(shared_wasm_t&, Executor*);
-  // main handler;
-  static void handle(shared_wasm_t, WasmOpcode, Executor*);
+  static void doUnreachable();
+  static void doBlock(shared_wasm_t&, Executor*);
+  static void doLoop(shared_wasm_t&, Executor*);
+  static void doIf(shared_wasm_t&, Executor*);
+  static void doElse(shared_wasm_t&, Executor*);
+  static void doEnd(shared_wasm_t&, Executor*);
+  static void doBr(shared_wasm_t&, Executor*);
+  static void doBrIf(shared_wasm_t&, Executor*);
+  static void doBrTable(shared_wasm_t&, Executor*);
+  static void doReturn(shared_wasm_t&, Executor*);
+  static void doCall(shared_wasm_t&, Executor*);
+  static void doLocalGet(shared_wasm_t&, Executor*);
+  static void doI32Const(shared_wasm_t&, Executor*);
+  static void doI64Const(shared_wasm_t&, Executor*);
+  static void doF32Const(shared_wasm_t&, Executor*);
+  static void doF64Const(shared_wasm_t&, Executor*);
+  static void doI32LoadMem(shared_wasm_t&, Executor*);
+  static void doI32StoreMem(shared_wasm_t&, Executor*);
+  static void doI32GeS(shared_wasm_t&, Executor*);
+  static void doI64GeS(shared_wasm_t&, Executor*);
+  static void doI32Add(shared_wasm_t&, Executor*);
 };
 
 #endif  // OPCODE_H_
