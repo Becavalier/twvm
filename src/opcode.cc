@@ -282,7 +282,23 @@ void OpCode::doLocalGet(shared_wasm_t &wasmIns, Executor *executor) {
     // keep the "ValueFrames" in locals;
     wasmIns->stack->valueStack->emplace(forward<ValueFrame*>(topActivation->locals[localIndex]));
   }
-  INSPECT_STACK("get_local", wasmIns, executor);
+  INSPECT_STACK("local.get", wasmIns, executor);
+}
+
+void OpCode::doLocalSet(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("local.set", wasmIns, executor);
+}
+
+void OpCode::doLocalTee(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("local.tee", wasmIns, executor);
+}
+
+void OpCode::doGlobalGet(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("global.set", wasmIns, executor);
+}
+
+void OpCode::doGlobalSet(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("global.set", wasmIns, executor);
 }
 
 void OpCode::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
@@ -361,6 +377,22 @@ void OpCode::doI32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("i32.load", wasmIns, executor);
 }
 
+void OpCode::doI32LoadMem8S(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.load8_s", wasmIns, executor);
+}
+
+void OpCode::doI32LoadMem8U(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.load8_u", wasmIns, executor);
+}
+
+void OpCode::doI32LoadMem16S(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.load16_s", wasmIns, executor);
+}
+
+void OpCode::doI32LoadMem16U(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.load16_u", wasmIns, executor);
+}
+
 // operands: [storeVal, baseAddr]; immes: [flags, offset];
 void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
   // pop an i32 value from the stack (value to be stored);
@@ -389,6 +421,74 @@ void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
     }
   }
   INSPECT_STACK("i32.store", wasmIns, executor);
+}
+
+void OpCode::doI32StoreMem8(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.store8", wasmIns, executor);
+}
+
+void OpCode::doI32StoreMem16(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.store16", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem8S(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load8_s", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem8U(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load8_u", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem16S(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load16_s", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem16U(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load16_u", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem32S(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load32_s", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem32U(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load32_u", wasmIns, executor);
+}
+
+void OpCode::doI64StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.store", wasmIns, executor);
+}
+
+void OpCode::doI64StoreMem8(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.store8", wasmIns, executor);
+}
+
+void OpCode::doI64StoreMem16(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.store16", wasmIns, executor);
+}
+
+void OpCode::doI64StoreMem32(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.store32", wasmIns, executor);
+}
+
+void OpCode::doF32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("f32.store", wasmIns, executor);
+}
+
+void OpCode::doF32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("f32.load", wasmIns, executor);
+}
+
+void OpCode::doF64StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("f64.store", wasmIns, executor);
+}
+
+void OpCode::doF64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("f64.load", wasmIns, executor);
 }
 
 // numerical comparison;;
@@ -430,33 +530,3 @@ void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
   }
   INSPECT_STACK("i32.add", wasmIns, executor);
 }
-
-// "switch-case" overhead: (Branch-Table -> Binary-Decision-Tree -> if-else);
-/*
-void OpCode::handle(shared_wasm_t wasmIns, WasmOpcode opcode, Executor *executor) {
-  switch (opcode) {
-    case WasmOpcode::kOpcodeUnreachable: { doUnreachable(); break; }
-    case WasmOpcode::kOpcodeBlock: { doBlock(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeLoop: { doLoop(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeIf: { doIf(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeElse: { doElse(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeEnd: { doEnd(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeBr: { doBr(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeBrIf: { doBrIf(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeBrTable: { doBrTable(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeReturn: { doReturn(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeCall: { doCall(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeLocalGet: { doLocalGet(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI32Const: { doI32Const(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI64Const: { doI64Const(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeF32Const: { doF32Const(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeF64Const: { doF64Const(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI32LoadMem: { doI32LoadMem(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI32StoreMem: { doI32StoreMem(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI32GeS: { doI32GeS(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI64GeS: { doI64GeS(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI32Add: { doI32Add(wasmIns, executor); break; }
-    default: break;
-  }
-}
-*/

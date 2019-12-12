@@ -199,6 +199,8 @@
 
 #include <memory>
 #include <vector>
+#include "src/utils.h"
+#include "src/decoder.h"
 #include "src/instances.h"
 #include "src/executor.h"
 
@@ -209,35 +211,132 @@ class Executor;
 using std::shared_ptr;
 using std::vector;
 using shared_wasm_t = shared_ptr<WasmInstance>;
-typedef void (handlerSig)(shared_wasm_t&, Executor*);
+using handlerProto = void (shared_wasm_t&, Executor*);
 
 enum class WasmOpcode {
   ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
 };
 
+// opcode classifications;
+#define ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(V) \
+  V(BrIf) \
+  V(If) \
+  V(Call) \
+  V(LocalGet) \
+  V(LocalSet) \
+  V(LocalTee) \
+  V(GlobalGet) \
+  V(GlobalSet)
+
+#define ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(V) \
+  V(F32LoadMem) \
+  V(F64LoadMem) \
+  V(I32LoadMem) \
+  V(I64LoadMem) \
+  V(I32LoadMem8S) \
+  V(I32LoadMem8U) \
+  V(I64LoadMem8S) \
+  V(I64LoadMem8U) \
+  V(I32LoadMem16S) \
+  V(I32LoadMem16U) \
+  V(I64LoadMem16S) \
+  V(I64LoadMem16U) \
+  V(I64LoadMem32S) \
+  V(I64LoadMem32U) \
+  V(I32StoreMem) \
+  V(I64StoreMem) \
+  V(F32StoreMem) \
+  V(F64StoreMem) \
+  V(I32StoreMem8) \
+  V(I64StoreMem8) \
+  V(I32StoreMem16) \
+  V(I64StoreMem16) \
+  V(I64StoreMem32)
+
+#define ITERATE_OPCODE_NAME_WITH_NON_VAR_IMME(V) \
+  V(Block) \
+  V(Loop) \
+  V(Else) \
+  V(End) \
+  V(I32GeS) \
+  V(I64GeS) \
+  V(I32Add)
+
 class OpCode {
  public:
+  static uint32_t calcOpCodeEntityLen(const uchar_t* buf, WasmOpcode opcode) {
+    #define OPCODE_CASE(name) \
+      case WasmOpcode::kOpcode##name:
+    switch (opcode) {
+      case WasmOpcode::kOpcodeI32Const: { return i32Size; }
+      case WasmOpcode::kOpcodeI64Const: { return i64Size; }
+      case WasmOpcode::kOpcodeF32Const: { return f32Size; }
+      case WasmOpcode::kOpcodeF64Const: { return f64Size; }
+      ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(OPCODE_CASE) {
+        return Decoder::calcPassBytes(buf);
+      }
+      // "memory_immediate";
+      ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(OPCODE_CASE) {
+        return Decoder::calcPassBytes(buf, 2);
+      }
+      case WasmOpcode::kOpcodeBrTable: {
+        // 
+        return 0;
+        break;
+      }
+      default: {
+        (Printer::instance() << "unsupported opcode found.\n").error();
+      }
+    }
+    return 0;
+  }
+
   static void doUnreachable();
-  static void doBlock(shared_wasm_t&, Executor*);
-  static void doLoop(shared_wasm_t&, Executor*);
-  static void doIf(shared_wasm_t&, Executor*);
-  static void doElse(shared_wasm_t&, Executor*);
-  static void doEnd(shared_wasm_t&, Executor*);
-  static void doBr(shared_wasm_t&, Executor*);
-  static void doBrIf(shared_wasm_t&, Executor*);
-  static void doBrTable(shared_wasm_t&, Executor*);
-  static void doReturn(shared_wasm_t&, Executor*);
-  static void doCall(shared_wasm_t&, Executor*);
-  static void doLocalGet(shared_wasm_t&, Executor*);
-  static void doI32Const(shared_wasm_t&, Executor*);
-  static void doI64Const(shared_wasm_t&, Executor*);
-  static void doF32Const(shared_wasm_t&, Executor*);
-  static void doF64Const(shared_wasm_t&, Executor*);
-  static void doI32LoadMem(shared_wasm_t&, Executor*);
-  static void doI32StoreMem(shared_wasm_t&, Executor*);
-  static void doI32GeS(shared_wasm_t&, Executor*);
-  static void doI64GeS(shared_wasm_t&, Executor*);
-  static void doI32Add(shared_wasm_t&, Executor*);
+  static handlerProto doBlock;
+  static handlerProto doLoop;
+  static handlerProto doIf;
+  static handlerProto doElse;
+  static handlerProto doEnd;
+  static handlerProto doBr;
+  static handlerProto doBrIf;
+  static handlerProto doBrTable;
+  static handlerProto doReturn;
+  static handlerProto doCall;
+  static handlerProto doLocalGet;
+  static handlerProto doLocalSet;
+  static handlerProto doLocalTee;
+  static handlerProto doGlobalGet;
+  static handlerProto doGlobalSet;
+  static handlerProto doI32Const;
+  static handlerProto doI64Const;
+  static handlerProto doF32Const;
+  static handlerProto doF64Const;
+  static handlerProto doI32LoadMem;
+  static handlerProto doI32LoadMem8S;
+  static handlerProto doI32LoadMem8U;
+  static handlerProto doI32LoadMem16S;
+  static handlerProto doI32LoadMem16U;
+  static handlerProto doI32StoreMem;
+  static handlerProto doI32StoreMem8;
+  static handlerProto doI32StoreMem16;
+  static handlerProto doI64LoadMem;
+  static handlerProto doI64LoadMem8S;
+  static handlerProto doI64LoadMem8U;
+  static handlerProto doI64LoadMem16S;
+  static handlerProto doI64LoadMem16U;
+  static handlerProto doI64LoadMem32S;
+  static handlerProto doI64LoadMem32U;
+  static handlerProto doI64StoreMem;
+  static handlerProto doI64StoreMem8;
+  static handlerProto doI64StoreMem16;
+  static handlerProto doI64StoreMem32;
+  static handlerProto doF32StoreMem;
+  static handlerProto doF64StoreMem;
+  static handlerProto doF32LoadMem;
+  static handlerProto doF64LoadMem;
+  static handlerProto doI32GeS;
+  static handlerProto doI64GeS;
+  static handlerProto doI32Add;
 };
 
 #endif  // OPCODE_H_

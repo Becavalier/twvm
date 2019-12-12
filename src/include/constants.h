@@ -10,4 +10,10 @@
 #define BYTE_LENGTH_8 8
 #define SCREEN_WIDTH 80
 
+constexpr auto ptrSize = sizeof(uintptr_t);
+constexpr auto i32Size = sizeof(int32_t);
+constexpr auto i64Size = sizeof(int64_t);
+constexpr auto f32Size = sizeof(float);
+constexpr auto f64Size = sizeof(double);
+
 #endif  // INCLUDE_CONSTANTS_H_
