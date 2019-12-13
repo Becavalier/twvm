@@ -6,10 +6,11 @@
 #include <string>
 #include <vector>
 #include "src/types.h"
-#include "src/include/macros.h"
 #include "src/store.h"
 #include "src/stack.h"
+#include "src/include/macros.h"
 #include "src/include/constants.h"
+#include "src/include/errors.h"
 #include "src/utils.h"
 
 using std::string;
@@ -29,10 +30,10 @@ class WasmMemoryInstance {
       if ((data = static_cast<uint8_t*>(malloc(initMemSize * WASM_PAGE_SIZE)))) {
         currentMemSize = initMemSize;
       } else {
-        (Printer::instance() << "memory allocating error.\n").error();
+        Printer::instance().error(Errors::LOADER_MEM_ALLOC_ERR);
       }
     } else {
-      (Printer::instance() << "invalid memory allocation size.\n").error();
+      Printer::instance().error(Errors::LOADER_MEM_ALLOC_SIZE_ERR);
     }
   }
   ~WasmMemoryInstance() {
@@ -46,7 +47,7 @@ class WasmMemoryInstance {
       currentUsedMemSize -= sizeof(T);
       return *reinterpret_cast<T*>(data + offset);
     } else {
-      (Printer::instance() << "memory access out of bound.\n").error();
+      Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
       // unreachable;
       return false;
     }
@@ -60,7 +61,7 @@ class WasmMemoryInstance {
       *(reinterpret_cast<T*>(data + offset)) = val;
       currentUsedMemSize += sizeof(T);
     } else {
-      (Printer::instance() << "memory access out of bound.\n").error();
+      Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
     }
   }
 

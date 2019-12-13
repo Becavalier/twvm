@@ -21,6 +21,7 @@
 #include <vector>
 #include <memory>
 #include <fstream>
+#include "src/include/errors.h"
 #include "src/types.h"
 #include "src/module.h"
 #include "src/decoder.h"
@@ -128,21 +129,20 @@ class Loader {
         const auto globalIndex = WRAP_BUF_VARUINT(uint32_t);
         const auto moduleGlobal = module->getGlobal(globalIndex);
         if (moduleGlobal->mutability || !moduleGlobal->imported) {
-          (Printer::instance()
-            << "only immutable imported globals can be used in initializer expressions.\n").error();
+          Printer::instance().error(Errors::LOADER_INVALID_GLOBAL_IMPORT_EXPR);
         }
         expr->kind = InitExprKind::kGlobalIndex;
         expr->val.vGlobalIndex = globalIndex;
         break;
       }
       default: {
-        (Printer::instance() << "not supported opcode found in global section.\n").error();
+        Printer::instance().error(Errors::LOADER_INVALID_OPCODE);
         break;
       }
     }
     // "0x0b" ending byte;
     if (static_cast<WasmOpcode>(WRAP_BUF_UINT8()) != WasmOpcode::kOpcodeEnd) {
-      (Printer::instance() << "illegal ending byte.\n").error();
+      Printer::instance().error(Errors::LOADER_ILLEGAL_END);
     }
   }
 

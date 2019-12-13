@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include "src/cmdline.h"
 #include "src/utils.h"
+#include "src/include/errors.h"
 #include "src/include/constants.h"
 
 using std::ostream;
@@ -100,15 +101,13 @@ void Options::parse(int argc, const char* argv[]) {
     if (dashes(currentOption) == 0) {
       switch (positional) {
         case Arguments::Zero: {
-          (Printer::instance() << "Unexpected positional argument \'" << currentOption << "\'.\n").error(false);
+          (Printer::instance() << currentOption << ": ").error(Errors::CMD_UNEXPECTED_POS_ARG);
           exit(EXIT_FAILURE);
         }
         case Arguments::One:
         case Arguments::Optional: {
           if (positionalsSeen) {
-            (Printer::instance() 
-              << "Unexpected second positional argument \'"
-              << currentOption << "\' for " << positionalName << '\n').error(false);
+            (Printer::instance() << currentOption << ": ").error(Errors::CMD_UNEXPECTED_SECOND_POS_ARG);
             exit(EXIT_FAILURE);
           }
         }
@@ -133,32 +132,27 @@ void Options::parse(int argc, const char* argv[]) {
         option = &o;
       }
     if (!option) {
-      (Printer::instance() 
-              << "Unknown option \'" << currentOption << "\'\n").error(false);
+      (Printer::instance() << currentOption << ": ").error(Errors::CMD_UNKNOWN_OPT);
       exit(EXIT_FAILURE);
     }
     switch (option->arguments) {
       case Arguments::Zero: {
         if (argument.size()) {
-          (Printer::instance() 
-            << "Unexpected argument \'" << argument
-            << "\' for option \'" << currentOption << "\'.\n").error(false);
+          (Printer::instance() << argument << ": ").error(Errors::CMD_UNKNOWN_ARG);
           exit(EXIT_FAILURE);
         }
         break;
       }
       case Arguments::One: {
         if (option->seen) {
-          (Printer::instance() 
-            << "Unexpected second argument \'" << argument
-            << "\' for \'" << currentOption << "\'.\n").error(false);
+          (Printer::instance() << argument << ": ").error(Errors::CMD_INVALID_SECOND_ARG);
           exit(EXIT_FAILURE);
         }
       }
       case Arguments::N: {
         if (!argument.size()) {
           if (i + 1 == e) {
-            (Printer::instance() << "Couldn\'t find expected argument for \'" << currentOption << "\'.\n").error(false);
+            Printer::instance().error(Errors::CMD_UNEXPECTED_ARG);
             exit(EXIT_FAILURE);
           }
           argument = argv[++i];

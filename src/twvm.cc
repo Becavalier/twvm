@@ -5,6 +5,7 @@
 #include <chrono>
 #include <memory>
 #include <thread>
+#include "src/include/errors.h"
 #include "src/include/macros.h"
 #include "src/utils.h"
 #include "src/include/constants.h"
@@ -47,52 +48,44 @@ int main(int argc, const char **argv) {
     });
   options.parse(argc, argv);
 
-  auto &printer = Printer::instance();
-
   // start executing;
-  try {
-    if (CommandLine::executeModulePath.length() == 0) {
-      (printer << "no input file.\n").error();
-      exit(1);
-    }
-
-    auto start = high_resolution_clock::now();
-
-    // static loading;
-    const auto wasmModule = Loader::init(CommandLine::executeModulePath);
-    // debug;
-    if (wasmModule) {
-      (printer << "static parsing time: " << calcTimeInterval(start) << "ms.\n").debug();
-    } else {
-      exit(1);
-    }
-
-    // instantiating;
-    const auto wasmInstance = Instantiator::instantiate(wasmModule);
-    // debug;
-    if (wasmInstance) {
-      (printer << "module instantiating completed.\n").debug();
-      (printer << "instantiating time: " << calcTimeInterval(start) << "ms. \n").debug();
-    } else {
-      exit(1);
-    }
-
-    // inspect;
-    if (CommandLine::isDebugMode) {
-      Inspector::inspect(wasmInstance);
-    }
-
-    // execution
-    thread execThread([&wasmInstance]() -> void {
-      const auto executor = make_unique<Executor>();
-      executor->execute(wasmInstance);
-    });
-    if (execThread.joinable()) { execThread.join(); }
-    (printer << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();
-  } catch(const std::exception& e) {
-    (printer << "error occured while executing Wasm module.\n").error();
-    exit(1);
+  if (CommandLine::executeModulePath.length() == 0) {
+    Printer::instance().error(Errors::CMD_NO_FILE);
   }
 
-  return 0;
+  auto start = high_resolution_clock::now();
+
+  // static loading;
+  const auto wasmModule = Loader::init(CommandLine::executeModulePath);
+  // debug;
+  if (wasmModule) {
+    (Printer::instance() << "static parsing time: " << calcTimeInterval(start) << "ms.\n").debug();
+  } else {
+    exit(EXIT_FAILURE);
+  }
+
+  // instantiating;
+  const auto wasmInstance = Instantiator::instantiate(wasmModule);
+  // debug;
+  if (wasmInstance) {
+    (Printer::instance() << "module instantiating completed.\n").debug();
+    (Printer::instance() << "instantiating time: " << calcTimeInterval(start) << "ms. \n").debug();
+  } else {
+    exit(EXIT_FAILURE);
+  }
+
+  // inspect;
+  if (CommandLine::isDebugMode) {
+    Inspector::inspect(wasmInstance);
+  }
+
+  // execution
+  thread execThread([&wasmInstance]() -> void {
+    const auto executor = make_unique<Executor>();
+    executor->execute(wasmInstance);
+  });
+  if (execThread.joinable()) { execThread.join(); }
+  (Printer::instance() << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();
+
+  return EXIT_SUCCESS;
 }

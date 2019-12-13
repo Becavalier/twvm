@@ -11,6 +11,7 @@
 #include <sstream>
 #include <stdexcept>
 #include "src/include/constants.h"
+#include "src/include/errors.h"
 #include "src/cmdline.h"
 
 #define OUTPUT_PREFIX "twvm: "
@@ -37,6 +38,7 @@ using std::istringstream;
 using std::memcpy;
 using std::hex;
 using std::showbase;
+using std::to_string;
 
 // singleton instance;
 class Printer {
@@ -77,11 +79,12 @@ class Printer {
     INTERNAL_WARNING_PREFIX_OUTPUT() << ss.str();
     ss.str(string());
   }
-  inline void error(bool throwException = true) {
+  inline void error(Errors code, bool throwException = true) {
+    ss << errorMapper[code] << '\n';
     INTERNAL_ERROR_PREFIX_OUTPUT() << ss.str();
     ss.str(string());
     if (throwException) {
-      throw runtime_error("internal error occured.");
+      throw runtime_error('(' + to_string(static_cast<uint8_t>(code)) + ')');
     }
   }
   inline void feedLine(const string &line) {

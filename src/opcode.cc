@@ -5,6 +5,7 @@
 #include <utility>
 #include "src/types.h"
 #include "src/opcode.h"
+#include "src/include/errors.h"
 #include "src/include/macros.h"
 #include "src/decoder.h"
 #include "src/utils.h"
@@ -72,7 +73,7 @@ using std::move;
 
 void OpCode::doUnreachable() {
   // trap;
-  (Printer::instance() << "unreachable code.\n").error();
+  Printer::instance().error(Errors::RT_UNREACHABLE_CODE);
 }
 
 void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
@@ -146,7 +147,7 @@ void OpCode::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
       for (size_t i = 0; i < returnTypes.size(); i++) {
         const auto topValue = wasmIns->stack->valueStack->top(i);
         if (topValue->getValueType() != returnTypes.at(i)) {
-          (Printer::instance() << "return arity mismatch of the function.\n").error();
+          Printer::instance().error(Errors::RT_ARITY_MISMATCH);
         }
       }
       // top-level function?
@@ -164,7 +165,7 @@ void OpCode::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
     // control structure end;
     wasmIns->stack->labelStack->pop();
   } else {
-    (Printer::instance() << "invalide \"end(0xb)\" condition.\n").error();
+    Printer::instance().error(Errors::RT_INVALID_END);
   }
   INSPECT_STACK("end", wasmIns, executor);
 }
@@ -197,7 +198,7 @@ void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor) {
       }
     }
   } else {
-    (Printer::instance() << "invalid branching depth.\n").error();
+    Printer::instance().error(Errors::RT_INVALID_BRANCH_DEPTH);
   }
   INSPECT_STACK("br", wasmIns, executor);
 }
@@ -245,7 +246,7 @@ void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
     const auto &wasmFunc = wasmIns->module->funcs.at(funcIndex);
     const auto &paramCount = wasmFunc->staticProto->sig->paramsCount;
     if (stack->valueStack->size() < paramCount) {
-      (Printer::instance() << "operands not enough to be consumed.\n").error();
+      Printer::instance().error(Errors::RT_OPERANDS_NOT_ENOUGH);
     }
     stack->activationStack->emplace({
       wasmFunc,
@@ -266,7 +267,7 @@ void OpCode::doCall(shared_wasm_t &wasmIns, Executor *executor) {
       }
     }
   } else {
-    (Printer::instance() << "invalid function index to be called.\n").error();
+    Printer::instance().error(Errors::RT_INVALID_FUNC_INDEX);
   }
   INSPECT_STACK("call", wasmIns, executor);
 }
@@ -368,11 +369,11 @@ void OpCode::doI32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
       // update directly;
       wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<int32_t>(ea));
     } else {
-      (Printer::instance() << "memory access out of bound.\n").error();
+      Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
     }
     // wasmIns->stack->valueStack->pop();
   } else {
-    (Printer::instance() << "invalid stack on-top value type.\n").error();
+    Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
   }
   INSPECT_STACK("i32.load", wasmIns, executor);
 }
@@ -415,7 +416,7 @@ void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
       if (ea > 0 && ea + 4 <= mem->availableSize()) {
         mem->store<int32_t>(ea, storeVal);
       } else {
-        (Printer::instance() << "memory access out of bound.\n").error();
+        Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
       }
       wasmIns->stack->valueStack->popN(2);
     }
@@ -495,7 +496,7 @@ void OpCode::doF64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
 void OpCode::doI32GeS(shared_wasm_t &wasmIns, Executor *executor) {
   const auto valueStack = wasmIns->stack->valueStack;
   if (valueStack->size() < 2) {
-    (Printer::instance() << "operands not enough to be consumed.\n").error();
+    Printer::instance().error(Errors::RT_OPERANDS_NOT_ENOUGH);
   }
   const auto operands = valueStack->topN(2);
   const auto &y = *operands.at(0);
@@ -505,7 +506,7 @@ void OpCode::doI32GeS(shared_wasm_t &wasmIns, Executor *executor) {
     valueStack->pop();
     valueStack->top() = executor->checkUpConstant(result);
   } else {
-    (Printer::instance() << "wrong operands type.\n").error();
+    Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
   }
   INSPECT_STACK("i32.ge_s", wasmIns, executor);
 }
@@ -516,7 +517,7 @@ void OpCode::doI64GeS(shared_wasm_t &wasmIns, Executor *executor) {
 void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
   const auto valueStack = wasmIns->stack->valueStack;
   if (valueStack->size() < 2) {
-    (Printer::instance() << "operands not enough to be consumed.\n").error();
+    Printer::instance().error(Errors::RT_OPERANDS_NOT_ENOUGH);
   }
   const auto operands = valueStack->topN(2);
   const auto &y = *operands.at(0);
@@ -526,7 +527,7 @@ void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
     valueStack->pop();
     valueStack->top() = executor->checkUpConstant(result);
   } else {
-    (Printer::instance() << "wrong operands type.\n").error();
+    Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
   }
   INSPECT_STACK("i32.add", wasmIns, executor);
 }

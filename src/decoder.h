@@ -9,6 +9,7 @@
 #include <functional>
 #include <vector>
 #include <fstream>
+#include "src/include/constants.h"
 #include "src/utils.h"
 #include "src/types.h"
 #include "src/module.h"
@@ -19,8 +20,6 @@ using std::memcpy;
 using std::malloc;
 using std::vector;
 using std::ifstream;
-
-constexpr size_t charSize = sizeof(char);
 
 class Decoder {
  private:

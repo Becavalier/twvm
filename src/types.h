@@ -88,7 +88,7 @@ union RTValue {
   double f64;
 };
 
-enum class OpcodeMeta {
+enum class OpcodeMeta : uint8_t {
   EndOffset,
   BranchOfset,
 };
@@ -126,7 +126,7 @@ struct WasmInitExpr {
         case InitExprKind::kI32Const: { rtVal.i32 = val.vI32Const; break; }
         case InitExprKind::kI64Const: { rtVal.i64 = val.vI64Const; break; }
         default: {
-          (Printer::instance() << "initial expression has not been initialized.\n").error();
+          Printer::instance().error(Errors::MISC_EXPR_NOT_INIT);
         }
       }
     } else  {

@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <utility>
 #include "src/include/constants.h"
+#include "src/include/errors.h"
 #include "src/types.h"
 #include "src/utils.h"
 
@@ -61,7 +62,7 @@ class ValueFrame {
     } else if (is_same<T, double>::value) {
       type = ValueFrameTypes::kF64Value;
     } else {
-      (Printer::instance() << "invalid type of \"ValueFrame\".\n").error();
+      Printer::instance().error(Errors::MISC_INVALID_VALUEFRAME);
     }
     isValueZero = (v == static_cast<T>(0));
     Utils::writeUnalignedValue<T>(reinterpret_cast<uintptr_t>(bitPattern), v);

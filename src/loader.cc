@@ -5,6 +5,7 @@
 #include <iostream>
 #include "src/loader.h"
 #include "src/include/constants.h"
+#include "src/include/errors.h"
 #include "src/utils.h"
 #include "src/opcode.h"
 
@@ -26,16 +27,16 @@ shared_module_t Loader::init(const std::string &fileName) {
   if (in.is_open() && in.good()) {
     reader = &in;
     // magic# and verison validations;
-    retrieveBytes(BYTE_LENGTH_8);
+    retrieveBytes(charSize * 8);
     if (WRAP_BUF_UINT32() != kWasmMagicWord) {
-      (Printer::instance() << "invalid wasm magic word, expect 0x6d736100.\n").error();
+      Printer::instance().error(Errors::LOADER_INVALID_WASM_MAGIC);
     }
     // offset;
     if (WRAP_BUF_UINT32() != kWasmVersion) {
-      (Printer::instance() << "invalid wasm version, expect 0x01.\n").error();
+      Printer::instance().error(Errors::LOADER_INVALID_WASM_VERSION);
     }
   } else {
-    (Printer::instance() << "can not reading file.\n").error();
+    Printer::instance().error(Errors::LOADER_INVALID_FILE);
   }
 
   // parsing start;
@@ -66,7 +67,7 @@ void Loader::parseSection(const shared_module_t &module) {
       case SectionTypesCode::kElementSection: { parseElementSection(module); break; }
       case SectionTypesCode::kDataSection: { parseDataSection(module); break; }
       default: {
-        (Printer::instance() << "unidentified section found.\n").error();
+        Printer::instance().error(Errors::LOADER_UNKNOWN_SECTION);
         break;
       }
     }
@@ -103,7 +104,7 @@ void Loader::parseTypeSection(const shared_module_t &module) {
       sig->paramsCount = paramsCount;
       sig->returnCount = returnCount;
     } else {
-      (Printer::instance() << "type section code mismatch.\n").error();
+      Printer::instance().error(Errors::LOADER_TYPE_MISMATCH);
     }
   }
 }
@@ -133,7 +134,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
         // MVP: only support "anyfunc" (by default);
         const auto tableType = static_cast<ValueTypesCode>(WRAP_BUF_UINT8());
         if (tableType != ValueTypesCode::kFuncRef) {
-          (Printer::instance() << "only support \"anyfunc\" type in table.\n").error();
+          Printer::instance().error(Errors::LOADER_INVALID_TABLE_ELE);
         }
         index = module->getTable()->size();
         module->importedTableCount++;
@@ -155,7 +156,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
         break;
       }
       default: {
-        (Printer::instance() << "unkonwn import type.\n").error();
+        Printer::instance().error(Errors::LOADER_UNKNOWN_IMPORT);
       }
     }
     module->getImport()->push_back({moduleName, fieldName, importType, index});
@@ -187,7 +188,7 @@ void Loader::parseTableSection(const shared_module_t &module) {
     // MVP: only support "anyfunc" (by default);
     const auto tableType = static_cast<ValueTypesCode>(WRAP_BUF_UINT8());
     if (tableType != ValueTypesCode::kFuncRef) {
-      (Printer::instance() << "only support \"anyfunc\" type in table.\n").error();
+      Printer::instance().error(Errors::LOADER_INVALID_TABLE_ELE);
     }
 
     // insert new element by placement-new && move;
@@ -204,7 +205,7 @@ void Loader::parseMemorySection(const shared_module_t &module) {
   const auto memeoryCount = WRAP_BUF_VARUINT(uint32_t);
   // determine whether the memory has been initialized via "import";
   if (memeoryCount > 1 || module->getMemory() != nullptr) {
-    (Printer::instance() << "only support one memory in MVP.\n").error();
+    Printer::instance().error(Errors::LOADER_INVALID_MEM_NUM);
   } else {
     consumeMemoryParams(module);
   }
@@ -217,8 +218,7 @@ void Loader::parseStartSection(const shared_module_t &module) {
   // start function: no arguments or return value;
   const auto sig = module->getFunction(startFuncIndex)->sig;
   if (sig->paramsCount != 0 || sig->returnCount != 0) {
-    (Printer::instance()
-      << "the start function must not take any arguments or return value.\n").error();
+    Printer::instance().error(Errors::LOADER_INVALID_START_FUNC);
   } else {
     module->startFuncIndex = startFuncIndex;
     module->hasValidStartFunc = true;
@@ -272,7 +272,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         index = WRAP_BUF_VARUINT(uint32_t);
         const auto mem = module->getMemory();
         if (index != 0 || mem == nullptr) {
-          (Printer::instance() << "invalid memory index.\n").error();
+          Printer::instance().error(Errors::LOADER_INVALID_MEM_INDEX);
         } else {
           mem->exported = true;
         }
@@ -287,7 +287,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
         break;
       }
       default: {
-        (Printer::instance() << "unkonwn export type.\n").error();
+        Printer::instance().error(Errors::LOADER_UNKNOWN_EXPORT);
       }
     }
     module->getExport()->push_back({name, exportType, index});
@@ -370,7 +370,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
         ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(DEAL_TWO_VAR_IMME_OPCODE)
         ITERATE_OPCODE_NAME_WITH_NON_VAR_IMME(DEAL_NON_VAR_IMME_OPCODE)
         default: {
-          (Printer::instance() << "unsupported opcode found.\n").error();
+          Printer::instance().error(Errors::LOADER_INVALID_OPCODE);
         };
       }
     }
@@ -383,12 +383,12 @@ void Loader::parseElementSection(const shared_module_t &module) {
   retrieveBytes(WRAP_READER_VARUINT(uint32_t));
   const auto elemCount = WRAP_BUF_VARUINT(uint32_t);
   if (elemCount > 0 && module->getTable()->size() == 0) {
-    (Printer::instance() << "no table found to apply the element section.\n").error();
+    Printer::instance().error(Errors::LOADER_NO_TABLE);
   }
   for (uint32_t i = 0; i < elemCount; i++) {
     const auto tableIndex = WRAP_BUF_VARUINT(uint32_t);
     if (tableIndex != 0) {
-      (Printer::instance() << "can only manipulate the default table in MVP.\n").error();
+      Printer::instance().error(Errors::LOADER_NOT_DEFAULT_TABLE);
     }
     module->getElement()->emplace_back();
     auto *elem = &module->getElement()->back();
