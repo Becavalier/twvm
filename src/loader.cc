@@ -356,7 +356,8 @@ void Loader::parseCodeSection(const shared_module_t &module) {
       #define DEAL_NON_VAR_IMME_OPCODE(name) \
         case WasmOpcode::kOpcode##name: { \
           Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); break; }
-          
+      // keep the raw opcode for identifying purpose;;
+      codeBucket->push_back(byte);
       switch (opcode) {
         // special cases;
         case WasmOpcode::kOpcodeF32Const: {
@@ -369,7 +370,6 @@ void Loader::parseCodeSection(const shared_module_t &module) {
         ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(DEAL_TWO_VAR_IMME_OPCODE)
         ITERATE_OPCODE_NAME_WITH_NON_VAR_IMME(DEAL_NON_VAR_IMME_OPCODE)
         default: {
-          cout << std::hex << (int)opcode << endl;
           (Printer::instance() << "unsupported opcode found.\n").error();
         };
       }

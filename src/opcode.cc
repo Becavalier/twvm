@@ -11,7 +11,7 @@
 
 using std::forward;
 
-#define ENABLE_DEBUG
+// #define ENABLE_DEBUG
 #define WRAP_FORWARD_INT_FIELD(keyName, type) \
   const auto keyName = Decoder::readVarInt<type>(executor->forward_());
 
@@ -76,7 +76,6 @@ void OpCode::doUnreachable() {
 }
 
 void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
-  cout << "block" << endl;
   const auto labelStack = wasmIns->stack->labelStack;
   // find immediate in cache first;
   const auto immediate = executor->uint8UseImmesCache(
@@ -95,7 +94,7 @@ void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
       size_t level = 0;
       executor->crawler(
         executor->absAddr() + 1,
-        topActivation->pFuncIns->staticProto->codeLen - executor->innerOffset,
+        topActivation->pFuncIns->code->size() - executor->innerOffset,
         [&level, &metaVal](WasmOpcode opcode, size_t offset) -> auto {
           switch (opcode) {
             case WasmOpcode::kOpcodeIf:
@@ -106,7 +105,8 @@ void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
             }
             case WasmOpcode::kOpcodeEnd: {
               if (level == 0) {
-                *metaVal = offset;
+                // move the pointer back to the opcode;
+                *metaVal = offset - 8;
                 return true;
               } else {
                 level--;
@@ -119,7 +119,6 @@ void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
       });
     });
   topLabel->end = make_shared<PosPtr>(0, executor->pc, executor->innerOffset + endOffset - 1);
-
   INSPECT_STACK("block", wasmIns, executor);
 }
 
@@ -303,14 +302,12 @@ void OpCode::doGlobalSet(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void OpCode::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
-  cout << 123123123 << endl;
   // push an i32 value onto the stack;
   wasmIns->stack->valueStack->emplace(
     executor->checkUpConstant(
       executor->int32UseImmesCache(
         [&executor](size_t *step, int32_t *immediate) -> auto {
           *immediate = Decoder::readVarInt<int32_t>(executor->forward_(), step);
-          cout << executor->innerOffset << endl;
           executor->innerOffset += (*step - 1);
         })));
   INSPECT_STACK("i32.const", wasmIns, executor);

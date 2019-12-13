@@ -10,6 +10,7 @@
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
+#include "src/include/constants.h"
 #include "src/cmdline.h"
 
 #define OUTPUT_PREFIX "twvm: "
@@ -116,10 +117,8 @@ class Utils {
   template <typename T>
   static inline void savePtrIntoBytes(vector<uint8_t> *v, T *ptr) {
     const auto ptrVal = reinterpret_cast<uintptr_t>(ptr);
-    // rely on SIMD to accelerate if possible;
-    #pragma omp simd
-    for (auto i = 0; i < 8; i++) {
-      v->push_back(ptrVal >> (8 * i) & 0x000000FF);
+    for (auto i = 0; i < ptrSize; i++) {
+      v->push_back(ptrVal >> (ptrSize * i) & 0x000000FF);
     }
   }
 };
