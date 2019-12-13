@@ -24,9 +24,7 @@ using std::forward;
     const auto &as = wasmIns->stack->activationStack; \
     auto &printer = Printer::instance(); \
     stringstream line; \
-    (printer << opcodeName).debug(); \
-    cout << hex << showbase \
-      << '(' << static_cast<int>(executor->getCurrentOpcode()) << "):" << endl; \
+    (printer << opcodeName << '\n').debug(); \
     line << "VS (values) | "; \
     for (uint32_t i = 0; i < vs->size(); i++) { \
       vs->at(i)->outputValue(line); \
@@ -83,7 +81,7 @@ void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
   const auto immediate = executor->uint8UseImmesCache(
     [&executor](size_t *step, uint8_t *immediate) -> auto {
       *immediate = Decoder::readUint8(executor->forward_());
-      // it has already been forward by one "sizeof(uchar_t)", we need to subtract by one here;
+      // it has already been forward by one "sizeof(uint8_t)", we need to subtract by one here;
       executor->innerOffset += ((*step = 1) - 1);
     });
   const auto returnType = static_cast<ValueTypesCode>(immediate);
@@ -96,7 +94,7 @@ void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
       size_t level = 0;
       executor->crawler(
         executor->absAddr() + 1,
-        topActivation->pFuncIns->staticProto->codeLen - executor->innerOffset,
+        topActivation->pFuncIns->code->size() - executor->innerOffset,
         [&level, &metaVal](WasmOpcode opcode, size_t offset) -> auto {
           switch (opcode) {
             case WasmOpcode::kOpcodeIf:
@@ -107,7 +105,8 @@ void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
             }
             case WasmOpcode::kOpcodeEnd: {
               if (level == 0) {
-                *metaVal = offset;
+                // move the pointer back to the opcode;
+                *metaVal = offset - 8;
                 return true;
               } else {
                 level--;
@@ -120,7 +119,6 @@ void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
       });
     });
   topLabel->end = make_shared<PosPtr>(0, executor->pc, executor->innerOffset + endOffset - 1);
-
   INSPECT_STACK("block", wasmIns, executor);
 }
 
@@ -171,7 +169,7 @@ void OpCode::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("end", wasmIns, executor);
 }
 
-void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor, bool innerCall) {
+void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor) {
   const auto depth = executor->uint32UseImmesCache(
     [&executor](size_t *step, uint32_t *immediate) -> auto {
       *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
@@ -201,7 +199,7 @@ void OpCode::doBr(shared_wasm_t &wasmIns, Executor *executor, bool innerCall) {
   } else {
     (Printer::instance() << "invalid branching depth.\n").error();
   }
-  INSPECT_STACK((innerCall ? "br_if: br" : "br"), wasmIns, executor);
+  INSPECT_STACK("br", wasmIns, executor);
 }
 
 void OpCode::doBrIf(shared_wasm_t &wasmIns, Executor *executor) {
@@ -209,7 +207,7 @@ void OpCode::doBrIf(shared_wasm_t &wasmIns, Executor *executor) {
   const auto isZero = valueStack->top()->isZero();
   valueStack->pop();
   if (!isZero) {
-    doBr(wasmIns, executor, true);
+    doBr(wasmIns, executor);
   } else {
     // remove "depth" field;
     executor->innerOffset += Decoder::calcPassBytes(executor->absAddr() + 1);
@@ -284,7 +282,23 @@ void OpCode::doLocalGet(shared_wasm_t &wasmIns, Executor *executor) {
     // keep the "ValueFrames" in locals;
     wasmIns->stack->valueStack->emplace(forward<ValueFrame*>(topActivation->locals[localIndex]));
   }
-  INSPECT_STACK("get_local", wasmIns, executor);
+  INSPECT_STACK("local.get", wasmIns, executor);
+}
+
+void OpCode::doLocalSet(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("local.set", wasmIns, executor);
+}
+
+void OpCode::doLocalTee(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("local.tee", wasmIns, executor);
+}
+
+void OpCode::doGlobalGet(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("global.set", wasmIns, executor);
+}
+
+void OpCode::doGlobalSet(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("global.set", wasmIns, executor);
 }
 
 void OpCode::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
@@ -318,7 +332,7 @@ void OpCode::doF32Const(shared_wasm_t &wasmIns, Executor *executor) {
       executor->floatUseImmesCache(
         [&executor](size_t *step, float *immediate) -> auto {
           *immediate = Utils::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()));
-          executor->innerOffset += ((*step = sizeof(float) / sizeof(uchar_t)) - 1);
+          executor->innerOffset += ((*step = sizeof(float) / sizeof(uint8_t)) - 1);
         })));
   INSPECT_STACK("f32.const", wasmIns, executor);
 }
@@ -330,7 +344,7 @@ void OpCode::doF64Const(shared_wasm_t &wasmIns, Executor *executor) {
       executor->doubleUseImmesCache(
         [&executor](size_t *step, double *immediate) -> auto {
           *immediate = Utils::readUnalignedValue<double>(reinterpret_cast<uintptr_t>(executor->forward_()));
-          executor->innerOffset += ((*step = sizeof(double) / sizeof(uchar_t)) - 1);
+          executor->innerOffset += ((*step = sizeof(double) / sizeof(uint8_t)) - 1);
         })));
   INSPECT_STACK("f64.const", wasmIns, executor);
 }
@@ -363,6 +377,22 @@ void OpCode::doI32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("i32.load", wasmIns, executor);
 }
 
+void OpCode::doI32LoadMem8S(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.load8_s", wasmIns, executor);
+}
+
+void OpCode::doI32LoadMem8U(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.load8_u", wasmIns, executor);
+}
+
+void OpCode::doI32LoadMem16S(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.load16_s", wasmIns, executor);
+}
+
+void OpCode::doI32LoadMem16U(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.load16_u", wasmIns, executor);
+}
+
 // operands: [storeVal, baseAddr]; immes: [flags, offset];
 void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
   // pop an i32 value from the stack (value to be stored);
@@ -391,6 +421,74 @@ void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
     }
   }
   INSPECT_STACK("i32.store", wasmIns, executor);
+}
+
+void OpCode::doI32StoreMem8(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.store8", wasmIns, executor);
+}
+
+void OpCode::doI32StoreMem16(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i32.store16", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem8S(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load8_s", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem8U(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load8_u", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem16S(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load16_s", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem16U(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load16_u", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem32S(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load32_s", wasmIns, executor);
+}
+
+void OpCode::doI64LoadMem32U(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.load32_u", wasmIns, executor);
+}
+
+void OpCode::doI64StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.store", wasmIns, executor);
+}
+
+void OpCode::doI64StoreMem8(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.store8", wasmIns, executor);
+}
+
+void OpCode::doI64StoreMem16(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.store16", wasmIns, executor);
+}
+
+void OpCode::doI64StoreMem32(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("i64.store32", wasmIns, executor);
+}
+
+void OpCode::doF32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("f32.store", wasmIns, executor);
+}
+
+void OpCode::doF32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("f32.load", wasmIns, executor);
+}
+
+void OpCode::doF64StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("f64.store", wasmIns, executor);
+}
+
+void OpCode::doF64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
+  INSPECT_STACK("f64.load", wasmIns, executor);
 }
 
 // numerical comparison;;
@@ -431,32 +529,4 @@ void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
     (Printer::instance() << "wrong operands type.\n").error();
   }
   INSPECT_STACK("i32.add", wasmIns, executor);
-}
-
-// "switch-case" overhead: (Branch-Table -> Binary-Decision-Tree -> if-else);
-void OpCode::handle(shared_wasm_t wasmIns, WasmOpcode opcode, Executor *executor) {
-  switch (opcode) {
-    case WasmOpcode::kOpcodeUnreachable: { doUnreachable(); break; }
-    case WasmOpcode::kOpcodeBlock: { doBlock(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeLoop: { doLoop(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeIf: { doIf(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeElse: { doElse(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeEnd: { doEnd(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeBr: { doBr(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeBrIf: { doBrIf(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeBrTable: { doBrTable(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeReturn: { doReturn(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeCall: { doCall(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeLocalGet: { doLocalGet(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI32Const: { doI32Const(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI64Const: { doI64Const(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeF32Const: { doF32Const(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeF64Const: { doF64Const(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI32LoadMem: { doI32LoadMem(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI32StoreMem: { doI32StoreMem(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI32GeS: { doI32GeS(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI64GeS: { doI64GeS(wasmIns, executor); break; }
-    case WasmOpcode::kOpcodeI32Add: { doI32Add(wasmIns, executor); break; }
-    default: break;
-  }
 }

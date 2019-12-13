@@ -5,7 +5,7 @@
 
 using std::vector;
 
-uint8_t Decoder::readUint8(const uchar_t* source, size_t *step) {
+uint8_t Decoder::readUint8(const uint8_t* source, size_t *step) {
   if (step) {
     return readLittleEndian<uint8_t>(source,
       [&step](auto a) -> void { *step += 1; });
@@ -14,7 +14,7 @@ uint8_t Decoder::readUint8(const uchar_t* source, size_t *step) {
   }
 }
 
-uint16_t Decoder::readUint16(const uchar_t* source, size_t *step) {
+uint16_t Decoder::readUint16(const uint8_t* source, size_t *step) {
   if (step) {
     return readLittleEndian<uint16_t>(source,
       [&step](auto a) -> void { *step += 2; });
@@ -23,7 +23,7 @@ uint16_t Decoder::readUint16(const uchar_t* source, size_t *step) {
   }
 }
 
-uint32_t Decoder::readUint32(const uchar_t* source, size_t *step) {
+uint32_t Decoder::readUint32(const uint8_t* source, size_t *step) {
   if (step) {
     return readLittleEndian<uint32_t>(source,
       [&step](auto a) -> void { *step += 4; });
@@ -32,7 +32,7 @@ uint32_t Decoder::readUint32(const uchar_t* source, size_t *step) {
   }
 }
 
-uint64_t Decoder::readUint64(const uchar_t* source, size_t *step) {
+uint64_t Decoder::readUint64(const uint8_t* source, size_t *step) {
   if (step) {
     return readLittleEndian<uint64_t>(source,
       [&step](auto a) -> void { *step += 8; });
@@ -41,7 +41,7 @@ uint64_t Decoder::readUint64(const uchar_t* source, size_t *step) {
   }
 }
 
-string Decoder::decodeName(const uchar_t* source, size_t len, size_t *step) {
+string Decoder::decodeName(const uint8_t* source, size_t len, size_t *step) {
   if (step) {
     return string(readLittleEndian<char>(source, len,
       [&step, &len](auto a) -> void { *step += sizeof(char) * len; }), len);

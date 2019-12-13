@@ -36,7 +36,7 @@ using std::ifstream;
 class Loader {
  private:
   static ifstream* reader;
-  static vector<uchar_t> buf;
+  static vector<uint8_t> buf;
   static uint32_t byteCounter;
   static size_t currentReaderOffset;
 
@@ -64,7 +64,7 @@ class Loader {
     currentReaderOffset = 0;
     char d;
     while (reader->read(&d, sizeof(d))) {
-      buf.push_back(static_cast<uchar_t>(d));
+      buf.push_back(static_cast<uint8_t>(d));
       if (++byteCounter == count) {
         byteCounter = 0;
         break;
@@ -148,9 +148,9 @@ class Loader {
 
  public:
   static shared_module_t init(const string&);
-  static shared_module_t init(const uchar_t*, size_t);
+  static shared_module_t init(const uint8_t*, size_t);
 
-  static inline uchar_t* getAbsReaderEndpoint() {
+  static inline uint8_t* getAbsReaderEndpoint() {
     return buf.data() + currentReaderOffset;
   }
 };

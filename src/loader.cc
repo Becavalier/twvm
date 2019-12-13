@@ -6,8 +6,9 @@
 #include "src/loader.h"
 #include "src/include/constants.h"
 #include "src/utils.h"
+#include "src/opcode.h"
 
-vector<uchar_t> Loader::buf;
+vector<uint8_t> Loader::buf;
 ifstream* Loader::reader;
 uint32_t Loader::byteCounter = 0;
 size_t Loader::currentReaderOffset = 0;
@@ -313,8 +314,65 @@ void Loader::parseCodeSection(const shared_module_t &module) {
       }
     }
     function->codeLen = bodySize - currentReaderOffset;
+    uint32_t innerScopeLen = 0;
     for (size_t j = 0; j < function->codeLen; j++) {
-      function->code.push_back(WRAP_BUF_UINT8());
+      const auto byte = WRAP_BUF_UINT8();
+      const auto opcode = static_cast<WasmOpcode>(byte);
+      auto codeBucket = &function->code;
+      if (innerScopeLen != 0) {
+        codeBucket->push_back(byte);
+        innerScopeLen--;
+        continue;
+      }
+      // simple DCT (one-time transforming);
+      #define DEAL_ONE_VAR_IMME_OPCODE(name) \
+        case WasmOpcode::kOpcode##name: { \
+          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); \
+          auto innerOffset = 1; \
+          while(true) { \
+            const auto nextVal = WRAP_BUF_UINT8(); \
+            codeBucket->push_back(nextVal); \
+            if (!(nextVal & 0x80)) { break; } \
+            innerOffset++; \
+          } \
+          j += innerOffset; \
+          break; \
+        }
+      #define DEAL_TWO_VAR_IMME_OPCODE(name) \
+        case WasmOpcode::kOpcode##name: { \
+          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); \
+          auto innerOffset = 1; \
+          for (auto k = 0; k < 2; k++) { \
+            while(true) { \
+              const auto nextVal = WRAP_BUF_UINT8(); \
+              codeBucket->push_back(nextVal); \
+              if (!(nextVal & 0x80)) { break; } \
+              innerOffset++; \
+            } \
+            j += innerOffset; \
+          } \
+          break; \
+        }
+      #define DEAL_NON_VAR_IMME_OPCODE(name) \
+        case WasmOpcode::kOpcode##name: { \
+          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); break; }
+      // keep the raw opcode for identifying purpose;;
+      codeBucket->push_back(byte);
+      switch (opcode) {
+        // special cases;
+        case WasmOpcode::kOpcodeF32Const: {
+          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::doF32Const);
+          innerScopeLen = f32Size; break; }
+        case WasmOpcode::kOpcodeF64Const: {
+          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::doF64Const);
+          innerScopeLen = f64Size; break; }
+        ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(DEAL_ONE_VAR_IMME_OPCODE)
+        ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(DEAL_TWO_VAR_IMME_OPCODE)
+        ITERATE_OPCODE_NAME_WITH_NON_VAR_IMME(DEAL_NON_VAR_IMME_OPCODE)
+        default: {
+          (Printer::instance() << "unsupported opcode found.\n").error();
+        };
+      }
     }
   }
 }

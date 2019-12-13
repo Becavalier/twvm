@@ -58,7 +58,7 @@ class Cache {
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_GET_METHODS)
 
   inline void int64SetMetaCache(uint32_t index, size_t offset, OpcodeMeta key, int64_t val) {
-    metaContainer[hashLoc(index, offset)].insert({key, val});
+    metaContainer[hashLoc(index, offset)][key] = val;
   }
 
   inline auto int64GetMetaCache(uint32_t index, size_t offset, OpcodeMeta key) {

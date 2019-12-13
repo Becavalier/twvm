@@ -26,7 +26,7 @@ class Decoder {
  private:
   template <typename T>
   static T readLittleEndian(
-    const uchar_t* buf,
+    const uint8_t* buf,
     const function<void(T)> &callback = nullptr) {
     auto r = Utils::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(buf));
     // callback function;
@@ -38,7 +38,7 @@ class Decoder {
 
   template <typename T>
   static T* readLittleEndian(
-    const uchar_t* buf,
+    const uint8_t* buf,
     const size_t len,
     const function<void(T*)> &callback = nullptr) {
     const size_t size = sizeof(T) * len;
@@ -55,7 +55,7 @@ class Decoder {
 
   template <typename T>
   static T readVarUint_(
-    vector<uchar_t> t,
+    vector<uint8_t> t,
     size_t *step = nullptr) {
     T r = 0;
     unsigned shift = 0;
@@ -71,11 +71,11 @@ class Decoder {
 
   template <typename T>
   static T readVarInt_(
-    vector<uchar_t> t,
+    vector<uint8_t> t,
     size_t *step = nullptr) {
     T r = 0;
     unsigned shift = 0;
-    uchar_t b;
+    uint8_t b;
     for (auto byte : t) {
       b = byte;
       r |= (static_cast<T>(byte & 0x7f) << shift);
@@ -91,12 +91,12 @@ class Decoder {
     return r;
   }
 
-  static vector<uchar_t> ifsWrapValue(ifstream *reader) {
-    vector<uchar_t> t;
+  static vector<uint8_t> ifsWrapValue(ifstream *reader) {
+    vector<uint8_t> t;
     char d;
     while (true) {
       reader->read(&d, charSize);
-      t.push_back(static_cast<uchar_t>(d));
+      t.push_back(static_cast<uint8_t>(d));
       if (!(d & 0x80)) {
         break;
       }
@@ -104,10 +104,10 @@ class Decoder {
     return t;
   }
 
-  static vector<uchar_t> ptrWrapValue(const uchar_t *p) {
-    vector<uchar_t> t;
+  static vector<uint8_t> ptrWrapValue(const uint8_t *p) {
+    vector<uint8_t> t;
     while (true) {
-      uchar_t d = readLittleEndian<uchar_t>(p++);
+      uint8_t d = readLittleEndian<uint8_t>(p++);
       t.push_back(d);
       if (!(d & 0x80)) {
         break;
@@ -131,32 +131,32 @@ class Decoder {
       reader->read(&d, charSize);
       return static_cast<T>(d);
     } else {
-      vector<uchar_t> t = Decoder::ifsWrapValue(reader);
+      vector<uint8_t> t = Decoder::ifsWrapValue(reader);
       return Decoder::readVarUint_<T>(t);
     }
   }
 
   template <typename T>
   static T readVarUint(
-    const uchar_t *p,
+    const uint8_t *p,
     size_t *step = nullptr) {
     if (sizeof(T) == 1) {
       return readUint8(p, step);
     } else {
-      vector<uchar_t> t = Decoder::ptrWrapValue(p);
+      vector<uint8_t> t = Decoder::ptrWrapValue(p);
       return Decoder::readVarUint_<T>(t, step);
     }
   }
 
   template <typename T>
   static T readVarInt(
-    const uchar_t *p,
+    const uint8_t *p,
     size_t *step = nullptr) {
-    vector<uchar_t> t = Decoder::ptrWrapValue(p);
+    vector<uint8_t> t = Decoder::ptrWrapValue(p);
     return Decoder::readVarInt_<T>(t, step);
   }
 
-  static size_t calcPassBytes(const uchar_t *p, size_t num = 1) {
+  static size_t calcPassBytes(const uint8_t *p, size_t num = 1) {
     size_t total = 0;
     for (size_t i = 0; i < num; i++) {
       total += ptrWrapValue(p).size();
@@ -164,11 +164,11 @@ class Decoder {
     return total;
   }
 
-  static string decodeName(const uchar_t*, size_t, size_t* = nullptr);
-  static uint8_t readUint8(const uchar_t*, size_t* = nullptr);
-  static uint16_t readUint16(const uchar_t*, size_t* = nullptr);
-  static uint32_t readUint32(const uchar_t*, size_t* = nullptr);
-  static uint64_t readUint64(const uchar_t*, size_t* = nullptr);
+  static string decodeName(const uint8_t*, size_t, size_t* = nullptr);
+  static uint8_t readUint8(const uint8_t*, size_t* = nullptr);
+  static uint16_t readUint16(const uint8_t*, size_t* = nullptr);
+  static uint32_t readUint32(const uint8_t*, size_t* = nullptr);
+  static uint64_t readUint64(const uint8_t*, size_t* = nullptr);
 };
 
 #endif  // DECODER_H_
