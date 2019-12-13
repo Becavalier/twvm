@@ -76,12 +76,13 @@ void OpCode::doUnreachable() {
 }
 
 void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
+  cout << "block" << endl;
   const auto labelStack = wasmIns->stack->labelStack;
   // find immediate in cache first;
   const auto immediate = executor->uint8UseImmesCache(
     [&executor](size_t *step, uint8_t *immediate) -> auto {
       *immediate = Decoder::readUint8(executor->forward_());
-      // it has already been forward by one "sizeof(uchar_t)", we need to subtract by one here;
+      // it has already been forward by one "sizeof(uint8_t)", we need to subtract by one here;
       executor->innerOffset += ((*step = 1) - 1);
     });
   const auto returnType = static_cast<ValueTypesCode>(immediate);
@@ -302,12 +303,14 @@ void OpCode::doGlobalSet(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void OpCode::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
+  cout << 123123123 << endl;
   // push an i32 value onto the stack;
   wasmIns->stack->valueStack->emplace(
     executor->checkUpConstant(
       executor->int32UseImmesCache(
         [&executor](size_t *step, int32_t *immediate) -> auto {
           *immediate = Decoder::readVarInt<int32_t>(executor->forward_(), step);
+          cout << executor->innerOffset << endl;
           executor->innerOffset += (*step - 1);
         })));
   INSPECT_STACK("i32.const", wasmIns, executor);
@@ -332,7 +335,7 @@ void OpCode::doF32Const(shared_wasm_t &wasmIns, Executor *executor) {
       executor->floatUseImmesCache(
         [&executor](size_t *step, float *immediate) -> auto {
           *immediate = Utils::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()));
-          executor->innerOffset += ((*step = sizeof(float) / sizeof(uchar_t)) - 1);
+          executor->innerOffset += ((*step = sizeof(float) / sizeof(uint8_t)) - 1);
         })));
   INSPECT_STACK("f32.const", wasmIns, executor);
 }
@@ -344,7 +347,7 @@ void OpCode::doF64Const(shared_wasm_t &wasmIns, Executor *executor) {
       executor->doubleUseImmesCache(
         [&executor](size_t *step, double *immediate) -> auto {
           *immediate = Utils::readUnalignedValue<double>(reinterpret_cast<uintptr_t>(executor->forward_()));
-          executor->innerOffset += ((*step = sizeof(double) / sizeof(uchar_t)) - 1);
+          executor->innerOffset += ((*step = sizeof(double) / sizeof(uint8_t)) - 1);
         })));
   INSPECT_STACK("f64.const", wasmIns, executor);
 }

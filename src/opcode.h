@@ -219,6 +219,8 @@ enum class WasmOpcode {
 
 // opcode classifications;
 #define ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(V) \
+  V(Block) \
+  V(Loop) \
   V(BrIf) \
   V(If) \
   V(Call) \
@@ -226,7 +228,9 @@ enum class WasmOpcode {
   V(LocalSet) \
   V(LocalTee) \
   V(GlobalGet) \
-  V(GlobalSet)
+  V(GlobalSet) \
+  V(I32Const) \
+  V(I64Const)
 
 #define ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(V) \
   V(F32LoadMem) \
@@ -254,8 +258,7 @@ enum class WasmOpcode {
   V(I64StoreMem32)
 
 #define ITERATE_OPCODE_NAME_WITH_NON_VAR_IMME(V) \
-  V(Block) \
-  V(Loop) \
+  V(Return) \
   V(Else) \
   V(End) \
   V(I32GeS) \
@@ -264,12 +267,10 @@ enum class WasmOpcode {
 
 class OpCode {
  public:
-  static uint32_t calcOpCodeEntityLen(const uchar_t* buf, WasmOpcode opcode) {
+  static uint32_t calcOpCodeEntityLen(const uint8_t* buf, WasmOpcode opcode) {
     #define OPCODE_CASE(name) \
       case WasmOpcode::kOpcode##name:
     switch (opcode) {
-      case WasmOpcode::kOpcodeI32Const: { return i32Size; }
-      case WasmOpcode::kOpcodeI64Const: { return i64Size; }
       case WasmOpcode::kOpcodeF32Const: { return f32Size; }
       case WasmOpcode::kOpcodeF64Const: { return f64Size; }
       ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(OPCODE_CASE) {
@@ -285,7 +286,7 @@ class OpCode {
         break;
       }
       default: {
-        (Printer::instance() << "unsupported opcode found.\n").error();
+        return 1;
       }
     }
     return 0;

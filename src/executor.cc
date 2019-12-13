@@ -23,15 +23,16 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
     // but not efficient enough on average.
     uintptr_t handlerPtr;
     memcpy(&handlerPtr, pc->data() + (++innerOffset), ptrSize);
+    innerOffset += (ptrSize - 1);
+    // direct call;
     reinterpret_cast<handlerProto*>(handlerPtr)(wasmIns, this);
-    innerOffset += ptrSize;
   }
   return 0;
 }
 
 const void Executor::crawler(
-    const uchar_t* buf, size_t length, const function<bool(WasmOpcode, size_t)> &callback) {
-  // eat every opcode and immediates;
+    const uint8_t* buf, size_t length, const function<bool(WasmOpcode, size_t)> &callback) {
+  // skip every opcode and immediate;
   size_t offset = 0;
   while (offset != length) {
     const auto opcode = static_cast<WasmOpcode>(*(buf + offset++));

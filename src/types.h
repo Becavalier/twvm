@@ -11,7 +11,6 @@
 
 using std::string;
 using std::vector;
-using uchar_t = unsigned char;
 
 constexpr size_t kSpecMaxWasmMemoryPages = 65536;
 constexpr uint32_t kWasmMagicWord = 0x6d736100;

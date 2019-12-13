@@ -55,7 +55,7 @@ Then run the following command to detect the memory leak of the binary version p
   - [x] Cache based opcode&immediates;
   - [x] Constant pool;
   - [x] Module stream loading;
-  - [x] Simple DCT;
+  - [x] Simple DCT implementation;
 - [ ] JIT compiler based optimization;
 - [ ] Stage based full-path type validation;
 - [ ] Full Wasm MVP proposals support;

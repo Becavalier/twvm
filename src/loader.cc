@@ -8,7 +8,7 @@
 #include "src/utils.h"
 #include "src/opcode.h"
 
-vector<uchar_t> Loader::buf;
+vector<uint8_t> Loader::buf;
 ifstream* Loader::reader;
 uint32_t Loader::byteCounter = 0;
 size_t Loader::currentReaderOffset = 0;
@@ -319,8 +319,9 @@ void Loader::parseCodeSection(const shared_module_t &module) {
       const auto byte = WRAP_BUF_UINT8();
       const auto opcode = static_cast<WasmOpcode>(byte);
       auto codeBucket = &function->code;
-      if (innerScopeLen-- != 0) {
+      if (innerScopeLen != 0) {
         codeBucket->push_back(byte);
+        innerScopeLen--;
         continue;
       }
       // simple DCT (one-time transforming);
@@ -357,18 +358,21 @@ void Loader::parseCodeSection(const shared_module_t &module) {
           Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); break; }
           
       switch (opcode) {
-        case WasmOpcode::kOpcodeI32Const: { innerScopeLen = i32Size; }
-        case WasmOpcode::kOpcodeI64Const: { innerScopeLen = i64Size; }
-        case WasmOpcode::kOpcodeF32Const: { innerScopeLen = f32Size; }
-        case WasmOpcode::kOpcodeF64Const: { innerScopeLen = f64Size; }
+        // special cases;
+        case WasmOpcode::kOpcodeF32Const: {
+          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::doF32Const);
+          innerScopeLen = f32Size; break; }
+        case WasmOpcode::kOpcodeF64Const: {
+          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::doF64Const);
+          innerScopeLen = f64Size; break; }
         ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(DEAL_ONE_VAR_IMME_OPCODE)
         ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(DEAL_TWO_VAR_IMME_OPCODE)
         ITERATE_OPCODE_NAME_WITH_NON_VAR_IMME(DEAL_NON_VAR_IMME_OPCODE)
         default: {
+          cout << std::hex << (int)opcode << endl;
           (Printer::instance() << "unsupported opcode found.\n").error();
         };
       }
-      // innerScopeLen = OpCode::calcOpCodeEntityLen()
     }
   }
 }

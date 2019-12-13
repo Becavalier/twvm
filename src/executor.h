@@ -76,7 +76,7 @@ class Executor {
   uint32_t contextIndex = -1;
   shared_ptr<Cache> cache = make_shared<Cache>();
   const int execute(shared_ptr<WasmInstance>);
-  const void crawler(const uchar_t*, size_t, const function<bool(WasmOpcode, size_t)> &callback = nullptr);
+  const void crawler(const uint8_t*, size_t, const function<bool(WasmOpcode, size_t)> &callback = nullptr);
 
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL_SETTERS)
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL_DEBUGGER)
@@ -106,7 +106,7 @@ class Executor {
     return argsVal;
   }
 
-  inline const uchar_t* absAddr() {
+  inline const uint8_t* absAddr() {
     return pc->data() + innerOffset;
   }
 
@@ -114,7 +114,7 @@ class Executor {
     runningStatus = flag;
   }
 
-  inline const uchar_t* forward_(size_t step = 1) {
+  inline const uint8_t* forward_(size_t step = 1) {
     innerOffset += step;
     return absAddr();
   }
