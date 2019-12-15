@@ -2,6 +2,9 @@
 #ifndef OPCODE_H_
 #define OPCODE_H_
 
+#define DECLARE_MEMBER_HANDLER(name, opcode) \
+  static handlerProto do##name;
+
 #define DECLARE_NAMED_ENUM(name, opcode) \
   kOpcode##name = opcode,
 
@@ -150,13 +153,13 @@
   V(F32Trunc, 0x8f) \
   V(F32NearestInt, 0x90) \
   V(F32Sqrt, 0x91) \
-  V(F32Add, 0x92f) \
-  V(F32Sub, 0x93f) \
-  V(F32Mul, 0x94f) \
-  V(F32Div, 0x95f) \
-  V(F32Min, 0x96f) \
-  V(F32Max, 0x97f) \
-  V(F32CopySign, 0x98f) \
+  V(F32Add, 0x92) \
+  V(F32Sub, 0x93) \
+  V(F32Mul, 0x94) \
+  V(F32Div, 0x95) \
+  V(F32Min, 0x96) \
+  V(F32Max, 0x97) \
+  V(F32CopySign, 0x98) \
   V(F64Abs, 0x99) \
   V(F64Neg, 0x9a) \
   V(F64Ceil, 0x9b) \
@@ -291,53 +294,7 @@ class OpCode {
     }
     return 0;
   }
-
-  static void doUnreachable();
-  static handlerProto doBlock;
-  static handlerProto doLoop;
-  static handlerProto doIf;
-  static handlerProto doElse;
-  static handlerProto doEnd;
-  static handlerProto doBr;
-  static handlerProto doBrIf;
-  static handlerProto doBrTable;
-  static handlerProto doReturn;
-  static handlerProto doCall;
-  static handlerProto doLocalGet;
-  static handlerProto doLocalSet;
-  static handlerProto doLocalTee;
-  static handlerProto doGlobalGet;
-  static handlerProto doGlobalSet;
-  static handlerProto doI32Const;
-  static handlerProto doI64Const;
-  static handlerProto doF32Const;
-  static handlerProto doF64Const;
-  static handlerProto doI32LoadMem;
-  static handlerProto doI32LoadMem8S;
-  static handlerProto doI32LoadMem8U;
-  static handlerProto doI32LoadMem16S;
-  static handlerProto doI32LoadMem16U;
-  static handlerProto doI32StoreMem;
-  static handlerProto doI32StoreMem8;
-  static handlerProto doI32StoreMem16;
-  static handlerProto doI64LoadMem;
-  static handlerProto doI64LoadMem8S;
-  static handlerProto doI64LoadMem8U;
-  static handlerProto doI64LoadMem16S;
-  static handlerProto doI64LoadMem16U;
-  static handlerProto doI64LoadMem32S;
-  static handlerProto doI64LoadMem32U;
-  static handlerProto doI64StoreMem;
-  static handlerProto doI64StoreMem8;
-  static handlerProto doI64StoreMem16;
-  static handlerProto doI64StoreMem32;
-  static handlerProto doF32StoreMem;
-  static handlerProto doF64StoreMem;
-  static handlerProto doF32LoadMem;
-  static handlerProto doF64LoadMem;
-  static handlerProto doI32GeS;
-  static handlerProto doI64GeS;
-  static handlerProto doI32Add;
+  ITERATE_ALL_OPCODE(DECLARE_MEMBER_HANDLER)
 };
 
 #endif  // OPCODE_H_

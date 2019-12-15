@@ -1,4 +1,6 @@
-<p align="center"><img width="130"src="https://github.com/Becavalier/TWVM/blob/master/arts/brand-300x300.png?raw=true"></p>
+<p align="left"><img width="130"src="https://github.com/Becavalier/TWVM/blob/master/arts/brand-300x300.png?raw=true"></p>
+
+<br>
 
 <img alt="GitHub Actions status" src="https://github.com/Becavalier/TWVM/workflows/Build CI/badge.svg">
 
@@ -55,7 +57,7 @@ Then run the following command to detect the memory leak of the binary version p
   - [x] Cache based opcode&immediates;
   - [x] Constant pool;
   - [x] Module stream loading;
-  - [x] Simple DCT implementation;
+  - [x] Simple DCT/TTC implementation;
 - [ ] JIT compiler based optimization;
 - [ ] Stage based full-path type validation;
 - [ ] Full Wasm MVP proposals support;

@@ -2,7 +2,6 @@
 #ifndef CACHE_H_
 #define CACHE_H_
 
-#include <type_traits>
 #include <unordered_map>
 #include <typeinfo>
 #include <typeindex>
@@ -12,7 +11,6 @@
 #include "src/utils.h"
 
 using std::unordered_map;
-using std::is_same;
 using std::string;
 using std::type_index;
 using std::vector;

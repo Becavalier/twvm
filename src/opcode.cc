@@ -71,7 +71,7 @@ using std::forward;
 using std::make_shared;
 using std::move;
 
-void OpCode::doUnreachable() {
+void OpCode::doUnreachable(shared_wasm_t &wasmIns, Executor *executor) {
   // trap;
   Printer::instance().error(Errors::RT_UNREACHABLE_CODE);
 }
@@ -101,13 +101,17 @@ void OpCode::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
             case WasmOpcode::kOpcodeIf:
             case WasmOpcode::kOpcodeLoop:
             case WasmOpcode::kOpcodeBlock: {
-              level++;
+              level++; 
               break;
             }
             case WasmOpcode::kOpcodeEnd: {
               if (level == 0) {
                 // move the pointer back to the opcode;
+#if defined(OPT_DCT)
                 *metaVal = offset - 8;
+#else
+                *metaVal = offset;
+#endif
                 return true;
               } else {
                 level--;
@@ -531,3 +535,255 @@ void OpCode::doI32Add(shared_wasm_t &wasmIns, Executor *executor) {
   }
   INSPECT_STACK("i32.add", wasmIns, executor);
 }
+
+void OpCode::doF32Floor(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Trunc(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Floor(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Trunc(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Popcnt(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Popcnt(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doMemoryGrow(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doMemorySize(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32CopySign(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64CopySign(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doCallIndirect(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32ConvertF64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32NearestInt(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64ConvertF32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64NearestInt(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32ConvertI64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32SConvertI32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32SConvertI64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32UConvertI64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64SConvertI32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64SConvertI64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64UConvertI64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32SConvertF32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32SConvertF64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32UConvertF32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32UConvertF64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64SConvertF32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64SConvertF64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64SConvertI32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64UConvertF32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64UConvertF64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32ReinterpretI32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64ReinterpretI64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32ReinterpretF32(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64ReinterpretF64(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doNop(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doDrop(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Eq(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Ge(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Gt(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Le(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Lt(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Ne(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Eq(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Ge(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Gt(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Le(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Lt(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Ne(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Eq(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Ne(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Eq(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Ne(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Abs(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Add(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Div(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Max(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Min(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Mul(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Neg(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Sub(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Abs(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Add(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Div(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Max(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Min(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Mul(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Neg(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Sub(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32And(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Clz(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Ctz(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Eqz(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32GeU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32GtS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32GtU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Ior(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32LeS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32LeU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32LtS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32LtU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Mul(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Rol(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Ror(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Shl(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Sub(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32Xor(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Add(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64And(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Clz(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Ctz(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Eqz(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64GeU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64GtS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64GtU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Ior(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64LeS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64LeU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64LtS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64LtU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Mul(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Rol(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Ror(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Shl(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Sub(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64Xor(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doSelect(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Ceil(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF32Sqrt(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Ceil(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doF64Sqrt(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32DivS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32DivU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32RemS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32RemU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32ShrS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI32ShrU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64DivS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64DivU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64RemS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64RemU(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64ShrS(shared_wasm_t &wasmIns, Executor *executor) {}
+
+void OpCode::doI64ShrU(shared_wasm_t &wasmIns, Executor *executor) {}

@@ -316,6 +316,8 @@ void Loader::parseCodeSection(const shared_module_t &module) {
     function->codeLen = bodySize - currentReaderOffset;
     uint32_t innerScopeLen = 0;
     for (size_t j = 0; j < function->codeLen; j++) {
+      // use TTC by default;
+#if defined(OPT_DCT)
       const auto byte = WRAP_BUF_UINT8();
       const auto opcode = static_cast<WasmOpcode>(byte);
       auto codeBucket = &function->code;
@@ -373,6 +375,9 @@ void Loader::parseCodeSection(const shared_module_t &module) {
           Printer::instance().error(Errors::LOADER_INVALID_OPCODE);
         };
       }
+#else
+      function->code.push_back(WRAP_BUF_UINT8());
+#endif
     }
   }
 }
