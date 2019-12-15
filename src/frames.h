@@ -53,13 +53,13 @@ class ValueFrame {
 
   template <typename T>
   inline void resetValue(T v) {
-    if (is_same<T, int32_t>::value) {
+    if constexpr (is_same<T, int32_t>::value) {
       type = ValueFrameTypes::kI32Value;
-    } else if (is_same<T, int64_t>::value) {
+    } else if constexpr (is_same<T, int64_t>::value) {
       type = ValueFrameTypes::kI64Value;
-    } else if (is_same<T, float>::value) {
+    } else if constexpr (is_same<T, float>::value) {
       type = ValueFrameTypes::kF32Value;
-    } else if (is_same<T, double>::value) {
+    } else if constexpr (is_same<T, double>::value) {
       type = ValueFrameTypes::kF64Value;
     } else {
       Printer::instance().error(Errors::MISC_INVALID_VALUEFRAME);

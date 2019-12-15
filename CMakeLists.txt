@@ -18,24 +18,33 @@ set (STATE $ENV{CMAKE_TARGET})
 set (N_OUTPUT_SRC "build")
 set (T_OUTPUT_SRC "tests")
 
+# VM options;
+add_definitions(-DOPT_DCT)
+
+# print all definitions;
+get_directory_property(DirDefs COMPILE_DEFINITIONS)
+foreach(d ${DirDefs})
+  message( STATUS "VM Define: " ${d} )
+endforeach()
+
 if (STATE STREQUAL TEST)
   set (EXECUTABLE_OUTPUT_PATH ${T_OUTPUT_SRC})
   # download and unpack googletest at configure time
   configure_file (CMakeLists.txt.in googletest-download/CMakeLists.txt)
   execute_process (COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-      RESULT_VARIABLE result
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download)
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download)
 
   if (result)
-      message (FATAL_ERROR "CMake step for googletest failed: ${result}")
+    message (FATAL_ERROR "CMake step for googletest failed: ${result}")
   endif()
 
   execute_process (COMMAND ${CMAKE_COMMAND} --build .
-      RESULT_VARIABLE result
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download)
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download)
 
   if (result)
-      message (FATAL_ERROR "Build step for googletest failed: ${result}")
+    message (FATAL_ERROR "Build step for googletest failed: ${result}")
   endif()
 
   # Prevent overriding the parent project's compiler/linker settings on Windows;
@@ -64,5 +73,5 @@ if (STATE STREQUAL TEST)
   target_link_libraries (${OUTPUT} gtest_main gtest)
   # run the test;
   add_custom_command(TARGET ${OUTPUT} POST_BUILD
-      COMMAND ${OUTPUT})
+    COMMAND ${OUTPUT})
 endif()  

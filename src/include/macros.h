@@ -2,7 +2,8 @@
 #ifndef INCLUDE_MACROS_H_
 #define INCLUDE_MACROS_H_
 
-// 1. user-defined destructor will prevent compiler from calling explicit move-constructor;
+// user-defined destructor will prevent compiler from calling -
+// explicit move-constructor;
 #define SET_STRUCT_DISABLE_COPY_CONSTUCT(TypeName) \
   TypeName(const TypeName&) = delete; \
   TypeName& operator=(const TypeName&) = delete
