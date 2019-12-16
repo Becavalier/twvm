@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef UTILS_H_
-#define UTILS_H_
+#ifndef UTILITY_H_
+#define UTILITY_H_
 
 #include <ios>
 #include <iostream>
@@ -101,7 +101,7 @@ class Printer {
   void printTableView();
 };
 
-class Utils {
+class Utility {
  public:
   static vector<string> splitStr(const string&, char);
 
@@ -126,4 +126,4 @@ class Utils {
   }
 };
 
-#endif  // UTILS_H_
+#endif  // UTILITY_H_

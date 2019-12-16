@@ -5,7 +5,7 @@
 #include "src/instantiator.h"
 #include "src/store.h"
 #include "src/decoder.h"
-#include "src/utils.h"
+#include "src/utility.h"
 
 using std::find_if;
 using std::hex;

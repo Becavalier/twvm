@@ -5,13 +5,13 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "src/types.h"
+#include "src/type.h"
 #include "src/store.h"
 #include "src/stack.h"
 #include "src/include/macros.h"
 #include "src/include/constants.h"
 #include "src/include/errors.h"
-#include "src/utils.h"
+#include "src/utility.h"
 
 using std::string;
 using std::vector;

@@ -4,7 +4,7 @@
 
 #include <memory>
 #include "src/module.h"
-#include "src/types.h"
+#include "src/type.h"
 #include "src/stack.h"
 #include "src/instances.h"
 

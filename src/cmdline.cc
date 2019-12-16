@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include "src/cmdline.h"
-#include "src/utils.h"
+#include "src/utility.h"
 #include "src/include/errors.h"
 #include "src/include/constants.h"
 

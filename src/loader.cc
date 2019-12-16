@@ -6,7 +6,7 @@
 #include "src/loader.h"
 #include "src/include/constants.h"
 #include "src/include/errors.h"
-#include "src/utils.h"
+#include "src/utility.h"
 #include "src/opcode.h"
 
 vector<uint8_t> Loader::buf;
@@ -329,7 +329,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
       // simple DCT (one-time transforming);
       #define DEAL_ONE_VAR_IMME_OPCODE(name) \
         case WasmOpcode::kOpcode##name: { \
-          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); \
+          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); \
           auto innerOffset = 1; \
           while(true) { \
             const auto nextVal = WRAP_BUF_UINT8(); \
@@ -342,7 +342,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
         }
       #define DEAL_TWO_VAR_IMME_OPCODE(name) \
         case WasmOpcode::kOpcode##name: { \
-          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); \
+          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); \
           auto innerOffset = 1; \
           for (auto k = 0; k < 2; k++) { \
             while(true) { \
@@ -357,16 +357,16 @@ void Loader::parseCodeSection(const shared_module_t &module) {
         }
       #define DEAL_NON_VAR_IMME_OPCODE(name) \
         case WasmOpcode::kOpcode##name: { \
-          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); break; }
+          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); break; }
       // keep the raw opcode for identifying purpose;;
       codeBucket->push_back(byte);
       switch (opcode) {
         // special cases;
         case WasmOpcode::kOpcodeF32Const: {
-          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::doF32Const);
+          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::doF32Const);
           innerScopeLen = f32Size; break; }
         case WasmOpcode::kOpcodeF64Const: {
-          Utils::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::doF64Const);
+          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::doF64Const);
           innerScopeLen = f64Size; break; }
         ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(DEAL_ONE_VAR_IMME_OPCODE)
         ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(DEAL_TWO_VAR_IMME_OPCODE)

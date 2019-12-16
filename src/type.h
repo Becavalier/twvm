@@ -1,13 +1,13 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef TYPES_H_
-#define TYPES_H_
+#ifndef TYPE_H_
+#define TYPE_H_
 
 #include <cstdint>
 #include <cstddef>
 #include <string>
 #include <vector>
 #include "src/include/macros.h"
-#include "src/utils.h"
+#include "src/utility.h"
 
 using std::string;
 using std::vector;
@@ -215,4 +215,4 @@ struct WasmImport {
   uint32_t index = 0;
 };
 
-#endif  // TYPES_H_
+#endif  // TYPE_H_

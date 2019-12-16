@@ -22,11 +22,11 @@
 #include <memory>
 #include <fstream>
 #include "src/include/errors.h"
-#include "src/types.h"
+#include "src/type.h"
 #include "src/module.h"
 #include "src/decoder.h"
 #include "src/opcode.h"
-#include "src/utils.h"
+#include "src/utility.h"
 
 using std::vector;
 using std::string;

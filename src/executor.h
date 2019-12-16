@@ -6,7 +6,7 @@
 #include <functional>
 #include <vector>
 #include <unordered_map>
-#include "src/types.h"
+#include "src/type.h"
 #include "src/frames.h"
 #include "src/opcode.h"
 #include "src/cache.h"

@@ -7,7 +7,7 @@
 #include <thread>
 #include "src/include/errors.h"
 #include "src/include/macros.h"
-#include "src/utils.h"
+#include "src/utility.h"
 #include "src/include/constants.h"
 #include "src/loader.h"
 #include "src/module.h"

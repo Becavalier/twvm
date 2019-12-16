@@ -10,8 +10,8 @@
 #include <utility>
 #include "src/include/constants.h"
 #include "src/include/errors.h"
-#include "src/types.h"
-#include "src/utils.h"
+#include "src/type.h"
+#include "src/utility.h"
 
 using std::memcpy;
 using std::memcmp;
@@ -35,10 +35,10 @@ class ValueFrame {
 #define DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS(name, localtype, ctype) \
   ValueFrame(ctype v) : type(localtype), bitPattern{} { \
     isValueZero = (v == static_cast<ctype>(0)); \
-    Utils::writeUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern), v); \
+    Utility::writeUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern), v); \
   } \
   const ctype to##name() const { \
-    return Utils::readUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern)); \
+    return Utility::readUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern)); \
   }
   ITERATE_WASM_VAL_TYPE(DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS)
 
@@ -65,7 +65,7 @@ class ValueFrame {
       Printer::instance().error(Errors::MISC_INVALID_VALUEFRAME);
     }
     isValueZero = (v == static_cast<T>(0));
-    Utils::writeUnalignedValue<T>(reinterpret_cast<uintptr_t>(bitPattern), v);
+    Utility::writeUnalignedValue<T>(reinterpret_cast<uintptr_t>(bitPattern), v);
   }
 
   void outputValue(ostream &out) const {

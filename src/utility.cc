@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <numeric>
-#include "src/utils.h"
+#include "src/utility.h"
 #include "src/include/macros.h"
 
 using std::max_element;
@@ -15,7 +15,7 @@ using std::ostream;
 
 shared_ptr<Printer> Printer::singleIns = nullptr;
 
-vector<string> Utils::splitStr(const string &str, char delimiter) {
+vector<string> Utility::splitStr(const string &str, char delimiter) {
   vector<string> tokens;
   string token;
   istringstream tokenStream(str);
@@ -31,7 +31,7 @@ void Printer::printTableView() {
     vector<size_t> columnWidth;
     vector<vector<string>> columnContent;
     for (const auto &line : lines) {
-      const auto snippets = Utils::splitStr(line, '|');
+      const auto snippets = Utility::splitStr(line, '|');
       columnContent.push_back(snippets);
       if (columnWidth.size() == 0) {
         columnWidth = vector<size_t>(snippets.size(), 0);

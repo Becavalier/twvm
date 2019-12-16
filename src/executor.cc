@@ -5,7 +5,7 @@
 #include "src/include/constants.h"
 #include "src/opcode.h"
 #include "src/decoder.h"
-#include "src/utils.h"
+#include "src/utility.h"
 
 using std::array;
 

@@ -8,8 +8,8 @@
 #include <vector>
 #include "src/frames.h"
 #include "src/include/constants.h"
-#include "src/utils.h"
-#include "src/types.h"
+#include "src/utility.h"
+#include "src/type.h"
 
 using std::shared_ptr;
 using std::make_shared;

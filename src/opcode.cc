@@ -3,12 +3,12 @@
 #include <iostream>
 #include <memory>
 #include <utility>
-#include "src/types.h"
+#include "src/type.h"
 #include "src/opcode.h"
 #include "src/include/errors.h"
 #include "src/include/macros.h"
 #include "src/decoder.h"
-#include "src/utils.h"
+#include "src/utility.h"
 
 using std::forward;
 
@@ -336,7 +336,7 @@ void OpCode::doF32Const(shared_wasm_t &wasmIns, Executor *executor) {
     executor->checkUpConstant(
       executor->floatUseImmesCache(
         [&executor](size_t *step, float *immediate) -> auto {
-          *immediate = Utils::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()));
+          *immediate = Utility::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()));
           executor->innerOffset += ((*step = sizeof(float) / sizeof(uint8_t)) - 1);
         })));
   INSPECT_STACK("f32.const", wasmIns, executor);
@@ -348,7 +348,7 @@ void OpCode::doF64Const(shared_wasm_t &wasmIns, Executor *executor) {
     executor->checkUpConstant(
       executor->doubleUseImmesCache(
         [&executor](size_t *step, double *immediate) -> auto {
-          *immediate = Utils::readUnalignedValue<double>(reinterpret_cast<uintptr_t>(executor->forward_()));
+          *immediate = Utility::readUnalignedValue<double>(reinterpret_cast<uintptr_t>(executor->forward_()));
           executor->innerOffset += ((*step = sizeof(double) / sizeof(uint8_t)) - 1);
         })));
   INSPECT_STACK("f64.const", wasmIns, executor);

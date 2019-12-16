@@ -10,8 +10,8 @@
 #include <vector>
 #include <fstream>
 #include "src/include/constants.h"
-#include "src/utils.h"
-#include "src/types.h"
+#include "src/utility.h"
+#include "src/type.h"
 #include "src/module.h"
 
 using std::function;
@@ -27,7 +27,7 @@ class Decoder {
   static T readLittleEndian(
     const uint8_t* buf,
     const function<void(T)> &callback = nullptr) {
-    auto r = Utils::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(buf));
+    auto r = Utility::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(buf));
     // callback function;
     if (callback) {
       callback(r);
