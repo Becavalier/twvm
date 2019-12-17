@@ -74,7 +74,7 @@ class Decoder {
     size_t *step = nullptr) {
     T r = 0;
     unsigned shift = 0;
-    uint8_t b;
+    uint8_t b = 0;
     for (auto byte : t) {
       b = byte;
       r |= (static_cast<T>(byte & 0x7f) << shift);

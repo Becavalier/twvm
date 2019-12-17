@@ -42,10 +42,17 @@ uint64_t Decoder::readUint64(const uint8_t* source, size_t *step) {
 }
 
 string Decoder::decodeName(const uint8_t* source, size_t len, size_t *step) {
+  string str;
+  char* heapCharSeq = nullptr;
   if (step) {
-    return string(readLittleEndian<char>(source, len,
-      [&step, &len](auto a) -> void { *step += sizeof(char) * len; }), len);
+    heapCharSeq = readLittleEndian<char>(source, len,
+      [&step, &len](auto a) -> void { *step += sizeof(char) * len; });
+    str = string(heapCharSeq, len);
   } else {
-    return string(readLittleEndian<char>(source, len), len);
+    heapCharSeq = readLittleEndian<char>(source, len);
+    str = string(heapCharSeq, len);
   }
+  // pay attention to free the memory;
+  free(reinterpret_cast<void*>(heapCharSeq));
+  return str;
 }

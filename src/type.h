@@ -155,9 +155,9 @@ struct WasmFunctionSig {
 // wasm indirect call table;
 struct WasmFunction {
   SET_STRUCT_MOVE_ONLY(WasmFunction);
-  WasmFunctionSig* sig;
-  uint32_t funcIndex;
-  uint32_t sigIndex;
+  WasmFunctionSig* sig = nullptr;
+  uint32_t funcIndex = 0;
+  uint32_t sigIndex = 0;
   vector<ValueFrameTypes> locals = {};
   vector<uint8_t> code;
   size_t codeLen = 0;

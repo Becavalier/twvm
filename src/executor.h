@@ -71,7 +71,7 @@ class Executor {
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL)
 
  public:
-  vector<uint8_t> *pc;
+  vector<uint8_t> *pc = nullptr;
   size_t innerOffset = -1;
   uint32_t contextIndex = -1;
   shared_ptr<Cache> cache = make_shared<Cache>();
