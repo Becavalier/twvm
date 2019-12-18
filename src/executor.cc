@@ -9,7 +9,7 @@
 
 using std::array;
 
-const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
+const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   (Printer::instance() << '\n').debug();
   (Printer::instance() << "- [EXECUTING PHASE] -\n").debug();
 
@@ -50,7 +50,7 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
     opcodeTokenHandlers[(*pc)[++innerOffset]](wasmIns, this);
 #endif
   }
-  return 0;
+  return false;
 }
 
 const void Executor::crawler(

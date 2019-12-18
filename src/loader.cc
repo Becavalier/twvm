@@ -10,7 +10,7 @@
 #include "src/opcode.h"
 
 vector<uint8_t> Loader::buf;
-ifstream* Loader::reader;
+Reader Loader::reader;
 uint32_t Loader::byteCounter = 0;
 size_t Loader::currentReaderOffset = 0;
 
@@ -38,9 +38,14 @@ shared_module_t Loader::init(const std::string &fileName) {
   } else {
     Printer::instance().error(Errors::LOADER_INVALID_FILE);
   }
-
   // parsing start;
   return parse(wasmModule);
+}
+
+shared_module_t Loader::init(const uint8_t *buffer, size_t len) {
+  (Printer::instance() << "- [LOADING PHASE] -\n").debug();
+  shared_module_t wasmModule = make_shared<Module>();
+
 }
 
 shared_module_t Loader::parse(const shared_module_t &module) {

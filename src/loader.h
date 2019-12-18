@@ -21,6 +21,8 @@
 #include <vector>
 #include <memory>
 #include <fstream>
+#include <ios>
+#include <istream>
 #include "src/include/errors.h"
 #include "src/type.h"
 #include "src/module.h"
@@ -33,10 +35,29 @@ using std::string;
 using std::shared_ptr;
 using std::make_shared;
 using std::ifstream;
+using std::basic_istream;
+using std::streamsize;
+
+class Reader {
+ private:
+  bool isFileReader = false;
+  ifstream* fileReader = nullptr;
+  vector<uint8_t> buffer;
+
+ public:
+  Reader() = default;
+  Reader(ifstream* fileReader) : fileReader(fileReader), isFileReader(true) {}
+  Reader(const uint8_t *buffer, size_t len) {
+    
+  }
+  basic_istream<char>& read(char* s, streamsize count) {
+    return fileReader->read(s, count);
+  }
+};
 
 class Loader {
  private:
-  static ifstream* reader;
+  static Reader reader;
   static vector<uint8_t> buf;
   static uint32_t byteCounter;
   static size_t currentReaderOffset;

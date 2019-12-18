@@ -1,37 +1,15 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#include <iostream>
 #include <cstdlib>
-#include <string>
-#include <chrono>
-#include <memory>
 #include <thread>
-#include "src/include/errors.h"
-#include "src/include/macros.h"
-#include "src/utility.h"
-#include "src/include/constants.h"
-#include "src/loader.h"
-#include "src/module.h"
-#include "src/executor.h"
-#include "src/stack.h"
-#include "src/instantiator.h"
-#include "src/inspector.h"
-#include "src/cmdline.h"
+#include <iostream>
+#include <string>
+#include <memory>
+#include "src/twvm.h"
 
-using std::to_string;
+using std::thread;
 using std::string;
-using std::chrono::high_resolution_clock;
-using std::chrono::duration_cast;
-using std::chrono::microseconds;
 using std::make_unique;
 using std::exit;
-using std::thread;
-
-const auto calcTimeInterval(decltype(high_resolution_clock::now()) &previous) {
-  const auto stop = high_resolution_clock::now();
-  const auto duration = duration_cast<microseconds>(stop - previous);
-  previous = stop;
-  return duration.count() / 1000.0;
-}
 
 int main(int argc, const char **argv) {
   // set up command line arguments;

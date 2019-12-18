@@ -75,7 +75,7 @@ class Executor {
   size_t innerOffset = -1;
   uint32_t contextIndex = -1;
   shared_ptr<Cache> cache = make_shared<Cache>();
-  const int execute(shared_ptr<WasmInstance>);
+  const bool execute(shared_ptr<WasmInstance>);
   const void crawler(const uint8_t*, size_t, const function<bool(WasmOpcode, size_t)> &callback = nullptr);
 
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL_SETTERS)
