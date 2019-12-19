@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include "src/twvm.h"
+#include "lib/cmdline.h"
 
 using std::thread;
 using std::string;

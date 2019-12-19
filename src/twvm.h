@@ -3,17 +3,16 @@
 #define TWVM_H_
 
 #include <chrono>
-#include "src/include/errors.h"
-#include "src/include/macros.h"
-#include "src/include/constants.h"
-#include "src/utility.h"
-#include "src/loader.h"
-#include "src/module.h"
-#include "src/executor.h"
-#include "src/stack.h"
-#include "src/instantiator.h"
-#include "src/inspector.h"
-#include "src/cmdline.h"
+#include "lib/include/errors.h"
+#include "lib/include/macros.h"
+#include "lib/include/constants.h"
+#include "lib/utility.h"
+#include "lib/loader.h"
+#include "lib/module.h"
+#include "lib/executor.h"
+#include "lib/stack.h"
+#include "lib/instantiator.h"
+#include "lib/inspector.h"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;

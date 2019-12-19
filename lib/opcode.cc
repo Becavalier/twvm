@@ -3,12 +3,12 @@
 #include <iostream>
 #include <memory>
 #include <utility>
-#include "src/type.h"
-#include "src/opcode.h"
-#include "src/include/errors.h"
-#include "src/include/macros.h"
-#include "src/decoder.h"
-#include "src/utility.h"
+#include "lib/type.h"
+#include "lib/opcode.h"
+#include "lib/include/errors.h"
+#include "lib/include/macros.h"
+#include "lib/decoder.h"
+#include "lib/utility.h"
 
 using std::forward;
 

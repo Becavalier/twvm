@@ -7,8 +7,8 @@
 #include <typeindex>
 #include <string>
 #include <vector>
-#include "src/type.h"
-#include "src/utility.h"
+#include "lib/type.h"
+#include "lib/utility.h"
 
 using std::unordered_map;
 using std::string;

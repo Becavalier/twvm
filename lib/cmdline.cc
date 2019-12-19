@@ -3,10 +3,10 @@
 #include <string>
 #include <algorithm>
 #include <cstdlib>
-#include "src/cmdline.h"
-#include "src/utility.h"
-#include "src/include/errors.h"
-#include "src/include/constants.h"
+#include "lib/cmdline.h"
+#include "lib/utility.h"
+#include "lib/include/errors.h"
+#include "lib/include/constants.h"
 
 using std::ostream;
 using std::string;

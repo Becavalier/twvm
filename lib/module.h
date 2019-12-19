@@ -6,8 +6,8 @@
 #include <iostream>
 #include <memory>
 #include <utility>
-#include "src/type.h"
-#include "src/include/macros.h"
+#include "lib/type.h"
+#include "lib/include/macros.h"
 
 using std::vector;
 using std::shared_ptr;

@@ -7,12 +7,13 @@
 #include <memory>
 #include <string>
 #include <functional>
+#include <type_traits>
 #include <vector>
 #include <fstream>
-#include "src/include/constants.h"
-#include "src/utility.h"
-#include "src/type.h"
-#include "src/module.h"
+#include "lib/include/constants.h"
+#include "lib/utility.h"
+#include "lib/type.h"
+#include "lib/module.h"
 
 using std::function;
 using std::string;
@@ -20,6 +21,57 @@ using std::memcpy;
 using std::malloc;
 using std::vector;
 using std::ifstream;
+using std::shared_ptr;
+using std::is_same;
+
+class Reader {
+ private:
+  bool isFileReader = false;
+  ifstream* fileReader = nullptr;
+  uint8_t *buffer;
+  size_t bufferCounter = 0;
+  size_t bufferLen = 0;
+  
+ public:
+  ~Reader() {
+    buffer = nullptr;
+  }
+  Reader() = default;
+  Reader(ifstream* fileReader) : isFileReader(true), fileReader(fileReader) {}
+  Reader(uint8_t *buffer, size_t len) : isFileReader(false), buffer(buffer), bufferLen(len) {}
+
+  template <typename T = char>
+  inline T read() {
+    if (isFileReader) {
+      if constexpr (is_same<T, char>::value) {
+        char d;
+        fileReader->read(&d, charSize);
+        return static_cast<char>(d); 
+      } else {
+        char d[sizeof(T)];
+        fileReader->read(d, sizeof(T));
+        return Utility::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(d));
+      }
+    } else {
+      // buffer way;
+      if constexpr (sizeof(T) == 1) {
+        return static_cast<T>(*(buffer + bufferCounter++)); 
+      } else {
+        const auto r = Utility::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(buffer));
+        bufferCounter += sizeof(T);
+        return r;
+      }
+    }
+  }
+  
+  inline bool hasReachEnd() {
+    if (isFileReader) {
+      return fileReader->peek() == EOF;
+    } else {
+      return bufferLen == bufferCounter;
+    }
+  }
+};
 
 class Decoder {
  private:
@@ -90,11 +142,10 @@ class Decoder {
     return r;
   }
 
-  static vector<uint8_t> ifsWrapValue(ifstream *reader) {
+  static vector<uint8_t> ifsWrapValue(shared_ptr<Reader> reader) {
     vector<uint8_t> t;
-    char d;
     while (true) {
-      reader->read(&d, charSize);
+      char d = reader->read<>();
       t.push_back(static_cast<uint8_t>(d));
       if (!(d & 0x80)) {
         break;
@@ -123,12 +174,10 @@ class Decoder {
    * 01111000 10111011 11000000 -123456 (Signed);
    */
   template <typename T>
-  static T readVarUint(ifstream *reader) {
+  static T readVarUint(shared_ptr<Reader> reader) {
     if (sizeof(T) == 1) {
       // uint8_t;
-      char d;
-      reader->read(&d, charSize);
-      return static_cast<T>(d);
+      return reader->read<T>();
     } else {
       vector<uint8_t> t = Decoder::ifsWrapValue(reader);
       return Decoder::readVarUint_<T>(t);

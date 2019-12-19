@@ -10,9 +10,9 @@
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
-#include "src/include/constants.h"
-#include "src/include/errors.h"
-#include "src/cmdline.h"
+#include "lib/include/constants.h"
+#include "lib/include/errors.h"
+#include "lib/cmdline.h"
 
 #define OUTPUT_PREFIX "twvm: "
 // ANSI escape code (Colors);

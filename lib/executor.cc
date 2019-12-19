@@ -1,11 +1,12 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <array>
-#include "src/executor.h"
-#include "src/include/macros.h"
-#include "src/include/constants.h"
-#include "src/opcode.h"
-#include "src/decoder.h"
-#include "src/utility.h"
+#include "lib/executor.h"
+#include "lib/include/macros.h"
+#include "lib/include/constants.h"
+#include "lib/include/macros.h"
+#include "lib/opcode.h"
+#include "lib/decoder.h"
+#include "lib/utility.h"
 
 using std::array;
 

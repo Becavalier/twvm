@@ -8,10 +8,11 @@
 #include <ostream>
 #include <type_traits>
 #include <utility>
-#include "src/include/constants.h"
-#include "src/include/errors.h"
-#include "src/type.h"
-#include "src/utility.h"
+#include "lib/include/constants.h"
+#include "lib/include/errors.h"
+#include "lib/include/macros.h"
+#include "lib/type.h"
+#include "lib/utility.h"
 
 using std::memcpy;
 using std::memcmp;

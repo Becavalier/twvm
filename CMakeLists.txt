@@ -11,7 +11,7 @@ include_directories(.)
 set (CMAKE_VERBOSE_MAKEFILE "OFF")
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -pthread -O0 -Wall -g -ggdb")
-set (CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -pthread -O3 -Wall")
+set (CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -pthread -DNDEBUG -O3 -Wall")
 
 set (OUTPUT "twvm")
 set (STATE $ENV{CMAKE_TARGET})
@@ -53,25 +53,29 @@ if (STATE STREQUAL TEST)
   add_subdirectory (${CMAKE_BINARY_DIR}/googletest-src
                 ${CMAKE_BINARY_DIR}/googletest-build
                 EXCLUDE_FROM_ALL)
-  # resolve source files;
+  # resolve testing source files;
   aux_source_directory (${T_OUTPUT_SRC} DIR_SRCS)
 else()
-  set (EXECUTABLE_OUTPUT_PATH ${N_OUTPUT_SRC})
-  # resolve source files;
+  # resolve release source files;
   aux_source_directory (./src DIR_SRCS)
+
+  set (EXECUTABLE_OUTPUT_PATH ${N_OUTPUT_SRC})
 endif()  
+
+# add subdirectory;
+add_subdirectory (lib/)
 
 # add executable;
 add_executable(${OUTPUT} ${DIR_SRCS})
 
-# linker;
-target_link_libraries (${OUTPUT} pthread)
-
-install(TARGETS ${OUTPUT} RUNTIME DESTINATION bin)
-
 if (STATE STREQUAL TEST) 
-  target_link_libraries (${OUTPUT} gtest_main gtest)
+  target_link_libraries (${OUTPUT} twvm-lib gtest_main gtest)
   # run the test;
-  add_custom_command(TARGET ${OUTPUT} POST_BUILD
-    COMMAND ${OUTPUT})
+  add_custom_command(TARGET ${OUTPUT} POST_BUILD COMMAND ${OUTPUT})
+else()
+  # linker;
+  target_link_libraries (${OUTPUT} twvm-lib pthread)
+  
+  # installing;
+  install(TARGETS ${OUTPUT} RUNTIME DESTINATION bin)
 endif()  

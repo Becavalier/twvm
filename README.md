@@ -59,7 +59,6 @@ Then run the following command to detect the memory leak of the binary version p
   - [x] Module stream loading;
   - [x] Simple DCT/TTC implementation;
 - [ ] Full Wasm MVP proposals support;
-  - [x] Memory related opcode;
 - [ ] JIT compiler based optimization;
 - [ ] Stage based full-path type validation;
 - [ ] Full Wasm MVP proposals support;

@@ -6,12 +6,12 @@
 #include <functional>
 #include <vector>
 #include <unordered_map>
-#include "src/type.h"
-#include "src/frames.h"
-#include "src/opcode.h"
-#include "src/cache.h"
-#include "src/instances.h"
-#include "src/include/constants.h"
+#include "lib/type.h"
+#include "lib/frames.h"
+#include "lib/opcode.h"
+#include "lib/cache.h"
+#include "lib/instances.h"
+#include "lib/include/constants.h"
 
 using std::shared_ptr;
 using std::function;
