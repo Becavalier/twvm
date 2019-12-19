@@ -6,8 +6,8 @@
 #include <cstddef>
 #include <string>
 #include <vector>
-#include "src/include/macros.h"
-#include "src/utility.h"
+#include "lib/include/macros.h"
+#include "lib/utility.h"
 
 using std::string;
 using std::vector;

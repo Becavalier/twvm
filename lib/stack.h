@@ -6,10 +6,10 @@
 #include <cstring>
 #include <utility>
 #include <vector>
-#include "src/frames.h"
-#include "src/include/constants.h"
-#include "src/utility.h"
-#include "src/type.h"
+#include "lib/frames.h"
+#include "lib/include/constants.h"
+#include "lib/utility.h"
+#include "lib/type.h"
 
 using std::shared_ptr;
 using std::make_shared;

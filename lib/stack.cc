@@ -1,5 +1,5 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#include "src/stack.h"
+#include "lib/stack.h"
 
 const bool Stack::checkStackState(bool startEntry) const {
   // check the status of stack;

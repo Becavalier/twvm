@@ -2,10 +2,10 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "src/cmdline.h"
-#include "src/utility.h"
-#include "src/inspector.h"
-#include "src/include/macros.h"
+#include "lib/cmdline.h"
+#include "lib/utility.h"
+#include "lib/inspector.h"
+#include "lib/include/macros.h"
 
 using std::stringstream;
 using std::to_string;

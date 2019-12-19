@@ -3,10 +3,10 @@
 #define INSTANTIATOR_H_
 
 #include <memory>
-#include "src/module.h"
-#include "src/type.h"
-#include "src/stack.h"
-#include "src/instances.h"
+#include "lib/module.h"
+#include "lib/type.h"
+#include "lib/stack.h"
+#include "lib/instances.h"
 
 using std::shared_ptr;
 using std::make_shared;

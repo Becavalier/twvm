@@ -5,7 +5,7 @@ Makefile
 .vscode/
 install_manifest.txt
 googletest*/
-lib/
 .DS_Store
 node_modules/
 *.dSYM/
+*.a

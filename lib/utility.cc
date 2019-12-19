@@ -2,8 +2,8 @@
 #include <algorithm>
 #include <iomanip>
 #include <numeric>
-#include "src/utility.h"
-#include "src/include/macros.h"
+#include "lib/utility.h"
+#include "lib/include/macros.h"
 
 using std::max_element;
 using std::left;

@@ -3,7 +3,7 @@
 #define INSPECTOR_H_
 
 #include <memory>
-#include "src/instantiator.h"
+#include "lib/instantiator.h"
 
 using std::shared_ptr;
 

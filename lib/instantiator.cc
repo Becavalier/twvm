@@ -2,10 +2,10 @@
 #include <algorithm>
 #include <string>
 #include <memory>
-#include "src/instantiator.h"
-#include "src/store.h"
-#include "src/decoder.h"
-#include "src/utility.h"
+#include "lib/instantiator.h"
+#include "lib/store.h"
+#include "lib/decoder.h"
+#include "lib/utility.h"
 
 using std::find_if;
 using std::hex;

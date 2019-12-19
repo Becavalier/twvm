@@ -202,10 +202,10 @@
 
 #include <memory>
 #include <vector>
-#include "src/utility.h"
-#include "src/decoder.h"
-#include "src/instances.h"
-#include "src/executor.h"
+#include "lib/utility.h"
+#include "lib/decoder.h"
+#include "lib/instances.h"
+#include "lib/executor.h"
 
 // ahead declare;
 struct WasmInstance;

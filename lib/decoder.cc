@@ -1,7 +1,7 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <vector>
-#include "src/decoder.h"
-#include "src/include/constants.h"
+#include "lib/decoder.h"
+#include "lib/include/constants.h"
 
 using std::vector;
 

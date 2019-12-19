@@ -21,22 +21,25 @@
 #include <vector>
 #include <memory>
 #include <fstream>
-#include "src/include/errors.h"
-#include "src/type.h"
-#include "src/module.h"
-#include "src/decoder.h"
-#include "src/opcode.h"
-#include "src/utility.h"
+#include <ios>
+#include <istream>
+#include "lib/include/errors.h"
+#include "lib/type.h"
+#include "lib/module.h"
+#include "lib/decoder.h"
+#include "lib/opcode.h"
+#include "lib/utility.h"
 
 using std::vector;
 using std::string;
 using std::shared_ptr;
 using std::make_shared;
 using std::ifstream;
+using std::basic_istream;
 
 class Loader {
  private:
-  static ifstream* reader;
+  static shared_ptr<Reader> reader;
   static vector<uint8_t> buf;
   static uint32_t byteCounter;
   static size_t currentReaderOffset;
@@ -60,18 +63,16 @@ class Loader {
   static void parseDataSection(const shared_module_t&);
   static void skipKnownSection(uint8_t, const shared_module_t&);
 
-  static auto& retrieveBytes(uint32_t count) {
+  static void retrieveBytes(uint32_t count) {
     buf.clear();
     currentReaderOffset = 0;
-    char d;
-    while (reader->read(&d, sizeof(d))) {
-      buf.push_back(static_cast<uint8_t>(d));
+    while (!reader->hasReachEnd()) {
+      buf.push_back(static_cast<uint8_t>(reader->read<>()));
       if (++byteCounter == count) {
         byteCounter = 0;
         break;
       }
     }
-    return buf;
   }
 
   // feeding module pointer directly (due to MVP version);
@@ -148,7 +149,7 @@ class Loader {
 
  public:
   static shared_module_t init(const string&);
-  static shared_module_t init(const uint8_t*, size_t);
+  static shared_module_t init(uint8_t*, size_t);
 
   static inline uint8_t* getAbsReaderEndpoint() {
     return buf.data() + currentReaderOffset;

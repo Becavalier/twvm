@@ -14,7 +14,7 @@
   TypeName& operator=(TypeName&&) noexcept = default; \
   SET_STRUCT_DISABLE_COPY_CONSTUCT(TypeName);
 
-#if __has_include(<src/type.h>)
+#if __has_include(<lib/type.h>)
 #define ITERATE_WASM_VAL_TYPE(V) \
   V(I32, ValueFrameTypes::kI32Value, int32_t) \
   V(I64, ValueFrameTypes::kI64Value, int64_t) \

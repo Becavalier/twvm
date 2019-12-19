@@ -3,14 +3,14 @@
 #include <array>
 #include <stdexcept>
 #include <iostream>
-#include "src/loader.h"
-#include "src/include/constants.h"
-#include "src/include/errors.h"
-#include "src/utility.h"
-#include "src/opcode.h"
+#include "lib/loader.h"
+#include "lib/include/constants.h"
+#include "lib/include/errors.h"
+#include "lib/utility.h"
+#include "lib/opcode.h"
 
 vector<uint8_t> Loader::buf;
-ifstream* Loader::reader;
+shared_ptr<Reader> Loader::reader = nullptr;
 uint32_t Loader::byteCounter = 0;
 size_t Loader::currentReaderOffset = 0;
 
@@ -25,20 +25,35 @@ shared_module_t Loader::init(const std::string &fileName) {
   ifstream in(fileName, ios::binary);
   shared_module_t wasmModule = make_shared<Module>();
   if (in.is_open() && in.good()) {
-    reader = &in;
-    // magic# and verison validations;
+    reader = make_shared<Reader>(&in);
+    // check magic number and verison field;
     retrieveBytes(charSize * 8);
     if (WRAP_BUF_UINT32() != kWasmMagicWord) {
       Printer::instance().error(Errors::LOADER_INVALID_WASM_MAGIC);
     }
-    // offset;
     if (WRAP_BUF_UINT32() != kWasmVersion) {
       Printer::instance().error(Errors::LOADER_INVALID_WASM_VERSION);
     }
   } else {
     Printer::instance().error(Errors::LOADER_INVALID_FILE);
   }
+  // parsing start;
+  return parse(wasmModule);
+}
 
+shared_module_t Loader::init(uint8_t *buffer, size_t len) {
+  (Printer::instance() << "- [LOADING PHASE] -\n").debug();
+  shared_module_t wasmModule = make_shared<Module>();
+  // use buffer way;
+  reader = make_shared<Reader>(buffer, len);
+  // check magic number and verison field;
+  retrieveBytes(charSize * 8);
+  if (WRAP_BUF_UINT32() != kWasmMagicWord) {
+    Printer::instance().error(Errors::LOADER_INVALID_WASM_MAGIC);
+  }
+  if (WRAP_BUF_UINT32() != kWasmVersion) {
+    Printer::instance().error(Errors::LOADER_INVALID_WASM_VERSION);
+  }
   // parsing start;
   return parse(wasmModule);
 }
@@ -49,7 +64,7 @@ shared_module_t Loader::parse(const shared_module_t &module) {
 }
 
 void Loader::parseSection(const shared_module_t &module) {
-  while (reader->peek() != EOF) {
+  while (!reader->hasReachEnd()) {
     const auto sectionCode = WRAP_READER_VARUINT(uint8_t);
     const auto sectionCodeType = static_cast<SectionTypesCode>(sectionCode);
 

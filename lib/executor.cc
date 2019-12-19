@@ -1,15 +1,16 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <array>
-#include "src/executor.h"
-#include "src/include/macros.h"
-#include "src/include/constants.h"
-#include "src/opcode.h"
-#include "src/decoder.h"
-#include "src/utility.h"
+#include "lib/executor.h"
+#include "lib/include/macros.h"
+#include "lib/include/constants.h"
+#include "lib/include/macros.h"
+#include "lib/opcode.h"
+#include "lib/decoder.h"
+#include "lib/utility.h"
 
 using std::array;
 
-const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
+const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   (Printer::instance() << '\n').debug();
   (Printer::instance() << "- [EXECUTING PHASE] -\n").debug();
 
@@ -50,7 +51,7 @@ const int Executor::execute(shared_ptr<WasmInstance> wasmIns) {
     opcodeTokenHandlers[(*pc)[++innerOffset]](wasmIns, this);
 #endif
   }
-  return 0;
+  return false;
 }
 
 const void Executor::crawler(
