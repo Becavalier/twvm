@@ -92,8 +92,8 @@ void Loader::parseSection(const shared_module_t &module) {
 
 void Loader::parseUnkownSection(uint8_t sectionCode, const shared_module_t &module) {
   // buzzle;
-  Printer::instance().useHexFormat()
-    << "customized section code: " << static_cast<int>(sectionCode) << ".\n";
+  (Printer::instance().useHexFormat()
+    << "customized section code: " << static_cast<int>(sectionCode) << ".\n").warn();
   retrieveBytes(WRAP_READER_VARUINT(uint32_t));
 }
 

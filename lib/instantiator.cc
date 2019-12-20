@@ -30,14 +30,16 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   // memory instance;
   (Printer::instance() << "store: creating memory instances.\n").debug();
   const auto staticMemory = module->getMemory();
-  // we can not use "push_back" here, -
-  // since the destructor will be called when the temp value is copied by default copy-constructor -
-  // (even for move-constructor, we didn't use std::move), and the memory we allocated will be lost.
-  // so, only allow the way of "placement-new" here.
-  store->memoryInsts.emplace_back(staticMemory->initialPages, staticMemory->maximumPages);
-  moduleInst->memories.push_back(&store->memoryInsts.back());
-  // TODO(Jason Yu): init data section;
-
+  if (staticMemory) {
+    // we can not use "push_back" here, -
+    // since the destructor will be called when the temp value is copied by default copy-constructor -
+    // (even for move-constructor, we didn't use std::move), and the memory we allocated will be lost.
+    // so, only allow the way of "placement-new" here.
+    store->memoryInsts.emplace_back(staticMemory->initialPages, staticMemory->maximumPages);
+    moduleInst->memories.push_back(&store->memoryInsts.back());
+    // TODO(Jason Yu): init data section;
+  }
+  
   // function instances;
   (Printer::instance() << "store: creating function instances.\n").debug();
   const auto staticFunctions = module->getFunction();

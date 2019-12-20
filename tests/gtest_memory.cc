@@ -1,5 +1,4 @@
 #include <memory>
-#include <iostream>
 #include "gtest/gtest.h"
 #include "lib/loader.h"
 #include "lib/executor.h"
@@ -7,8 +6,6 @@
 #include "lib/cmdline.h"
 
 using std::make_unique;
-using std::cout;
-using std::endl;
 
 TEST(TWVM, MemoryOperations) {
   CommandLine::isDebugMode = true;

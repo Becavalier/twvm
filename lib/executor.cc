@@ -14,6 +14,12 @@ const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   (Printer::instance() << '\n').debug();
   (Printer::instance() << "- [EXECUTING PHASE] -\n").debug();
 
+  if (!wasmIns->startPoint) {
+    // noting to be executed;
+    (Printer::instance() << "no execution entry found.\n").say();
+    return true;
+  }
+
   pc = wasmIns->startPoint->pc;
   contextIndex = wasmIns->startPoint->index;
 

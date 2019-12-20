@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "build": "bash bin/build.sh",
+    "build": "bash scripts/build.sh",
     "debug": "npm-run-all \"build -- --debug\"",
     "test": "npm-run-all \"build -- --test\"",
     "lint": "cpplint --counting=total --filter=-build/c++11 --root=./src --recursive --linelength=120 --extensions=cc,h ./src",
