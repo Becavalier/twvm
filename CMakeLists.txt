@@ -15,7 +15,7 @@ set (CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -pthread -DNDEBUG -O3 -Wall")
 
 set (OUTPUT "twvm")
 set (STATE $ENV{CMAKE_TARGET})
-set (N_OUTPUT_SRC "build")
+set (N_OUTPUT_SRC "bin")
 set (T_OUTPUT_SRC "tests")
 
 # VM options;

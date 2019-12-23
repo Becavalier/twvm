@@ -68,6 +68,7 @@ struct WasmInstance;
 class Executor {
  private:
   bool runningStatus = true;
+  shared_ptr<WasmInstance> currentWasmIns = nullptr;
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL)
 
  public:
@@ -112,6 +113,16 @@ class Executor {
 
   inline void switchStatus(bool flag) {
     runningStatus = flag;
+  }
+
+  template <typename T>
+  inline const T stackTopValue() {
+    if (currentWasmIns) {
+      if (const auto &topVal = currentWasmIns->stack->valueStack->top()) {
+        return topVal->resolveValue<T>();
+      }
+    }
+    Printer::instance().error(Errors::RT_INVALID_VALUE_STACK_TOP);
   }
 
   inline const uint8_t* forward_(size_t step = 1) {

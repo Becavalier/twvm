@@ -14,6 +14,9 @@ const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   (Printer::instance() << '\n').debug();
   (Printer::instance() << "- [EXECUTING PHASE] -\n").debug();
 
+  // save a reference;
+  currentWasmIns = wasmIns;
+
   if (!wasmIns->startPoint) {
     // noting to be executed;
     (Printer::instance() << "no execution entry found.\n").say();
