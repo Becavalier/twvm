@@ -417,7 +417,7 @@ void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
         });
       const int32_t ea = (*topNVal[y])->toI32() + v[y];
       // "sizeof(int32_t / 8)";
-      if (ea > 0 && ea + 4 <= mem->availableSize()) {
+      if (ea >= 0 && (ea + 4 <= mem->availableSize())) {
         mem->store<int32_t>(ea, storeVal);
       } else {
         Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);

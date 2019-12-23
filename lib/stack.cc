@@ -7,7 +7,8 @@ const bool Stack::checkStackState(bool startEntry) const {
   (Printer::instance() << '(' << (startEntry ? "start" : "main") << "): ").say();
   if (leftValueSize == 1) {
     valueStack->top()->outputValue(cout << dec);
-    valueStack->pop();
+    // keep the top value on stack, just use it as final result;
+    // valueStack->pop();
   } else {
     cout << "(void)";
   }

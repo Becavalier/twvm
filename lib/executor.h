@@ -27,6 +27,9 @@ using std::unordered_map;
 #define DECLARE_CONSTANT_POOL(name, type) \
   unordered_map<type, ValueFrame> name##ConstantPool = {};
 
+#define ACTION_CLEAR_CONSTANT_POOL(name, ...) \
+  name##ConstantPool.clear();
+
 #define DECLARE_CONSTANT_POOL_SETTERS(name, type) \
   inline auto checkUpConstant(type val) { \
     return &((name##ConstantPool.try_emplace(val, val).first->second)); \
@@ -70,6 +73,16 @@ class Executor {
   bool runningStatus = true;
   shared_ptr<WasmInstance> currentWasmIns = nullptr;
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL)
+  void resetExecutionEngine() {
+    // reset engine;
+    pc = nullptr;
+    innerOffset = -1;
+    contextIndex = -1;
+    // reset cache;
+    cache->reset();
+    // reset constant pool;
+    ITERATE_OPERANDS_VALUE_TYPES(ACTION_CLEAR_CONSTANT_POOL)
+  }
 
  public:
   vector<uint8_t> *pc = nullptr;

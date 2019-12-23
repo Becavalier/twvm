@@ -3,6 +3,7 @@
 #include <array>
 #include <stdexcept>
 #include <iostream>
+#include <vector>
 #include "lib/loader.h"
 #include "lib/include/constants.h"
 #include "lib/include/errors.h"
@@ -18,6 +19,7 @@ using std::endl;
 using std::hex;
 using std::ifstream;
 using std::ios;
+using std::vector;
 using std::array;
 
 shared_module_t Loader::init(const std::string &fileName) {
@@ -56,6 +58,10 @@ shared_module_t Loader::init(uint8_t *buffer, size_t len) {
   }
   // parsing start;
   return parse(wasmModule);
+}
+
+shared_module_t Loader::init(vector<uint8_t> buffer) {
+  return Loader::init(buffer.data(), buffer.size());
 }
 
 shared_module_t Loader::parse(const shared_module_t &module) {

@@ -36,6 +36,8 @@ const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
 
   while (true) {
     if (!runningStatus) {
+      // reset flags;
+      resetExecutionEngine();
       // verify running reuslt by the state of final stack;
       return wasmIns->stack->checkStackState(wasmIns->startEntry);
     }

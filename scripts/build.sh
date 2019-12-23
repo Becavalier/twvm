@@ -1,17 +1,19 @@
 #!/bin/bash
-BASE_CMD="cmake . -Bbuild"
-BASE_BUILD="cd build && make"
-BASE_INSTALL="make install"
-
 if [ "$1" = "--test" ]
 then
   export CMAKE_TARGET="TEST"
-  $BASE_CMD -DCMAKE_BUILD_TYPE=Debug && $BASE_BUILD
+  cmake . -Bbuild -DCMAKE_BUILD_TYPE=Debug
+  cd build
+  make
 elif [ "$1" = "--debug" ]
 then
   export CMAKE_TARGET="BUILD"
-  $BASE_CMD -DCMAKE_BUILD_TYPE=Debug && $BASE_BUILD
+  cmake . -Bbuild -DCMAKE_BUILD_TYPE=Debug
+  cd build
+  make
 else
   export CMAKE_TARGET="BUILD"
-  $BASE_CMD -DCMAKE_BUILD_TYPE=Release && $BASE_BUILD && $BASE_INSTALL
+  cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release
+  cd build
+  make && make install
 fi

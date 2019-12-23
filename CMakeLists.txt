@@ -7,7 +7,7 @@ include_directories(.)
 # set (CMAKE_C_COMPILER /usr/bin/clang)
 # set (CMAKE_CXX_COMPILER /usr/bin/clang++)
 
-# set c++ config;
+# setup c++ config;
 set (CMAKE_VERBOSE_MAKEFILE "OFF")
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -pthread -O0 -Wall -g -ggdb")
@@ -24,12 +24,11 @@ add_definitions(-DOPT_DCT)
 # print all definitions;
 get_directory_property(DirDefs COMPILE_DEFINITIONS)
 foreach(d ${DirDefs})
-  message( STATUS "VM Define: " ${d} )
+  message (STATUS "VM Define: " ${d})
 endforeach()
 
 if (STATE STREQUAL TEST)
-  set (EXECUTABLE_OUTPUT_PATH ${T_OUTPUT_SRC})
-  # download and unpack googletest at configure time
+  # download and unpack googletest at configure time;
   configure_file (CMakeLists.txt.in googletest-download/CMakeLists.txt)
   execute_process (COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
     RESULT_VARIABLE result
@@ -39,7 +38,7 @@ if (STATE STREQUAL TEST)
     message (FATAL_ERROR "CMake step for googletest failed: ${result}")
   endif()
 
-  execute_process (COMMAND ${CMAKE_COMMAND} --build .
+  execute_process (COMMAND ${CMAKE_COMMAND} --build . 
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download)
 
@@ -47,22 +46,22 @@ if (STATE STREQUAL TEST)
     message (FATAL_ERROR "Build step for googletest failed: ${result}")
   endif()
 
-  # Prevent overriding the parent project's compiler/linker settings on Windows;
+  # prevent overriding the parent project's compiler/linker settings on Windows;
   set (gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
   add_subdirectory (${CMAKE_BINARY_DIR}/googletest-src
                 ${CMAKE_BINARY_DIR}/googletest-build
                 EXCLUDE_FROM_ALL)
   # resolve testing source files;
-  aux_source_directory (${T_OUTPUT_SRC} DIR_SRCS)
+  aux_source_directory (./tests DIR_SRCS)
+  set (EXECUTABLE_OUTPUT_PATH ${T_OUTPUT_SRC})
 else()
   # resolve release source files;
   aux_source_directory (./src DIR_SRCS)
-
   set (EXECUTABLE_OUTPUT_PATH ${N_OUTPUT_SRC})
 endif()  
 
-# add subdirectory;
+# add subdirectory of the core library;
 add_subdirectory (lib/)
 
 # add executable;
