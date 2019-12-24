@@ -6,6 +6,7 @@
 #include <memory>
 #include "src/twvm.h"
 #include "lib/cmdline.h"
+#include "lib/inspector.h"
 
 using std::thread;
 using std::string;
@@ -62,6 +63,18 @@ int main(int argc, const char **argv) {
   thread execThread([&wasmInstance]() -> void {
     const auto executor = make_unique<Executor>();
     executor->execute(wasmInstance);
+
+    auto f = Instantiator::instantiate(
+      Loader::init(vector<uint8_t>{
+        0, 0x61, 0x73, 0x6d, 0x1, 0, 0, 0, 0x1, 0x5, 0x1, 0x60, 0, 0x1, 0x7f, 0x3,
+        0x2, 0x1, 0, 0x5, 0x3, 0x1, 0, 0x1, 0x7, 0x8, 0x1, 0x4, 0x6d, 0x61, 0x69, 0x6e,
+        0, 0, 0xa, 0x10, 0x1, 0x0e, 0, 0x41, 0, 0x41, 0x7f, 0x36, 0x2, 0, 0x41, 0,
+        0x28, 0x2, 0, 0x0b,
+      }));
+  Inspector::inspect(f);
+  executor->execute(f
+    );
+
   });
   if (execThread.joinable()) { execThread.join(); }
   (Printer::instance() << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();

@@ -11,7 +11,7 @@
     "debug": "npm-run-all \"build -- --debug\"",
     "test": "npm-run-all \"build -- --test\"",
     "lint": "cpplint --counting=total --filter=-build/c++11 --root=./bin --recursive --linelength=120 --extensions=cc,h ./bin",
-    "memcheck": "npm run debug && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes build/twvm",
+    "memcheck": "npm run debug && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes build/bin/twvm",
     "clear": "make clean && rm -rf ./build/"
   },
   "repository": {

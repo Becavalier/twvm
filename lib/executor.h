@@ -78,6 +78,8 @@ class Executor {
     pc = nullptr;
     innerOffset = -1;
     contextIndex = -1;
+    // release shared_ptr;
+    currentWasmIns = nullptr;
     // reset cache;
     cache->reset();
     // reset constant pool;
@@ -129,7 +131,7 @@ class Executor {
   }
 
   template <typename T>
-  inline const T stackTopValue() {
+  inline const T peepStackTopValue() {
     if (currentWasmIns) {
       if (const auto &topVal = currentWasmIns->stack->valueStack->top()) {
         return topVal->resolveValue<T>();

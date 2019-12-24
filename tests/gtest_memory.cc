@@ -5,6 +5,7 @@
 #include "lib/loader.h"
 #include "lib/executor.h"
 #include "lib/instantiator.h"
+#include "lib/inspector.h"
 
 using std::make_unique;
 using std::cout;
@@ -30,7 +31,7 @@ TEST(TWVM, MemoryOperations) {
         0, 0, 0xa, 0x10, 0x1, 0x0e, 0, 0x41, 0, 0x41, 0x1, 0x36, 0x2, 0, 0x41, 0,
         0x28, 0x2, 0, 0x0b,
       })));
-  EXPECT_EQ(1, executor->stackTopValue<int32_t>());
+  EXPECT_EQ(1, executor->peepStackTopValue<int32_t>());
 
   /**
     (module
@@ -41,13 +42,15 @@ TEST(TWVM, MemoryOperations) {
         (i32.load (i32.const 0))
       ))
    */
-  executor->execute(
-    Instantiator::instantiate(
+  auto f = Instantiator::instantiate(
       Loader::init(vector<uint8_t>{
         0, 0x61, 0x73, 0x6d, 0x1, 0, 0, 0, 0x1, 0x5, 0x1, 0x60, 0, 0x1, 0x7f, 0x3,
         0x2, 0x1, 0, 0x5, 0x3, 0x1, 0, 0x1, 0x7, 0x8, 0x1, 0x4, 0x6d, 0x61, 0x69, 0x6e,
         0, 0, 0xa, 0x10, 0x1, 0x0e, 0, 0x41, 0, 0x41, 0x7f, 0x36, 0x2, 0, 0x41, 0,
         0x28, 0x2, 0, 0x0b,
-      })));
-  EXPECT_EQ(-1, executor->stackTopValue<int32_t>());
+      }));
+  Inspector::inspect(f);
+  executor->execute(f
+    );
+  EXPECT_EQ(-1, executor->peepStackTopValue<int32_t>());
 }

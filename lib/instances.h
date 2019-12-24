@@ -142,7 +142,13 @@ struct WasmModuleInstance {
 };
 
 struct WasmInstance {
-  SET_STRUCT_MOVE_ONLY(WasmInstance);
+  WasmInstance() {
+    cout << "ins created" << endl;
+  }
+  ~WasmInstance() {
+    cout << "ins clear" << endl;
+  }
+  // SET_STRUCT_MOVE_ONLY(WasmInstance);
   // start function, or main function;
   shared_ptr<PosPtr> startPoint = nullptr;
   bool startEntry = true;

@@ -21,6 +21,12 @@ using std::move;
 
 class Module {
  public:
+  Module() {
+    cout << "created"<< endl;
+  }
+  ~Module() {
+    cout << "freed"<< endl;
+  }
   uint32_t importedFuncCount = 0;
   uint32_t importedTableCount = 0;
   uint32_t startFuncIndex = 0;
