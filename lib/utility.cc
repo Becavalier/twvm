@@ -65,3 +65,11 @@ void Printer::printTableView() {
     lines.clear();
   }
 }
+
+void Utility::drawLogoGraphic() {
+  cout << \
+"\n//////    //    //\n\
+  // //  ////  ////\n\
+  //  ////  ////  //\n\
+  //   //    //    //\n\n";
+}

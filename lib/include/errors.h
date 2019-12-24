@@ -57,8 +57,7 @@ using std::unordered_map;
   V(RT_INVALID_FUNC_INDEX, "invalid function index to be called.") \
   V(RT_MEM_ACCESS_OOB, "memory access out of bound.") \
   V(RT_INVALID_STACK_VAL, "invalid stack on-top value type.") \
-  V(RT_OPERANDS_TYPE_MISMATCH, "wrong operands type.") \
-  V(RT_INVALID_VALUE_STACK_TOP, "invalid top value of the value stack.")
+  V(RT_OPERANDS_TYPE_MISMATCH, "wrong operands type.")
 
 #define ITERATE_MISC_ERRORS(V) \
   V(MISC_EXPR_NOT_INIT, "initial expression has not been initialized.") \

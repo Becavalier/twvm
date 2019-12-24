@@ -31,7 +31,7 @@ TEST(TWVM, MemoryOperations) {
         0, 0, 0xa, 0x10, 0x1, 0x0e, 0, 0x41, 0, 0x41, 0x1, 0x36, 0x2, 0, 0x41, 0,
         0x28, 0x2, 0, 0x0b,
       })));
-  EXPECT_EQ(1, executor->peepStackTopValue<int32_t>());
+  EXPECT_EQ(1, executor->inspectRunningResult<int32_t>());
 
   /**
     (module
@@ -52,5 +52,5 @@ TEST(TWVM, MemoryOperations) {
   Inspector::inspect(f);
   executor->execute(f
     );
-  EXPECT_EQ(-1, executor->peepStackTopValue<int32_t>());
+  EXPECT_EQ(-1, executor->inspectRunningResult<int32_t>());
 }

@@ -23,6 +23,9 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   const auto stack = make_shared<Stack>();
   const auto moduleInst = make_shared<WasmModuleInstance>();
   const auto staticFuncTypes = module->getFunctionSig();
+
+  // keep the static module alive;
+  moduleInst->staticModuleRef = module;
   for (auto &i : (*staticFuncTypes)) {
     moduleInst->types.push_back(&i);
   }

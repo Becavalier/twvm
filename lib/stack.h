@@ -60,8 +60,6 @@ class StackContainer {
 // for saving "Values" / "Labels" / "Activations";
 class Stack {
  public:
-  const bool checkStackState(bool startEntry = true) const;
-
   // in order to reduce the overhead from casting between parent and child types -
   // caused by "dynamic_cast" and "static_cast", we'd better store these three kinds of Frames -
   // separately.

@@ -12,6 +12,7 @@
 #include "lib/include/constants.h"
 #include "lib/include/errors.h"
 #include "lib/utility.h"
+#include "lib/module.h"
 
 using std::string;
 using std::vector;
@@ -133,6 +134,7 @@ struct WasmExportInstance {
 
 struct WasmModuleInstance {
   SET_STRUCT_MOVE_ONLY(WasmModuleInstance);
+  shared_module_t staticModuleRef = nullptr;
   vector<WasmFunctionSig*> types;
   vector<WasmFuncInstance*> funcs;
   vector<WasmTableInstance*> tables;
@@ -142,13 +144,7 @@ struct WasmModuleInstance {
 };
 
 struct WasmInstance {
-  WasmInstance() {
-    cout << "ins created" << endl;
-  }
-  ~WasmInstance() {
-    cout << "ins clear" << endl;
-  }
-  // SET_STRUCT_MOVE_ONLY(WasmInstance);
+  SET_STRUCT_MOVE_ONLY(WasmInstance);
   // start function, or main function;
   shared_ptr<PosPtr> startPoint = nullptr;
   bool startEntry = true;

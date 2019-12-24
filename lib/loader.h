@@ -62,6 +62,7 @@ class Loader {
   static void parseElementSection(const shared_module_t&);
   static void parseDataSection(const shared_module_t&);
   static void skipKnownSection(uint8_t, const shared_module_t&);
+  static void validateKeyFields();
 
   static void retrieveBytes(uint32_t count) {
     buf.clear();
