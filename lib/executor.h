@@ -17,6 +17,7 @@ using std::shared_ptr;
 using std::function;
 using std::vector;
 using std::unordered_map;
+using std::move;
 
 #define ITERATE_OPERANDS_VALUE_TYPES(V) \
   V(int32, int32_t) \
@@ -26,6 +27,9 @@ using std::unordered_map;
 
 #define DECLARE_CONSTANT_POOL(name, type) \
   unordered_map<type, ValueFrame> name##ConstantPool = {};
+
+#define ACTION_CLEAR_CONSTANT_POOL(name, ...) \
+  name##ConstantPool.clear();
 
 #define DECLARE_CONSTANT_POOL_SETTERS(name, type) \
   inline auto checkUpConstant(type val) { \
@@ -68,7 +72,23 @@ struct WasmInstance;
 class Executor {
  private:
   bool runningStatus = true;
+  shared_ptr<WasmInstance> currentWasmIns = nullptr;
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL)
+  ValueFrame lastRunningResult = {};
+  void resetExecutionEngine(ValueFrame &result) {
+    lastRunningResult = move(result);
+    // reset engine;
+    pc = nullptr;
+    innerOffset = -1;
+    contextIndex = -1;
+    runningStatus = true;
+    // release shared_ptr;
+    currentWasmIns = nullptr;
+    // reset cache;
+    cache->reset();
+    // reset constant pool;
+    ITERATE_OPERANDS_VALUE_TYPES(ACTION_CLEAR_CONSTANT_POOL)
+  }
 
  public:
   vector<uint8_t> *pc = nullptr;
@@ -77,6 +97,7 @@ class Executor {
   shared_ptr<Cache> cache = make_shared<Cache>();
   const bool execute(shared_ptr<WasmInstance>);
   const void crawler(const uint8_t*, size_t, const function<bool(WasmOpcode, size_t)> &callback = nullptr);
+  const bool checkStackState(shared_ptr<WasmInstance>);
 
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL_SETTERS)
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL_DEBUGGER)
@@ -112,6 +133,16 @@ class Executor {
 
   inline void switchStatus(bool flag) {
     runningStatus = flag;
+  }
+
+  template <typename T>
+  inline const T inspectRunningResult() {
+    if (lastRunningResult.initialized) {
+      return lastRunningResult.resolveValue<T>();
+    } else {
+      (Printer::instance() << "No existing running result found.\n").warn();
+      return T();
+    }
   }
 
   inline const uint8_t* forward_(size_t step = 1) {

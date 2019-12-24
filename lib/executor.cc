@@ -10,9 +10,30 @@
 
 using std::array;
 
+const bool Executor::checkStackState(shared_ptr<WasmInstance> wasmIns) {
+  // check the status of stack;
+  const auto valueStack = wasmIns->stack->valueStack;
+  const auto leftValueSize = valueStack->size();
+  (Printer::instance() << '(' << (wasmIns->startEntry ? "start" : "main") << "): ").say();
+  if (leftValueSize == 1) {
+    valueStack->top()->outputValue(cout << dec);
+    // keep the top value on stack, just use it as final result;
+    // valueStack->pop();
+  } else {
+    cout << "(void)";
+  }
+  cout << endl;
+  // reset flags;
+  Executor::resetExecutionEngine(*valueStack->top());
+  return leftValueSize <= 1;
+}
+
 const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   (Printer::instance() << '\n').debug();
   (Printer::instance() << "- [EXECUTING PHASE] -\n").debug();
+
+  // save a reference;
+  currentWasmIns = wasmIns;
 
   if (!wasmIns->startPoint) {
     // noting to be executed;
@@ -34,7 +55,7 @@ const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   while (true) {
     if (!runningStatus) {
       // verify running reuslt by the state of final stack;
-      return wasmIns->stack->checkStackState(wasmIns->startEntry);
+      return checkStackState(wasmIns);
     }
 #if defined(OPT_DCT)
     /**

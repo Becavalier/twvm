@@ -18,6 +18,9 @@ using std::vector;
 #define DECLARE_CACHE_CONTAINER(name, type) \
   unordered_map<uint64_t, vector<type>> name##Map = {};
 
+#define ACTION_CLEAR_ALL_CACHE(name, ...) \
+  name##Map.clear();
+
 #define DECLARE_CACHE_SET_METHODS(name, type) \
   void name##SetValueCache(uint32_t index, size_t offset, type v, size_t step) { \
     name##Map[hashLoc(index, offset)] = {v, static_cast<type>(step)}; \
@@ -69,6 +72,12 @@ class Cache {
 
   inline void uint32SetMemargCache(uint32_t index, size_t offset, uint32_t memAlign, uint32_t memOffset, size_t step) {
     memargContainer[hashLoc(index, offset)] = {memAlign, memOffset, static_cast<uint32_t>(step)};
+  }
+
+  void reset() {
+    ITERATE_IMMEDIATES_VALUE_TYPES(ACTION_CLEAR_ALL_CACHE)
+    metaContainer.clear();
+    memargContainer.clear();
   }
 };
 

@@ -1,13 +1,19 @@
 #!/bin/bash
 if [ "$1" = "--test" ]
 then
-    export CMAKE_TARGET="TEST"
-    cmake -DCMAKE_BUILD_TYPE=Release . && make
+  export CMAKE_TARGET="TEST"
+  cmake . -Bbuild -DCMAKE_BUILD_TYPE=Debug
+  cd build
+  make
 elif [ "$1" = "--debug" ]
 then
-    export CMAKE_TARGET="BUILD"
-    cmake -DCMAKE_BUILD_TYPE=Debug . && make
+  export CMAKE_TARGET="BUILD"
+  cmake . -Bbuild -DCMAKE_BUILD_TYPE=Debug
+  cd build
+  make
 else
-    export CMAKE_TARGET="BUILD"
-    cmake -DCMAKE_BUILD_TYPE=Release . && make && make install
+  export CMAKE_TARGET="BUILD"
+  cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release
+  cd build
+  make && make install
 fi

@@ -3,6 +3,7 @@
 #include <array>
 #include <stdexcept>
 #include <iostream>
+#include <vector>
 #include "lib/loader.h"
 #include "lib/include/constants.h"
 #include "lib/include/errors.h"
@@ -18,22 +19,18 @@ using std::endl;
 using std::hex;
 using std::ifstream;
 using std::ios;
+using std::vector;
 using std::array;
 
 shared_module_t Loader::init(const std::string &fileName) {
+  Utility::drawLogoGraphic();
   (Printer::instance() << "- [LOADING PHASE] -\n").debug();
   ifstream in(fileName, ios::binary);
   shared_module_t wasmModule = make_shared<Module>();
   if (in.is_open() && in.good()) {
     reader = make_shared<Reader>(&in);
     // check magic number and verison field;
-    retrieveBytes(charSize * 8);
-    if (WRAP_BUF_UINT32() != kWasmMagicWord) {
-      Printer::instance().error(Errors::LOADER_INVALID_WASM_MAGIC);
-    }
-    if (WRAP_BUF_UINT32() != kWasmVersion) {
-      Printer::instance().error(Errors::LOADER_INVALID_WASM_VERSION);
-    }
+    validateKeyFields();
   } else {
     Printer::instance().error(Errors::LOADER_INVALID_FILE);
   }
@@ -42,11 +39,22 @@ shared_module_t Loader::init(const std::string &fileName) {
 }
 
 shared_module_t Loader::init(uint8_t *buffer, size_t len) {
+  Utility::drawLogoGraphic();
   (Printer::instance() << "- [LOADING PHASE] -\n").debug();
   shared_module_t wasmModule = make_shared<Module>();
   // use buffer way;
   reader = make_shared<Reader>(buffer, len);
   // check magic number and verison field;
+  validateKeyFields();
+  // parsing start;
+  return parse(wasmModule);
+}
+
+shared_module_t Loader::init(vector<uint8_t> buffer) {
+  return Loader::init(buffer.data(), buffer.size());
+}
+
+void Loader::validateKeyFields() {
   retrieveBytes(charSize * 8);
   if (WRAP_BUF_UINT32() != kWasmMagicWord) {
     Printer::instance().error(Errors::LOADER_INVALID_WASM_MAGIC);
@@ -54,8 +62,6 @@ shared_module_t Loader::init(uint8_t *buffer, size_t len) {
   if (WRAP_BUF_UINT32() != kWasmVersion) {
     Printer::instance().error(Errors::LOADER_INVALID_WASM_VERSION);
   }
-  // parsing start;
-  return parse(wasmModule);
 }
 
 shared_module_t Loader::parse(const shared_module_t &module) {

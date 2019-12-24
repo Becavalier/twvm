@@ -12,7 +12,6 @@
 #include "lib/executor.h"
 #include "lib/stack.h"
 #include "lib/instantiator.h"
-#include "lib/inspector.h"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;

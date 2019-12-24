@@ -124,6 +124,8 @@ class Utility {
       v->push_back(ptrVal >> (ptrSize * i) & 0x000000FF);
     }
   }
+
+  static void drawLogoGraphic();
 };
 
 #endif  // UTILITY_H_

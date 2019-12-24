@@ -9,4 +9,4 @@ googletest*/
 node_modules/
 *.dSYM/
 *.a
-build/
+/build*

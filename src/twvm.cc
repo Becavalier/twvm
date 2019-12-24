@@ -6,6 +6,7 @@
 #include <memory>
 #include "src/twvm.h"
 #include "lib/cmdline.h"
+#include "lib/inspector.h"
 
 using std::thread;
 using std::string;
@@ -57,7 +58,7 @@ int main(int argc, const char **argv) {
   if (CommandLine::isDebugMode) {
     Inspector::inspect(wasmInstance);
   }
-
+  
   // execution
   thread execThread([&wasmInstance]() -> void {
     const auto executor = make_unique<Executor>();

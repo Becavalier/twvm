@@ -10,7 +10,7 @@
 
 using std::ostream;
 using std::string;
-using std::cerr;
+using std::cout;
 using std::max;
 
 // initial configurations;
@@ -47,13 +47,14 @@ void printWrap(ostream &os, int leftPad, const string &content) {
 Options::Options(const string &command, const string &description) : positional(Arguments::Zero) {
   add("--help", "-h", "Show help messages and exit.", Arguments::Zero,
     [this, command, description](Options *o, const string&) {
-      cerr << command;
+      Utility::drawLogoGraphic();
+      cout << command;
       if (positional != Arguments::Zero) {
-        cerr << ' ' << positionalName;
+        cout << ' ' << positionalName;
       }
-      cerr << "\n\n";
-      printWrap(cerr, 0, description);
-      cerr << "\n\nOptions:\n";
+      cout << "\n\n";
+      printWrap(cout, 0, description);
+      cout << "\n\nOptions:\n";
       size_t optionWidth = 0;
       for (const auto &o : options) {
         optionWidth = max(optionWidth, o.longName.size() + o.shortName.size());
@@ -61,11 +62,11 @@ Options::Options(const string &command, const string &description) : positional(
       for (const auto &o : options) {
         bool longNShort = o.longName.size() != 0 && o.shortName.size() != 0;
         size_t pad = 1 + optionWidth - o.longName.size() - o.shortName.size();
-        cerr << "  " << o.longName << (longNShort ? ',' : ' ') << o.shortName << string(pad, ' ');
-        printWrap(cerr, optionWidth + 4, o.description);
-        cerr << '\n';
+        cout << "  " << o.longName << (longNShort ? ',' : ' ') << o.shortName << string(pad, ' ');
+        printWrap(cout, optionWidth + 4, o.description);
+        cout << '\n';
       }
-      cerr << '\n';
+      cout << '\n';
       exit(EXIT_SUCCESS);
     });
 }

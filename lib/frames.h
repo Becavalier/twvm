@@ -26,19 +26,22 @@ struct WasmFuncInstance;
 
 class ValueFrame {
  public:
+  bool initialized = false;
   SET_STRUCT_MOVE_ONLY(ValueFrame);
   ValueFrame(ValueFrameTypes type) : bitPattern{} {}
   ValueFrame(const ValueFrame *other) : type(other->type), isValueZero(other->isValueZero) {
     // copy "bitPattern";
     memcpy(bitPattern, other->bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
+    initialized = true;
   }
 
 #define DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS(name, localtype, ctype) \
   ValueFrame(ctype v) : type(localtype), bitPattern{} { \
     isValueZero = (v == static_cast<ctype>(0)); \
     Utility::writeUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern), v); \
+    initialized = true; \
   } \
-  const ctype to##name() const { \
+  inline const ctype to##name() const { \
     return Utility::readUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern)); \
   }
   ITERATE_WASM_VAL_TYPE(DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS)
@@ -79,8 +82,13 @@ class ValueFrame {
     }
   }
 
-  const auto isZero() const {
+  inline const auto isZero() const {
     return isValueZero;
+  }
+
+  template <typename T>
+  inline const T resolveValue() {
+    return Utility::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(bitPattern));
   }
 
  private:

@@ -1,7 +1,7 @@
 {
   "name": "twvm",
   "version": "0.0.1",
-  "description": "A tiny and efficient WebAssembly virtual machine.",
+  "description": "A tiny, lightweight and efficient WebAssembly virtual machine.",
   "main": "index.js",
   "directories": {
     "test": "test"
@@ -10,9 +10,9 @@
     "build": "bash scripts/build.sh",
     "debug": "npm-run-all \"build -- --debug\"",
     "test": "npm-run-all \"build -- --test\"",
-    "lint": "cpplint --counting=total --filter=-build/c++11 --root=./src --recursive --linelength=120 --extensions=cc,h ./src",
-    "memcheck": "npm run debug && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes build/twvm",
-    "clear": "make clean && rm -rf CMakeCache.txt && rm -rf cmake_install.cmake && rm -rf CMakeFiles/"
+    "lint": "cpplint --counting=total --filter=-build/c++11 --root=./bin --recursive --linelength=120 --extensions=cc,h ./bin",
+    "memcheck": "npm run debug && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes build/bin/twvm",
+    "clear": "make clean && rm -rf ./build/"
   },
   "repository": {
     "type": "git",
