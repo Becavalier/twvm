@@ -12,7 +12,7 @@
 
 using std::forward;
 
-// #define ENABLE_DEBUG
+#define ENABLE_DEBUG
 #define WRAP_FORWARD_INT_FIELD(keyName, type) \
   const auto keyName = Decoder::readVarInt<type>(executor->forward_());
 
@@ -20,56 +20,66 @@ using std::forward;
   using std::hex;
   using std::showbase;
   #define INSPECT_STACK(opcodeName, wasmIns, executor) \
-    const auto &vs = wasmIns->stack->valueStack; \
-    const auto &ls = wasmIns->stack->labelStack; \
-    const auto &as = wasmIns->stack->activationStack; \
-    auto &printer = Printer::instance(); \
-    stringstream line; \
-    (printer << opcodeName << '\n').debug(); \
-    line << "VS (values) | "; \
-    for (uint32_t i = 0; i < vs->size(); i++) { \
-      vs->at(i)->outputValue(line); \
-      if (i < vs->size() - 1) { line << ", "; } \
-    } \
-    line << " <-"; \
-    printer.makeLine(line); \
-    line << "# of LS | " << ls->size(); \
-    printer.makeLine(line); \
-    line << "AS (locals) | "; \
-    for (uint32_t i = 0; i < as->size(); i++) { \
-      const auto &locals = as->at(i).locals; \
-      const auto &localSize = locals.size(); \
-      if (localSize == 0) { line << "void"; } else { \
-        line << '['; \
-        for (uint32_t j = 0; j < localSize; j ++) { \
-          locals.at(j)->outputValue(line); \
-          if (j < localSize - 1) { line << ", "; } \
-        } \
-        line << ']'; \
-      } \
-      if (i < as->size() - 1) { line << ", "; } \
-    } \
-    line << " <-"; \
-    printer.makeLine(line); \
-    line << "CP (i32) | "; \
-    executor->int32ConstantPoolDebug(line); \
-    printer.makeLine(line); \
-    line << "CP (i64) | "; \
-    executor->int64ConstantPoolDebug(line); \
-    printer.makeLine(line); \
-    line << "CP (f32) | "; \
-    executor->floatConstantPoolDebug(line); \
-    printer.makeLine(line); \
-    line << "CP (f64) | "; \
-    executor->doubleConstantPoolDebug(line); \
-    printer.makeLine(line); \
-    printer.printTableView();
+    debug(opcodeName, wasmIns, executor)
 #else
   #define INSPECT_STACK(...)
 #endif
 
 using std::make_shared;
 using std::move;
+
+void debug(string opcodeName, shared_wasm_t &wasmIns, Executor *executor) {
+  const auto &valueStack = wasmIns->stack->valueStack;
+  const auto &labelStack = wasmIns->stack->labelStack;
+  const auto &activationStack = wasmIns->stack->activationStack;
+  auto &printer = Printer::instance();
+  stringstream line;
+  (printer << opcodeName << '\n').debug();
+  // "ValueFrame"; 
+  line << "VS (values) | ";
+  for (uint32_t i = 0; i < valueStack->size(); i++) {
+    valueStack->at(i)->outputValue(line);
+    if (i < valueStack->size() - 1) { line << ", "; }
+  }
+  line << " <-";
+  printer.makeLine(line);
+  // "LabelFrame"; 
+  line << "# of LS | " << labelStack->size();
+  printer.makeLine(line);
+  // "ActivationFrame"; 
+  line << "AS (locals) | ";
+  for (uint32_t i = 0; i < activationStack->size(); i++) {
+    const auto &locals = activationStack->at(i).locals;
+    const auto &localSize = locals.size();
+    if (localSize == 0) {
+      line << "void";
+    } else {
+      line << '[';
+      for (uint32_t j = 0; j < localSize; j ++) {
+        locals.at(j)->outputValue(line);
+        if (j < localSize - 1) { line << ", "; }
+      }
+      line << ']';
+    }
+    if (i < activationStack->size() - 1) { line << ", "; }
+  }
+  line << " <-";
+  printer.makeLine(line);
+  // Constant Pool;
+  line << "CP (i32) | ";
+  executor->int32ConstantPoolDebug(line);
+  printer.makeLine(line);
+  line << "CP (i64) | ";
+  executor->int64ConstantPoolDebug(line);
+  printer.makeLine(line);
+  line << "CP (f32) | ";
+  executor->floatConstantPoolDebug(line);
+  printer.makeLine(line);
+  line << "CP (f64) | ";
+  executor->doubleConstantPoolDebug(line);
+  printer.makeLine(line);
+  printer.printTableView();
+}
 
 void OpCode::doUnreachable(shared_wasm_t &wasmIns, Executor *executor) {
   // trap;

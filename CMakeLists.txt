@@ -19,6 +19,7 @@ set (N_OUTPUT_SRC "bin")
 set (T_OUTPUT_SRC "tests")
 
 # VM options;
+add_definitions(-DBUILD_VERSION="$ENV{BUILD_VERSION}")
 add_definitions(-DOPT_DCT)
 
 # print all definitions;

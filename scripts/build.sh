@@ -1,4 +1,6 @@
 #!/bin/bash
+export BUILD_VERSION="under-construction"
+
 if [ "$1" = "--test" ]
 then
   export CMAKE_TARGET="TEST"
