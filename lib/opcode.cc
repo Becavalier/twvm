@@ -28,6 +28,37 @@ using std::forward;
 using std::make_shared;
 using std::move;
 
+void OpCode::memI32(
+  shared_wasm_t &wasmIns,
+  Executor *executor,
+  const function<void(const int32_t, WasmMemoryInstance *const &mem, const int32_t)> &handler) {
+    // pop an i32 value from the stack (value to be stored);
+    auto topNVal = wasmIns->stack->valueStack->topN(2);
+    constexpr auto x = DEFAULT_ELEMENT_INDEX;
+    constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
+    if ((*topNVal[x])->getValueType() == ValueTypesCode::kI32) {
+      const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
+      const auto storeVal = (*topNVal[x])->toI32();
+      // retrive base address;
+      if ((*topNVal[y])->getValueType() == ValueTypesCode::kI32) {
+        auto &v = executor->uint32UseMemargCache(
+          [&executor](uint32_t *a, uint32_t *o, size_t *step) -> void {
+            *a = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
+            *o = Decoder::readVarUint<uint32_t>(executor->forward_() + *step - 1, step);
+            executor->innerOffset += (*step - 2);
+          });
+        const int32_t ea = (*topNVal[y])->toI32() + v[y];
+        // "sizeof(int8_t / 8)";
+        if (ea >= 0) {
+          handler(ea, mem, storeVal);
+        } else {
+          Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
+        }
+        wasmIns->stack->valueStack->popN(2);
+      }
+    }
+  }
+
 void debug(string opcodeName, shared_wasm_t &wasmIns, Executor *executor) {
   const auto &valueStack = wasmIns->stack->valueStack;
   const auto &labelStack = wasmIns->stack->labelStack;
@@ -148,11 +179,14 @@ void OpCode::doElse(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void OpCode::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
+cout << 1111 << endl;
   const auto &currentLabelStackSize = wasmIns->stack->labelStack->size();
   const auto &currentActivation = &wasmIns->stack->activationStack->top();
   const auto activationLabelStackHeight = currentActivation->getLabelStackHeight();
   const auto activationValueStackHeight = currentActivation->getValueStackHeight();
+  cout << 222 << endl;
   if (currentLabelStackSize == activationLabelStackHeight) {
+    cout << 1111 << endl;
     // function end;
     const auto &funcProto = currentActivation->pFuncIns->staticProto;
     if (funcProto->sig->returnCount == (wasmIns->stack->valueStack->size() - activationValueStackHeight)) {
@@ -410,35 +444,30 @@ void OpCode::doI32LoadMem16U(shared_wasm_t &wasmIns, Executor *executor) {
 
 // operands: [storeVal, baseAddr]; immes: [flags, offset];
 void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
-  // pop an i32 value from the stack (value to be stored);
-  auto topNVal = wasmIns->stack->valueStack->topN(2);
-  constexpr auto x = DEFAULT_ELEMENT_INDEX;
-  constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
-  if ((*topNVal[x])->getValueType() == ValueTypesCode::kI32) {
-    const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
-    const auto storeVal = (*topNVal[x])->toI32();
-    // retrive base address;
-    if ((*topNVal[y])->getValueType() == ValueTypesCode::kI32) {
-      auto &v = executor->uint32UseMemargCache(
-        [&executor](uint32_t *a, uint32_t *o, size_t *step) -> void {
-          *a = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
-          *o = Decoder::readVarUint<uint32_t>(executor->forward_() + *step - 1, step);
-          executor->innerOffset += (*step - 2);
-        });
-      const int32_t ea = (*topNVal[y])->toI32() + v[y];
-      // "sizeof(int32_t / 8)";
-      if (ea >= 0 && (ea + 4 <= mem->availableSize())) {
-        mem->store<int32_t>(ea, storeVal);
-      } else {
-        Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
-      }
-      wasmIns->stack->valueStack->popN(2);
+  memI32(wasmIns, executor, [](
+    const uint32_t ea, 
+    WasmMemoryInstance *const &mem, 
+    const uint32_t storeVal) -> void {
+    if (ea + 4 <= mem->availableSize()) {
+      mem->store<int32_t>(ea, storeVal);
+    } else {
+      Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
     }
-  }
+  });
   INSPECT_STACK("i32.store", wasmIns, executor);
 }
 
 void OpCode::doI32StoreMem8(shared_wasm_t &wasmIns, Executor *executor) {
+  memI32(wasmIns, executor, [](
+    const uint32_t ea, 
+    WasmMemoryInstance *const &mem, 
+    const uint32_t storeVal) -> void {
+    if (ea + 1 <= mem->availableSize()) {
+      mem->store<int8_t>(ea, storeVal & 255);
+    } else {
+      Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
+    }
+  });
   INSPECT_STACK("i32.store8", wasmIns, executor);
 }
 

@@ -202,6 +202,7 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 #include "lib/utility.h"
 #include "lib/decoder.h"
 #include "lib/instances.h"
@@ -215,6 +216,7 @@ using std::shared_ptr;
 using std::vector;
 using shared_wasm_t = shared_ptr<WasmInstance>;
 using handlerProto = void (shared_wasm_t&, Executor*);
+using std::function;
 
 enum class WasmOpcode {
   ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
@@ -269,6 +271,11 @@ enum class WasmOpcode {
   V(I32Add)
 
 class OpCode {
+ private:
+  static void memI32(
+    shared_wasm_t &wasmIns,
+    Executor *executor,
+    const function<void(const int32_t, WasmMemoryInstance *const&, const int32_t)>&);
  public:
   static uint32_t calcOpCodeEntityLen(const uint8_t* buf, WasmOpcode opcode) {
     #define OPCODE_CASE(name) \
