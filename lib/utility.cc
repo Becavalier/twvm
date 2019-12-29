@@ -73,6 +73,6 @@ void Utility::drawLogoGraphic() {
   //  ////  ////  //\n\
   //   //    //    //\n\n";
 #if defined(BUILD_VERSION)
-  cout << "  VerNo: v." << BUILD_VERSION << "\n\n";
+  cout << "  Version: " << BUILD_VERSION << "\n\n";
 #endif
 }

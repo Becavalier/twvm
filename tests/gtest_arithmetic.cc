@@ -12,7 +12,6 @@ using std::endl;
 using std::vector;
 
 TEST(TWVM, ARITHMETIC) {
-  /*
   const auto executor = make_unique<Executor>();
   // little-endian;
   executor->execute(
@@ -29,5 +28,4 @@ TEST(TWVM, ARITHMETIC) {
         0x6a, 0x0b, 0x86, 0x80, 0x80, 0x80, 0, 0, 0x41, 0x0a, 0x10, 0, 0x0b,  
       })));
   EXPECT_EQ(55, executor->inspectRunningResult<int32_t>());
-  */
 }

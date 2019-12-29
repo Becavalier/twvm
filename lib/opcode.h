@@ -272,10 +272,14 @@ enum class WasmOpcode {
 
 class OpCode {
  private:
-  static void memI32(
+  static void storeMemargI32(
     shared_wasm_t &wasmIns,
     Executor *executor,
     const function<void(const int32_t, WasmMemoryInstance *const&, const int32_t)>&);
+  static void retrieveMemargI32(
+    shared_wasm_t &wasmIns,
+    Executor *executor,
+    const function<void(const int32_t, WasmMemoryInstance *const&)>&);
  public:
   static uint32_t calcOpCodeEntityLen(const uint8_t* buf, WasmOpcode opcode) {
     #define OPCODE_CASE(name) \
