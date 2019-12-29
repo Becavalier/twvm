@@ -379,7 +379,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
       #define DEAL_NON_VAR_IMME_OPCODE(name) \
         case WasmOpcode::kOpcode##name: { \
           Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); break; }
-      // keep the raw opcode for identifying purpose;;
+      // keep the raw opcode for identifying purpose;
       codeBucket->push_back(byte);
       switch (opcode) {
         // special cases;

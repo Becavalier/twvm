@@ -11,7 +11,7 @@ using std::cout;
 using std::endl;
 using std::vector;
 
-TEST(TWVM, Miscellaneous) {
+TEST(TWVM, ARITHMETIC) {
   const auto executor = make_unique<Executor>();
   // little-endian;
   executor->execute(

@@ -28,7 +28,7 @@ class WasmMemoryInstance {
   WasmMemoryInstance(uint32_t initMemSize = 1, uint32_t maxMemSize = 0) : maxMemSize(maxMemSize) {
     if (initMemSize > 0 && (maxMemSize == 0 || initMemSize <= maxMemSize)) {
       // allocate space (multiple of Wasm page);
-      if ((data = static_cast<uint8_t*>(malloc(initMemSize * WASM_PAGE_SIZE)))) {
+      if ((data = static_cast<uint8_t*>(calloc(initMemSize * WASM_PAGE_SIZE, uint8Size)))) {
         currentMemSize = initMemSize;
       } else {
         Printer::instance().error(Errors::LOADER_MEM_ALLOC_ERR);
@@ -45,7 +45,6 @@ class WasmMemoryInstance {
   template <typename T>
   T load(uint32_t offset) {
     if (offset + sizeof(T) <= currentMemSize * DEFAULT_BYTE_LENGTH) {
-      currentUsedMemSize -= sizeof(T);
       return *reinterpret_cast<T*>(data + offset);
     } else {
       Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
@@ -60,22 +59,22 @@ class WasmMemoryInstance {
     // bound check;
     if (offset + sizeof(T) <= currentMemSize * DEFAULT_BYTE_LENGTH) {
       *(reinterpret_cast<T*>(data + offset)) = val;
-      currentUsedMemSize += sizeof(T);
     } else {
       Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
     }
   }
 
-  // return the current memory size in Wasm pages;
-  inline const auto usedSize() {
-    return currentUsedMemSize;
+  void inspect(uint32_t size = 20) const {
+    for (uint32_t i = 0; i < size; i++) {
+      cout << static_cast<int>(*(data + i)) << ' ';
+    }
   }
 
-  inline const auto availableSize() {
+  inline const auto availableSize() const {
     return currentMemSize * WASM_PAGE_SIZE;
   }
 
-  inline const auto maxSize() {
+  inline const auto maxSize() const {
     return maxMemSize;
   }
 
@@ -99,7 +98,6 @@ class WasmMemoryInstance {
   // 64k per pages;
   uint32_t maxMemSize = 0;
   uint32_t currentMemSize = 0;
-  uint32_t currentUsedMemSize = 0;
   uint8_t* data = nullptr;
   const WasmMemory *staticMemory;
 };

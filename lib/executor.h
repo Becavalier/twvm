@@ -76,18 +76,20 @@ class Executor {
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL)
   ValueFrame lastRunningResult = {};
   void resetExecutionEngine(ValueFrame &result) {
+    // keep running result;
     lastRunningResult = move(result);
-    // reset engine;
-    pc = nullptr;
-    innerOffset = -1;
-    contextIndex = -1;
-    runningStatus = true;
     // release shared_ptr;
     currentWasmIns = nullptr;
     // reset cache;
     cache->reset();
     // reset constant pool;
     ITERATE_OPERANDS_VALUE_TYPES(ACTION_CLEAR_CONSTANT_POOL)
+    // reset params;
+    pc = nullptr;
+    innerOffset = -1;
+    contextIndex = -1;
+    // re-start engine;
+    runningStatus = true;
   }
 
  public:

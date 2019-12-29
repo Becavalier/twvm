@@ -18,7 +18,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   (Printer::instance() << "- [INSTANTIATING PHASE] -\n").debug();
 
   // produce store, stack and module instance;
-  (Printer::instance() << "instantiating store, stack and module instances.\n").debug();
+  (Printer::instance() << "instantiating (store, stack and instances).\n").debug();
   const auto store = make_shared<Store>();
   const auto stack = make_shared<Stack>();
   const auto moduleInst = make_shared<WasmModuleInstance>();
