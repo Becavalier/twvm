@@ -272,11 +272,12 @@ enum class WasmOpcode {
 
 class OpCode {
  private:
-  static void storeMemargI32(
+  template <typename T>
+  static void storeMemarg(
     shared_wasm_t &wasmIns,
     Executor *executor,
-    const function<void(const int32_t, WasmMemoryInstance *const&, const int32_t)>&);
-  static void retrieveMemargI32(
+    const function<void(const int32_t, WasmMemoryInstance *const&, const T)>&);
+  static void retrieveMemarg(
     shared_wasm_t &wasmIns,
     Executor *executor,
     const function<void(const int32_t, WasmMemoryInstance *const&)>&);

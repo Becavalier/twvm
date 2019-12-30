@@ -28,38 +28,67 @@ using std::forward;
 using std::make_shared;
 using std::move;
 
-void OpCode::storeMemargI32(
+template <typename T>
+void OpCode::storeMemarg(
   shared_wasm_t &wasmIns,
   Executor *executor,
-  const function<void(const int32_t, WasmMemoryInstance *const &mem, const int32_t)> &handler) {
+  const function<void(const int32_t, WasmMemoryInstance *const &mem, const T)> &handler) {
     // pop an i32 value from the stack (value to be stored);
     auto topNVal = wasmIns->stack->valueStack->topN(2);
     constexpr auto x = DEFAULT_ELEMENT_INDEX;
     constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
-    if ((*topNVal[x])->getValueType() == ValueTypesCode::kI32) {
-      const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
-      const auto storeVal = (*topNVal[x])->toI32();
-      // retrive base address;
-      if ((*topNVal[y])->getValueType() == ValueTypesCode::kI32) {
-        auto &v = executor->uint32UseMemargCache(
-          [&executor](uint32_t *a, uint32_t *o, size_t *step) -> void {
-            *a = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
-            *o = Decoder::readVarUint<uint32_t>(executor->forward_() + *step - 1, step);
-            executor->innerOffset += (*step - 2);
-          });
-        const int32_t ea = (*topNVal[y])->toI32() + v[y];
-        // "sizeof(int8_t / 8)";
-        if (ea >= 0) {
-          handler(ea, mem, storeVal);
-        } else {
-          Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
-        }
-        wasmIns->stack->valueStack->popN(2);
+    const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
+    T storeVal;
+    // i32 / i64 / f32 / f64;
+    const auto storedFrame = *topNVal[x];
+    if constexpr (is_same<T, int32_t>::value) {
+      if (storedFrame->getValueType() == ValueTypesCode::kI32) {
+        storeVal = storedFrame->toI32();
+      } else {
+        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
       }
+    } else if constexpr (is_same<T, int64_t>::value) {
+      if (storedFrame->getValueType() == ValueTypesCode::kI64) {
+        storeVal = storedFrame->toI64();
+      } else {
+        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
+      }
+    } else if constexpr (is_same<T, float>::value) {
+      static_assert(sizeof(float) == 4, "insufficient size of the type.");
+      if (storedFrame->getValueType() == ValueTypesCode::kF32) {
+        storeVal = storedFrame->toF32();
+      } else {
+        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
+      }
+    } else if constexpr (is_same<T, double>::value) {
+      static_assert(sizeof(double) == 8, "insufficient size of the type.");
+      if (storedFrame->getValueType() == ValueTypesCode::kF64) {
+        storeVal = storedFrame->toF64();
+      } else {
+        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
+      }
+    }
+    // retrive base address;
+    const auto baseFrame = *topNVal[y];
+    if (baseFrame->getValueType() == ValueTypesCode::kI32) {
+      auto &v = executor->uint32UseMemargCache(
+        [&executor](uint32_t *a, uint32_t *o, size_t *step) -> void {
+          *a = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
+          *o = Decoder::readVarUint<uint32_t>(executor->forward_() + *step - 1, step);
+          executor->innerOffset += (*step - 2);
+        });
+      const int32_t ea = baseFrame->toI32() + v[y];
+      // "sizeof(int8_t / 8)";
+      if (ea >= 0) {
+        handler(ea, mem, storeVal);
+      } else {
+        Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
+      }
+      wasmIns->stack->valueStack->popN(2);
     }
   }
 
-void OpCode::retrieveMemargI32(
+void OpCode::retrieveMemarg(
   shared_wasm_t &wasmIns,
   Executor *executor,
   const function<void(const int32_t, WasmMemoryInstance *const &mem)> &handler) {
@@ -140,7 +169,7 @@ void debug(string opcodeName, shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void OpCode::doUnreachable(shared_wasm_t &wasmIns, Executor *executor) {
-  // trap;
+  // trap immediately;
   Printer::instance().error(Errors::RT_UNREACHABLE_CODE);
 }
 
@@ -424,136 +453,242 @@ void OpCode::doF64Const(shared_wasm_t &wasmIns, Executor *executor) {
 
 // operands: [baseAddr]; immes: [flags, offset]; return: [loadVal];
 void OpCode::doI32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemargI32(wasmIns, executor,
+  retrieveMemarg(wasmIns, executor,
     [&wasmIns, &executor](
       const uint32_t ea,
       WasmMemoryInstance *const &mem) -> void {
-        // "sizeof(int32_t / 8)";
-        if (ea + 4 <= mem->availableSize()) {
-          wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<int32_t>(ea));
-        } else {
-          Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
-        }
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<int32_t>(ea));
       });
   INSPECT_STACK("i32.load", wasmIns, executor);
 }
 
 void OpCode::doI32LoadMem8S(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+          static_cast<int32_t>(mem->load<int8_t>(ea)));
+      });
   INSPECT_STACK("i32.load8_s", wasmIns, executor);
 }
 
 void OpCode::doI32LoadMem8U(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+          static_cast<int32_t>(mem->load<uint8_t>(ea)));
+      });
   INSPECT_STACK("i32.load8_u", wasmIns, executor);
 }
 
 void OpCode::doI32LoadMem16S(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+          static_cast<int32_t>(mem->load<int16_t>(ea)));
+      });
   INSPECT_STACK("i32.load16_s", wasmIns, executor);
 }
 
 void OpCode::doI32LoadMem16U(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+          static_cast<int32_t>(mem->load<uint16_t>(ea)));
+      });
   INSPECT_STACK("i32.load16_u", wasmIns, executor);
 }
 
 // operands: [storeVal, baseAddr]; immes: [flags, offset];
 void OpCode::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemargI32(wasmIns, executor, [](
+  storeMemarg<int32_t>(wasmIns, executor, [](
     const uint32_t ea, 
     WasmMemoryInstance *const &mem, 
-    const uint32_t storeVal) -> void {
-    if (ea + 4 <= mem->availableSize()) {
-      mem->store<int32_t>(ea, storeVal);
-    } else {
-      Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
-    }
+    const int32_t storeVal) -> void {
+    mem->store<int32_t>(ea, storeVal);
   });
   INSPECT_STACK("i32.store", wasmIns, executor);
 }
 
 void OpCode::doI32StoreMem8(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemargI32(wasmIns, executor, [](
-    const uint32_t ea, 
+  storeMemarg<int32_t>(wasmIns, executor, [](const uint32_t ea, 
     WasmMemoryInstance *const &mem, 
-    const uint32_t storeVal) -> void {
-    if (ea + 1 <= mem->availableSize()) {
-      mem->store<int8_t>(ea, (storeVal & 255u));
-    } else {
-      Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
-    }
+    const int32_t storeVal) -> void {
+    mem->store<int8_t>(ea, (storeVal & 255u));
   });
   INSPECT_STACK("i32.store8", wasmIns, executor);
 }
 
 void OpCode::doI32StoreMem16(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemargI32(wasmIns, executor, [](
+  storeMemarg<int32_t>(wasmIns, executor, [](
     const uint32_t ea, 
     WasmMemoryInstance *const &mem, 
-    const uint32_t storeVal) -> void {
-    if (ea + 1 <= mem->availableSize()) {
-      mem->store<int8_t>(ea, (storeVal & 65535u));
-    } else {
-      Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
-    }
+    const int32_t storeVal) -> void {
+    mem->store<int8_t>(ea, (storeVal & 65535u));
   });
   INSPECT_STACK("i32.store16", wasmIns, executor);
 }
 
 void OpCode::doI64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<int64_t>(ea));
+      });
   INSPECT_STACK("i64.load", wasmIns, executor);
 }
 
 void OpCode::doI64LoadMem8S(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+          static_cast<int64_t>(mem->load<int8_t>(ea)));
+      });
   INSPECT_STACK("i64.load8_s", wasmIns, executor);
 }
 
 void OpCode::doI64LoadMem8U(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+          static_cast<int64_t>(mem->load<uint8_t>(ea)));
+      });
   INSPECT_STACK("i64.load8_u", wasmIns, executor);
 }
 
 void OpCode::doI64LoadMem16S(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+          static_cast<int64_t>(mem->load<int16_t>(ea)));
+      });
   INSPECT_STACK("i64.load16_s", wasmIns, executor);
 }
 
 void OpCode::doI64LoadMem16U(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+          static_cast<int64_t>(mem->load<uint16_t>(ea)));
+      });
   INSPECT_STACK("i64.load16_u", wasmIns, executor);
 }
 
 void OpCode::doI64LoadMem32S(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+          static_cast<int64_t>(mem->load<int32_t>(ea)));
+      });
   INSPECT_STACK("i64.load32_s", wasmIns, executor);
 }
 
 void OpCode::doI64LoadMem32U(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+          static_cast<int64_t>(mem->load<uint32_t>(ea)));
+      });
   INSPECT_STACK("i64.load32_u", wasmIns, executor);
 }
 
 void OpCode::doI64StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
+  storeMemarg<int64_t>(wasmIns, executor, [](
+    const uint32_t ea, 
+    WasmMemoryInstance *const &mem, 
+    const int64_t storeVal) -> void {
+    mem->store<int64_t>(ea, storeVal);
+  });
   INSPECT_STACK("i64.store", wasmIns, executor);
 }
 
 void OpCode::doI64StoreMem8(shared_wasm_t &wasmIns, Executor *executor) {
+  storeMemarg<int64_t>(wasmIns, executor, [](
+    const uint32_t ea, 
+    WasmMemoryInstance *const &mem, 
+    const int64_t storeVal) -> void {
+    mem->store<int8_t>(ea, storeVal & 255u);
+  });
   INSPECT_STACK("i64.store8", wasmIns, executor);
 }
 
 void OpCode::doI64StoreMem16(shared_wasm_t &wasmIns, Executor *executor) {
+  storeMemarg<int64_t>(wasmIns, executor, [](
+    const uint32_t ea, 
+    WasmMemoryInstance *const &mem, 
+    const int64_t storeVal) -> void {
+    mem->store<int16_t>(ea, storeVal & 65535u);
+  });
   INSPECT_STACK("i64.store16", wasmIns, executor);
 }
 
 void OpCode::doI64StoreMem32(shared_wasm_t &wasmIns, Executor *executor) {
+  storeMemarg<int64_t>(wasmIns, executor, [](
+    const uint32_t ea, 
+    WasmMemoryInstance *const &mem, 
+    const int64_t storeVal) -> void {
+    mem->store<int32_t>(ea, storeVal & 4294836225u);
+  });
   INSPECT_STACK("i64.store32", wasmIns, executor);
 }
 
 void OpCode::doF32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
+  storeMemarg<float>(wasmIns, executor, [](
+    const uint32_t ea, 
+    WasmMemoryInstance *const &mem, 
+    const float storeVal) -> void {
+    mem->store<float>(ea, storeVal);
+  });
   INSPECT_STACK("f32.store", wasmIns, executor);
 }
 
 void OpCode::doF32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<float>(ea));
+      });
   INSPECT_STACK("f32.load", wasmIns, executor);
 }
 
 void OpCode::doF64StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
+  storeMemarg<double>(wasmIns, executor, [](
+    const uint32_t ea, 
+    WasmMemoryInstance *const &mem, 
+    const double storeVal) -> void {
+    mem->store<double>(ea, storeVal);
+  });
   INSPECT_STACK("f64.store", wasmIns, executor);
 }
 
 void OpCode::doF64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveMemarg(wasmIns, executor,
+    [&wasmIns, &executor](
+      const uint32_t ea,
+      WasmMemoryInstance *const &mem) -> void {
+        wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<double>(ea));
+      });
   INSPECT_STACK("f64.load", wasmIns, executor);
 }
 

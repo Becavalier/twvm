@@ -10,6 +10,8 @@
 
 constexpr auto ptrSize = sizeof(uintptr_t);
 constexpr auto charSize = sizeof(char);
+constexpr auto floatSize = sizeof(float);
+constexpr auto doubleSize = sizeof(double);
 constexpr auto uint8Size = sizeof(uint8_t);
 constexpr auto i32Size = sizeof(int32_t);
 constexpr auto i64Size = sizeof(int64_t);
