@@ -121,7 +121,7 @@
   V(I32RemS, 0x6f) \
   V(I32RemU, 0x70) \
   V(I32And, 0x71) \
-  V(I32Ior, 0x72) \
+  V(I32Or, 0x72) \
   V(I32Xor, 0x73) \
   V(I32Shl, 0x74) \
   V(I32ShrS, 0x75) \
@@ -139,7 +139,7 @@
   V(I64RemS, 0x81) \
   V(I64RemU, 0x82) \
   V(I64And, 0x83) \
-  V(I64Ior, 0x84) \
+  V(I64Or, 0x84) \
   V(I64Xor, 0x85) \
   V(I64Shl, 0x86) \
   V(I64ShrS, 0x87) \
@@ -223,13 +223,14 @@ enum class WasmOpcode {
   ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
 };
 
-// opcode classifications;
+// opcode classifications (make sure to except unknown opcodes);
 #define ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(V) \
   V(Block) \
   V(Loop) \
   V(BrIf) \
   V(If) \
   V(Call) \
+  V(CallIndirect) \
   V(LocalGet) \
   V(LocalSet) \
   V(LocalTee) \
@@ -239,37 +240,18 @@ enum class WasmOpcode {
   V(I64Const)
 
 #define ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(V) \
-  V(F32LoadMem) \
-  V(F64LoadMem) \
-  V(I32LoadMem) \
-  V(I64LoadMem) \
-  V(I32LoadMem8S) \
-  V(I32LoadMem8U) \
-  V(I64LoadMem8S) \
-  V(I64LoadMem8U) \
-  V(I32LoadMem16S) \
-  V(I32LoadMem16U) \
-  V(I64LoadMem16S) \
-  V(I64LoadMem16U) \
-  V(I64LoadMem32S) \
-  V(I64LoadMem32U) \
-  V(I32StoreMem) \
-  V(I64StoreMem) \
-  V(F32StoreMem) \
-  V(F64StoreMem) \
-  V(I32StoreMem8) \
-  V(I64StoreMem8) \
-  V(I32StoreMem16) \
-  V(I64StoreMem16) \
-  V(I64StoreMem32)
+  ITERATE_LOAD_MEM_OPCODE(V) \
+  ITERATE_STORE_MEM_OPCODE(V)
 
 #define ITERATE_OPCODE_NAME_WITH_NON_VAR_IMME(V) \
+  ITERATE_SIMPLE_OPCODE(V) \
+  V(Nop) \
   V(Return) \
   V(Else) \
   V(End) \
-  V(I32GeS) \
-  V(I64GeS) \
-  V(I32Add)
+  V(Drop) \
+  V(Select) \
+
 
 class OpCode {
  private:
@@ -289,9 +271,15 @@ class OpCode {
     shared_wasm_t &wasmIns,
     Executor *executor,
     const function<void(const shared_ptr<Stack::ValueFrameStack>&, ValueFrame *const&, ValueFrame *const&)>&);
+    
+  template <typename T>
+  static void retrieveSingleRTVal(
+    shared_wasm_t &wasmIns,
+    Executor *executor,
+    const function<void(const shared_ptr<Stack::ValueFrameStack>&, ValueFrame *const&)>&);
  public:
   static uint32_t calcOpCodeEntityLen(const uint8_t* buf, WasmOpcode opcode) {
-    #define OPCODE_CASE(name) \
+    #define OPCODE_CASE(name, ...) \
       case WasmOpcode::kOpcode##name:
     switch (opcode) {
       case WasmOpcode::kOpcodeF32Const: { return f32Size; }

@@ -348,7 +348,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
         continue;
       }
       // simple DCT (one-time transforming);
-      #define DEAL_ONE_VAR_IMME_OPCODE(name) \
+      #define DEAL_ONE_VAR_IMME_OPCODE(name, ...) \
         case WasmOpcode::kOpcode##name: { \
           Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); \
           auto innerOffset = 1; \
@@ -361,7 +361,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
           j += innerOffset; \
           break; \
         }
-      #define DEAL_TWO_VAR_IMME_OPCODE(name) \
+      #define DEAL_TWO_VAR_IMME_OPCODE(name, ...) \
         case WasmOpcode::kOpcode##name: { \
           Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); \
           auto innerOffset = 1; \
@@ -376,7 +376,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
           } \
           break; \
         }
-      #define DEAL_NON_VAR_IMME_OPCODE(name) \
+      #define DEAL_NON_VAR_IMME_OPCODE(name, ...) \
         case WasmOpcode::kOpcode##name: { \
           Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); break; }
       // keep the raw opcode for identifying purpose;

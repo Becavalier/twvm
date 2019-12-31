@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include "gtest/gtest.h"
+#include "tests/macros.h"
 #include "lib/loader.h"
 #include "lib/executor.h"
 #include "lib/instantiator.h"
