@@ -5,6 +5,8 @@
 #include "lib/utility.h"
 #include "lib/include/macros.h"
 
+#define BUILDSTAMP ( __DATE__ " " __TIME__ )
+
 using std::max_element;
 using std::left;
 using std::setw;
@@ -66,13 +68,16 @@ void Printer::printTableView() {
   }
 }
 
-void Utility::drawLogoGraphic() {
+void Utility::drawLogoGraphic(bool simplify) {
   cout << \
 "\n//////    //    //\n\
   // //  ////  ////\n\
   //  ////  ////  //\n\
   //   //    //    //\n\n";
 #if defined(BUILD_VERSION)
-  cout << "  Version: " << BUILD_VERSION << "\n\n";
+  cout << "  V." << BUILD_VERSION << "\n\n";
 #endif
+  if (!simplify) {
+    cout << "  Built: " << BUILDSTAMP << "\n\n";
+  }
 }
