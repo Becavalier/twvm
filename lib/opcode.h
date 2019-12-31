@@ -203,6 +203,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include "lib/frames.h"
 #include "lib/utility.h"
 #include "lib/decoder.h"
 #include "lib/instances.h"
@@ -277,10 +278,17 @@ class OpCode {
     shared_wasm_t &wasmIns,
     Executor *executor,
     const function<void(const int32_t, WasmMemoryInstance *const&, const T)>&);
+
   static void retrieveMemarg(
     shared_wasm_t &wasmIns,
     Executor *executor,
     const function<void(const int32_t, WasmMemoryInstance *const&)>&);
+
+  template <typename T>
+  static void retrieveDoubleRTVals(
+    shared_wasm_t &wasmIns,
+    Executor *executor,
+    const function<void(const shared_ptr<Stack::ValueFrameStack>&, ValueFrame *const&, ValueFrame *const&)>&);
  public:
   static uint32_t calcOpCodeEntityLen(const uint8_t* buf, WasmOpcode opcode) {
     #define OPCODE_CASE(name) \
