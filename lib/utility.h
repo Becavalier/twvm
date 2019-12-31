@@ -125,7 +125,7 @@ class Utility {
     }
   }
 
-  static void drawLogoGraphic();
+  static void drawLogoGraphic(bool = true);
 };
 
 #endif  // UTILITY_H_

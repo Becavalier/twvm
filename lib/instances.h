@@ -41,10 +41,22 @@ class WasmMemoryInstance {
     free(data);
   }
 
+  inline const auto availableSize() const {
+    return currentMemSize * WASM_PAGE_SIZE;
+  }
+
+  inline const auto maxSize() const {
+    return maxMemSize;
+  }
+
+  inline const auto& rawDataBuf() {
+    return data;
+  }
+  
   // memory -> stack;
   template <typename T>
   T load(uint32_t offset) {
-    if (offset + sizeof(T) <= currentMemSize * DEFAULT_BYTE_LENGTH) {
+    if (offset + sizeof(T) <= availableSize()) {
       return *reinterpret_cast<T*>(data + offset);
     } else {
       Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
@@ -57,7 +69,7 @@ class WasmMemoryInstance {
   template <typename T>
   void store(uint32_t offset, T val) {
     // bound check;
-    if (offset + sizeof(T) <= currentMemSize * DEFAULT_BYTE_LENGTH) {
+    if (offset + sizeof(T) <= availableSize()) {
       *(reinterpret_cast<T*>(data + offset)) = val;
     } else {
       Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
@@ -68,18 +80,6 @@ class WasmMemoryInstance {
     for (uint32_t i = 0; i < size; i++) {
       cout << static_cast<int>(*(data + i)) << ' ';
     }
-  }
-
-  inline const auto availableSize() const {
-    return currentMemSize * WASM_PAGE_SIZE;
-  }
-
-  inline const auto maxSize() const {
-    return maxMemSize;
-  }
-
-  inline const auto& rawDataBuf() {
-    return data;
   }
 
   // expand the maxmium capacity of the memory by Wasm pages;

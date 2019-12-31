@@ -3,6 +3,7 @@
 #include <string>
 #include <algorithm>
 #include <cstdlib>
+#include <sstream>
 #include "lib/cmdline.h"
 #include "lib/utility.h"
 #include "lib/include/errors.h"
@@ -11,7 +12,9 @@
 using std::ostream;
 using std::string;
 using std::cout;
+using std::endl;
 using std::max;
+using std::stringstream;
 
 // initial configurations;
 bool CommandLine::isDebugMode = false;
@@ -27,7 +30,7 @@ void printWrap(ostream &os, int leftPad, const string &content) {
       nextWord += content[i];
     } else {
       if (static_cast<int>(nextWord.size()) > space) {
-        os << '\n' << pad;
+        os << endl << pad;
         space = SCREEN_WIDTH - leftPad;
       }
       os << nextWord;
@@ -37,7 +40,7 @@ void printWrap(ostream &os, int leftPad, const string &content) {
       }
       nextWord.clear();
       if (content[i] == '\n') {
-        os << '\n';
+        os << endl;
         space = SCREEN_WIDTH - leftPad;
       }
     }
@@ -62,11 +65,19 @@ Options::Options(const string &command, const string &description) : positional(
       for (const auto &o : options) {
         bool longNShort = o.longName.size() != 0 && o.shortName.size() != 0;
         size_t pad = 1 + optionWidth - o.longName.size() - o.shortName.size();
-        cout << "  " << o.longName << (longNShort ? ',' : ' ') << o.shortName << string(pad, ' ');
+        stringstream ss;
+        ss << "  " << o.longName;
+        if (longNShort) {
+          ss << ", ";
+        } else {
+          ss << ' ';
+        }
+        ss << o.shortName << string(pad, ' ');
+        cout << ss.str();
         printWrap(cout, optionWidth + 4, o.description);
-        cout << '\n';
+        cout << endl;
       }
-      cout << '\n';
+      cout << endl;
       exit(EXIT_SUCCESS);
     });
 }

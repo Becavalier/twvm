@@ -13,6 +13,7 @@ using std::string;
 using std::make_unique;
 using std::exit;
 
+
 int main(int argc, const char **argv) {
   // set up command line arguments;
   Options options("twvm", "TWVM - A tiny, lightweight and efficient WebAssembly virtual machine.");
@@ -21,11 +22,19 @@ int main(int argc, const char **argv) {
       CommandLine::executeModulePath = argument;
     });
   options.add(
+    "--version", "-v",
+    "Show version and building info.", Options::Arguments::Zero,
+    [](Options *o, const string& argument) -> auto {
+      Utility::drawLogoGraphic(false);
+      exit(EXIT_SUCCESS);
+    });
+  options.add(
     "--debug", "-d",
-    "Show debugging info while executing the module.", Options::Arguments::Zero,
+    "Show debug info while executing the module.", Options::Arguments::Zero,
     [](Options *o, const string& argument) -> auto {
       CommandLine::isDebugMode = true;
     });
+  
   options.parse(argc, argv);
 
   // start executing;

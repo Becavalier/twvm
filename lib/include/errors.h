@@ -21,7 +21,7 @@ using std::unordered_map;
   
 #define ITERATE_LOADER_ERRORS(V) \
   V(LOADER_ILLEGAL_END, "illegal ending byte.") \
-  V(LOADER_INVALID_OPCODE, "invalide opcode found.") \
+  V(LOADER_INVALID_OPCODE, "invalid opcode found.") \
   V(LOADER_INVALID_GLOBAL_IMPORT_EXPR, "only immutable imported globals can be used in initializer expressions.") \
   V(LOADER_NOT_DEFAULT_TABLE, "only the default table can be manipulated in MVP.") \
   V(LOADER_NO_TABLE, "no table found to apply the element section.") \
@@ -41,12 +41,12 @@ using std::unordered_map;
 
 #define ITERATE_CMDLINE_ERRORS(V) \
   V(CMD_NO_FILE, "no input file.") \
-  V(CMD_UNKNOWN_OPT, "Unknown option.") \
-  V(CMD_UNKNOWN_ARG, "Unknown argument for this option.") \
-  V(CMD_INVALID_SECOND_ARG, "Unexpected second argument.") \
-  V(CMD_UNEXPECTED_ARG, "Couldn\'t find expected argument for this option.") \
-  V(CMD_UNEXPECTED_SECOND_POS_ARG, "Unexpected second positional argument for this option.\'") \
-  V(CMD_UNEXPECTED_POS_ARG, "Unexpected positional argument for this option.\'")
+  V(CMD_UNKNOWN_OPT, "unknown option.") \
+  V(CMD_UNKNOWN_ARG, "unknown argument for this option.") \
+  V(CMD_INVALID_SECOND_ARG, "unexpected second argument.") \
+  V(CMD_UNEXPECTED_ARG, "couldn\'t find expected argument for this option.") \
+  V(CMD_UNEXPECTED_SECOND_POS_ARG, "unexpected second positional argument for this option.\'") \
+  V(CMD_UNEXPECTED_POS_ARG, "unexpected positional argument for this option.\'")
 
 #define ITERATE_RUNTIME_ERRORS(V) \
   V(RT_UNREACHABLE_CODE, "unreachable code.") \
@@ -57,7 +57,9 @@ using std::unordered_map;
   V(RT_INVALID_FUNC_INDEX, "invalid function index to be called.") \
   V(RT_MEM_ACCESS_OOB, "memory access out of bound.") \
   V(RT_INVALID_STACK_VAL, "invalid stack on-top value type.") \
-  V(RT_OPERANDS_TYPE_MISMATCH, "wrong operands type.")
+  V(RT_OPERANDS_TYPE_MISMATCH, "wrong operands type from the current stack.") \
+  V(RT_DIV_BY_ZERO, "division can not by zero.") \
+  V(RT_DIV_UNREPRESENTABLE, "the division result can not be representable.")
 
 #define ITERATE_MISC_ERRORS(V) \
   V(MISC_EXPR_NOT_INIT, "initial expression has not been initialized.") \

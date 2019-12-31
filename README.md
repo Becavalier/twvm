@@ -1,4 +1,4 @@
-<p align="left"><img width="130"src="https://github.com/Becavalier/TWVM/blob/master/arts/brand-300x300.png?raw=true"></p>
+<p align="left"><img width="130"src="https://github.com/Becavalier/TWVM/blob/master/assets/brand-300x300.png?raw=true"></p>
 
 <br>
 
