@@ -10,6 +10,7 @@
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
+#include <cmath>
 #include "lib/include/constants.h"
 #include "lib/include/errors.h"
 #include "lib/cmdline.h"
@@ -39,6 +40,8 @@ using std::memcpy;
 using std::hex;
 using std::showbase;
 using std::to_string;
+using std::isnan;
+using std::signbit;
 
 // singleton instance;
 class Printer {
@@ -123,6 +126,22 @@ class Utility {
     for (auto i = 0; i < ptrSize; i++) {
       v->push_back(ptrVal >> (ptrSize * i) & 0x000000FF);
     }
+  }
+
+  template <typename T>
+  static inline T max(T x, T y) {
+    if (isnan(x)) { return x; }
+    if (isnan(y)) { return y; }
+    if (signbit(x) < signbit(y)) { return x; }
+    return x > y ? x : y;
+  }
+
+  template <typename T>
+  static inline T min(T x, T y) {
+    if (isnan(x)) { return x; }
+    if (isnan(y)) { return y; }
+    if (signbit(x) < signbit(y)) { return y; }
+    return x > y ? y : x;
   }
 
   static void drawLogoGraphic(bool = true);

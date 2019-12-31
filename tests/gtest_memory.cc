@@ -16,7 +16,24 @@ using std::vector;
 #define START_BYTES \
   0, 0x61, 0x73, 0x6d, 0x1, 0, 0, 0
 
-TEST(TWVM, MemoryOperations) {
+/**
+ * Case ISAs:
+ * 
+ * i32.load / i64.load / f32.load / f64.load
+ * i32.load8_s / i64.load8_s
+ * i32.load8_u / i64.load8_u
+ * i32.load16_s / i64.load16_s
+ * i32.load16_u / i64.load16_u
+ * i64.load32_s
+ * i64.load32_u
+ * i32.store / i64.store / f32.store / f64.store
+ * i32.store8 / i64.store8
+ * i32.store16 / i64.store16
+ * i64.store32
+ * memory.size
+ * memory.grow
+ */
+TEST(TWVM, Memory) {
   const auto executor = make_unique<Executor>();
   /**
     (module

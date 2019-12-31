@@ -20,10 +20,10 @@ using std::unordered_map;
 using std::move;
 
 #define ITERATE_OPERANDS_VALUE_TYPES(V) \
-  V(int32, int32_t) \
-  V(int64, int64_t) \
-  V(float, float) \
-  V(double, double)
+  V(i32, int32_t) \
+  V(i64, int64_t) \
+  V(f32, float) \
+  V(f64, double)
 
 #define DECLARE_CONSTANT_POOL(name, type) \
   unordered_map<type, ValueFrame> name##ConstantPool = {};

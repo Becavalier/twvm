@@ -174,27 +174,27 @@
   V(F64Min, 0xa4) \
   V(F64Max, 0xa5) \
   V(F64CopySign, 0xa6) \
-  V(I32ConvertI64, 0xa7) \
-  V(I32SConvertF32, 0xa8) \
-  V(I32UConvertF32, 0xa9) \
-  V(I32SConvertF64, 0xaa) \
-  V(I32UConvertF64, 0xab) \
-  V(I64SConvertI32, 0xac) \
-  V(I64UConvertI32, 0xad) \
-  V(I64SConvertF32, 0xae) \
-  V(I64UConvertF32, 0xaf) \
-  V(I64SConvertF64, 0xb0) \
-  V(I64UConvertF64, 0xb1) \
+  V(I32WrapI64, 0xa7) \
+  V(I32TruncF32S, 0xa8) \
+  V(I32TruncF32U, 0xa9) \
+  V(I32TruncF64S, 0xaa) \
+  V(I32TruncF64U, 0xab) \
+  V(I64ExtendI32S, 0xac) \
+  V(I64ExtendI32U, 0xad) \
+  V(I64TruncF32S, 0xae) \
+  V(I64TruncF32U, 0xaf) \
+  V(I64TruncF64S, 0xb0) \
+  V(I64TruncF64U, 0xb1) \
   V(F32SConvertI32, 0xb2) \
   V(F32UConvertI32, 0xb3) \
   V(F32SConvertI64, 0xb4) \
   V(F32UConvertI64, 0xb5) \
-  V(F32ConvertF64, 0xb6) \
+  V(F32DemoteF64, 0xb6) \
   V(F64SConvertI32, 0xb7) \
   V(F64UConvertI32, 0xb8) \
   V(F64SConvertI64, 0xb9) \
   V(F64UConvertI64, 0xba) \
-  V(F64ConvertF32, 0xbb) \
+  V(F64PromoteF32, 0xbb) \
   V(I32ReinterpretF32, 0xbc) \
   V(I64ReinterpretF64, 0xbd) \
   V(F32ReinterpretI32, 0xbe) \

@@ -57,7 +57,7 @@ using std::unordered_map;
   V(RT_INVALID_FUNC_INDEX, "invalid function index to be called.") \
   V(RT_MEM_ACCESS_OOB, "memory access out of bound.") \
   V(RT_INVALID_STACK_VAL, "invalid stack on-top value type.") \
-  V(RT_OPERANDS_TYPE_MISMATCH, "wrong operands type from the current stack.") \
+  V(RT_OPERANDS_TYPE_MISMATCH, "wrong operands type on the top of the current stack.") \
   V(RT_DIV_BY_ZERO, "division can not by zero.") \
   V(RT_DIV_UNREPRESENTABLE, "the division result can not be representable.")
 
