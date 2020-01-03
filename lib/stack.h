@@ -1,21 +1,21 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef STACK_H_
-#define STACK_H_
+#ifndef LIB_STACK_H_
+#define LIB_STACK_H_
 
 #include <memory>
 #include <cstring>
 #include <utility>
 #include <vector>
 #include "lib/frames.h"
-#include "lib/include/constants.h"
+#include "lib/common/constants.h"
 #include "lib/utility.h"
 #include "lib/type.h"
 
-using std::shared_ptr;
-using std::make_shared;
-using std::dec;
-using std::forward;
-using std::vector;
+using ::std::shared_ptr;
+using ::std::make_shared;
+using ::std::dec;
+using ::std::forward;
+using ::std::vector;
 
 // use vector to simulate stack, then we can have the ability of random-access,
 // and high-efficient element accessing (without "stack->deque");
@@ -71,4 +71,4 @@ class Stack {
   shared_ptr<ActivationFrameStack> activationStack = make_shared<ActivationFrameStack>();
 };
 
-#endif  // STACK_H_
+#endif  // LIB_STACK_H_

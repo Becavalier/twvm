@@ -5,10 +5,10 @@
 #include "lib/cmdline.h"
 #include "lib/utility.h"
 #include "lib/inspector.h"
-#include "lib/include/macros.h"
+#include "lib/common/macros.h"
 
-using std::stringstream;
-using std::to_string;
+using ::std::stringstream;
+using ::std::to_string;
 
 void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
   auto &printer = Printer::instance();

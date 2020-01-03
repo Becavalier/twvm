@@ -7,11 +7,12 @@
 #include "lib/decoder.h"
 #include "lib/utility.h"
 
-using std::find_if;
-using std::hex;
-using std::showbase;
-using std::to_string;
-using std::make_shared;
+using ::std::find_if;
+using ::std::hex;
+using ::std::showbase;
+using ::std::to_string;
+using ::std::make_shared;
+using ::std::shared_ptr;
 
 const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module) {
   (Printer::instance() << '\n').debug();
@@ -42,7 +43,7 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     moduleInst->memories.push_back(&store->memoryInsts.back());
     // TODO(Jason Yu): init data section;
   }
-  
+
   // function instances;
   (Printer::instance() << "store: creating function instances.\n").debug();
   const auto staticFunctions = module->getFunction();
@@ -51,7 +52,6 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     const auto ins = &store->functionInsts.back();
     ins->code = &i.code;
     ins->type = i.sig;
-    ins->module = moduleInst;
     ins->staticProto = &i;
   }
   // We need to perform this loop separately, since -

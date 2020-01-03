@@ -1,17 +1,17 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef MODULE_H_
-#define MODULE_H_
+#ifndef LIB_MODULE_H_
+#define LIB_MODULE_H_
 
 #include <vector>
 #include <iostream>
 #include <memory>
 #include <utility>
 #include "lib/type.h"
-#include "lib/include/macros.h"
+#include "lib/common/macros.h"
 
-using std::vector;
-using std::shared_ptr;
-using std::move;
+using ::std::vector;
+using ::std::shared_ptr;
+using ::std::move;
 
 // pay attention to the bound check;
 #define WRAP_SELECT_METHOD(name, key) \
@@ -51,4 +51,4 @@ class Module {
 
 using shared_module_t = shared_ptr<Module>;
 
-#endif  // MODULE_H_
+#endif  // LIB_MODULE_H_

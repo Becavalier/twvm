@@ -1,17 +1,15 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef STORE_H_
-#define STORE_H_
+#ifndef LIB_STORE_H_
+#define LIB_STORE_H_
 
 #include <vector>
-#include "lib/include/macros.h"
-#include "lib/instances.h"
+#include "lib/common/macros.h"
+#include "lib/instances/ins-section-memory.h"
+#include "lib/instances/ins-section-func.h"
+#include "lib/instances/ins-section-global.h"
+#include "lib/instances/ins-section-table.h"
 
-using std::vector;
-
-class WasmMemoryInstance;
-struct WasmFuncInstance;
-struct WasmGlobalInstance;
-struct WasmTableInstance;
+using ::std::vector;
 
 // for storing global instances, it consists of -
 // the runtime representation of all instances of functions, tables, memories, and globals -
@@ -24,4 +22,4 @@ struct Store {
   vector<WasmTableInstance> tableInsts;
 };
 
-#endif  // STORE_H_
+#endif  // LIB_STORE_H_

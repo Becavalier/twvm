@@ -1,12 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef OPCODE_H_
-#define OPCODE_H_
-
-#define DECLARE_MEMBER_HANDLER(name, opcode) \
-  static handlerProto do##name;
-
-#define DECLARE_NAMED_ENUM(name, opcode) \
-  kOpcode##name = opcode,
+#ifndef LIB_COMMON_OPCODE_H_
+#define LIB_COMMON_OPCODE_H_
 
 #define ITERATE_ALL_OPCODE(V) \
   ITERATE_CONTROL_OPCODE(V) \
@@ -200,28 +194,6 @@
   V(F32ReinterpretI32, 0xbe) \
   V(F64ReinterpretI64, 0xbf)
 
-#include <memory>
-#include <vector>
-#include <functional>
-#include "lib/frames.h"
-#include "lib/utility.h"
-#include "lib/decoder.h"
-#include "lib/instances.h"
-#include "lib/executor.h"
-
-// ahead declare;
-struct WasmInstance;
-class Executor;
-
-using std::shared_ptr;
-using std::vector;
-using shared_wasm_t = shared_ptr<WasmInstance>;
-using handlerProto = void (shared_wasm_t&, Executor*);
-using std::function;
-
-enum class WasmOpcode {
-  ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
-};
 
 // opcode classifications (make sure to except unknown opcodes);
 #define ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(V) \
@@ -252,57 +224,11 @@ enum class WasmOpcode {
   V(Drop) \
   V(Select) \
 
+#define DECLARE_NAMED_ENUM(name, opcode) \
+  kOpcode##name = opcode,
 
-class OpCode {
- private:
-  template <typename T>
-  static void storeMemarg(
-    shared_wasm_t &wasmIns,
-    Executor *executor,
-    const function<void(const int32_t, WasmMemoryInstance *const&, const T)>&);
-
-  static void retrieveMemarg(
-    shared_wasm_t &wasmIns,
-    Executor *executor,
-    const function<void(const int32_t, WasmMemoryInstance *const&)>&);
-
-  template <typename T>
-  static void retrieveDoubleRTVals(
-    shared_wasm_t &wasmIns,
-    Executor *executor,
-    const function<void(const shared_ptr<Stack::ValueFrameStack>&, ValueFrame *const&, ValueFrame *const&)>&);
-    
-  template <typename T>
-  static void retrieveSingleRTVal(
-    shared_wasm_t &wasmIns,
-    Executor *executor,
-    const function<void(const shared_ptr<Stack::ValueFrameStack>&, ValueFrame *const&)>&);
- public:
-  static uint32_t calcOpCodeEntityLen(const uint8_t* buf, WasmOpcode opcode) {
-    #define OPCODE_CASE(name, ...) \
-      case WasmOpcode::kOpcode##name:
-    switch (opcode) {
-      case WasmOpcode::kOpcodeF32Const: { return f32Size; }
-      case WasmOpcode::kOpcodeF64Const: { return f64Size; }
-      ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(OPCODE_CASE) {
-        return Decoder::calcPassBytes(buf);
-      }
-      // "memory_immediate";
-      ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(OPCODE_CASE) {
-        return Decoder::calcPassBytes(buf, 2);
-      }
-      case WasmOpcode::kOpcodeBrTable: {
-        // 
-        return 0;
-        break;
-      }
-      default: {
-        return 0;
-      }
-    }
-    return 0;
-  }
-  ITERATE_ALL_OPCODE(DECLARE_MEMBER_HANDLER)
+enum class WasmOpCode {
+  ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
 };
 
-#endif  // OPCODE_H_
+#endif  // LIB_COMMON_OPCODE_H_

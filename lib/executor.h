@@ -1,23 +1,24 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef EXECUTOR_H_
-#define EXECUTOR_H_
+#ifndef LIB_EXECUTOR_H_
+#define LIB_EXECUTOR_H_
 
 #include <memory>
 #include <functional>
 #include <vector>
 #include <unordered_map>
+#include <utility>
 #include "lib/type.h"
 #include "lib/frames.h"
-#include "lib/opcode.h"
 #include "lib/cache.h"
-#include "lib/instances.h"
-#include "lib/include/constants.h"
+#include "lib/common/opcode.h"
+#include "lib/common/constants.h"
+#include "lib/instances/ins-wasm.h"
 
-using std::shared_ptr;
-using std::function;
-using std::vector;
-using std::unordered_map;
-using std::move;
+using ::std::shared_ptr;
+using ::std::function;
+using ::std::vector;
+using ::std::unordered_map;
+using ::std::move;
 
 #define ITERATE_OPERANDS_VALUE_TYPES(V) \
   V(i32, int32_t) \
@@ -65,9 +66,6 @@ using std::move;
     return immediate; \
   }
 
-enum class WasmOpcode;
-struct WasmInstance;
-
 // core execution logic;
 class Executor {
  private:
@@ -75,9 +73,9 @@ class Executor {
   shared_ptr<WasmInstance> currentWasmIns = nullptr;
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL)
   ValueFrame lastRunningResult = {};
-  void resetExecutionEngine(ValueFrame &result) {
+  void resetExecutionEngine(ValueFrame *result) {
     // keep running result;
-    lastRunningResult = move(result);
+    lastRunningResult = move(*result);
     // release shared_ptr;
     currentWasmIns = nullptr;
     // reset cache;
@@ -98,7 +96,7 @@ class Executor {
   uint32_t contextIndex = -1;
   shared_ptr<Cache> cache = make_shared<Cache>();
   const bool execute(shared_ptr<WasmInstance>);
-  const void crawler(const uint8_t*, size_t, const function<bool(WasmOpcode, size_t)> &callback = nullptr);
+  const void crawler(const uint8_t*, size_t, const function<bool(WasmOpCode, size_t)> &callback = nullptr);
   const bool checkStackState(shared_ptr<WasmInstance>);
 
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL_SETTERS)
@@ -143,7 +141,7 @@ class Executor {
       return lastRunningResult.resolveValue<T>();
     } else {
       (Printer::instance() << "No existing running result found.\n").warn();
-      return T();
+      return T{};
     }
   }
 
@@ -153,4 +151,4 @@ class Executor {
   }
 };
 
-#endif  // EXECUTOR_H_
+#endif  // LIB_EXECUTOR_H_

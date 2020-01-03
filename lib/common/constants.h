@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef INCLUDE_CONSTANTS_H_
-#define INCLUDE_CONSTANTS_H_
+#ifndef LIB_COMMON_CONSTANTS_H_
+#define LIB_COMMON_CONSTANTS_H_
 
 #define DEFAULT_ELEMENT_INDEX 0
 #define WASM_PAGE_SIZE 64 * 1024
@@ -19,4 +19,4 @@ constexpr auto f32Size = sizeof(float);
 constexpr auto f64Size = sizeof(double);
 constexpr size_t byteLen = 2 << 8;
 
-#endif  // INCLUDE_CONSTANTS_H_
+#endif  // LIB_COMMON_CONSTANTS_H_

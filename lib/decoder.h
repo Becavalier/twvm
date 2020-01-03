@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef DECODER_H_
-#define DECODER_H_
+#ifndef LIB_DECODER_H_
+#define LIB_DECODER_H_
 
 #include <cstdint>
 #include <cstring>
@@ -10,19 +10,19 @@
 #include <type_traits>
 #include <vector>
 #include <fstream>
-#include "lib/include/constants.h"
+#include "lib/common/constants.h"
 #include "lib/utility.h"
 #include "lib/type.h"
 #include "lib/module.h"
 
-using std::function;
-using std::string;
-using std::memcpy;
-using std::malloc;
-using std::vector;
-using std::ifstream;
-using std::shared_ptr;
-using std::is_same;
+using ::std::function;
+using ::std::string;
+using ::std::memcpy;
+using ::std::malloc;
+using ::std::vector;
+using ::std::ifstream;
+using ::std::shared_ptr;
+using ::std::is_same;
 
 class Reader {
  private:
@@ -31,7 +31,7 @@ class Reader {
   uint8_t *buffer;
   size_t bufferCounter = 0;
   size_t bufferLen = 0;
-  
+
  public:
   ~Reader() {
     buffer = nullptr;
@@ -46,7 +46,7 @@ class Reader {
       if constexpr (is_same<T, char>::value) {
         char d;
         fileReader->read(&d, charSize);
-        return static_cast<char>(d); 
+        return static_cast<char>(d);
       } else {
         char d[sizeof(T)];
         fileReader->read(d, sizeof(T));
@@ -55,7 +55,7 @@ class Reader {
     } else {
       // buffer way;
       if constexpr (sizeof(T) == 1) {
-        return static_cast<T>(*(buffer + bufferCounter++)); 
+        return static_cast<T>(*(buffer + bufferCounter++));
       } else {
         const auto r = Utility::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(buffer));
         bufferCounter += sizeof(T);
@@ -63,7 +63,7 @@ class Reader {
       }
     }
   }
-  
+
   inline bool hasReachEnd() {
     if (isFileReader) {
       return fileReader->peek() == EOF;
@@ -212,11 +212,11 @@ class Decoder {
     return total;
   }
 
-  static string decodeName(const uint8_t*, size_t, size_t* = nullptr);
   static uint8_t readUint8(const uint8_t*, size_t* = nullptr);
   static uint16_t readUint16(const uint8_t*, size_t* = nullptr);
   static uint32_t readUint32(const uint8_t*, size_t* = nullptr);
   static uint64_t readUint64(const uint8_t*, size_t* = nullptr);
+  static string decodeName(const uint8_t*, size_t, size_t* = nullptr);
 };
 
-#endif  // DECODER_H_
+#endif  // LIB_DECODER_H_

@@ -5,10 +5,11 @@
 #include <iostream>
 #include <vector>
 #include "lib/loader.h"
-#include "lib/include/constants.h"
-#include "lib/include/errors.h"
+#include "lib/common/constants.h"
+#include "lib/common/errors.h"
 #include "lib/utility.h"
-#include "lib/opcode.h"
+#include "lib/common/opcode.h"
+#include "lib/interpreter.h"
 
 vector<uint8_t> Loader::buf;
 shared_ptr<Reader> Loader::reader = nullptr;
@@ -340,7 +341,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
       // use TTC by default;
 #if defined(OPT_DCT)
       const auto byte = WRAP_BUF_UINT8();
-      const auto opcode = static_cast<WasmOpcode>(byte);
+      const auto opcode = static_cast<WasmOpCode>(byte);
       auto codeBucket = &function->code;
       if (innerScopeLen != 0) {
         codeBucket->push_back(byte);
@@ -349,10 +350,10 @@ void Loader::parseCodeSection(const shared_module_t &module) {
       }
       // simple DCT (one-time transforming);
       #define DEAL_ONE_VAR_IMME_OPCODE(name, ...) \
-        case WasmOpcode::kOpcode##name: { \
-          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); \
+        case WasmOpCode::kOpcode##name: { \
+          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &Interpreter::do##name); \
           auto innerOffset = 1; \
-          while(true) { \
+          while (true) { \
             const auto nextVal = WRAP_BUF_UINT8(); \
             codeBucket->push_back(nextVal); \
             if (!(nextVal & 0x80)) { break; } \
@@ -362,11 +363,11 @@ void Loader::parseCodeSection(const shared_module_t &module) {
           break; \
         }
       #define DEAL_TWO_VAR_IMME_OPCODE(name, ...) \
-        case WasmOpcode::kOpcode##name: { \
-          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); \
+        case WasmOpCode::kOpcode##name: { \
+          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &Interpreter::do##name); \
           auto innerOffset = 1; \
           for (auto k = 0; k < 2; k++) { \
-            while(true) { \
+            while (true) { \
               const auto nextVal = WRAP_BUF_UINT8(); \
               codeBucket->push_back(nextVal); \
               if (!(nextVal & 0x80)) { break; } \
@@ -377,17 +378,17 @@ void Loader::parseCodeSection(const shared_module_t &module) {
           break; \
         }
       #define DEAL_NON_VAR_IMME_OPCODE(name, ...) \
-        case WasmOpcode::kOpcode##name: { \
-          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::do##name); break; }
+        case WasmOpCode::kOpcode##name: { \
+          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &Interpreter::do##name); break; }
       // keep the raw opcode for identifying purpose;
       codeBucket->push_back(byte);
       switch (opcode) {
         // special cases;
-        case WasmOpcode::kOpcodeF32Const: {
-          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::doF32Const);
+        case WasmOpCode::kOpcodeF32Const: {
+          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &Interpreter::doF32Const);
           innerScopeLen = f32Size; break; }
-        case WasmOpcode::kOpcodeF64Const: {
-          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &OpCode::doF64Const);
+        case WasmOpCode::kOpcodeF64Const: {
+          Utility::savePtrIntoBytes<handlerProto>(codeBucket, &Interpreter::doF64Const);
           innerScopeLen = f64Size; break; }
         ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(DEAL_ONE_VAR_IMME_OPCODE)
         ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(DEAL_TWO_VAR_IMME_OPCODE)

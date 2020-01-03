@@ -1,12 +1,12 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef INCLUDE_ERRORS_H_
-#define INCLUDE_ERRORS_H_
+#ifndef LIB_COMMON_ERRORS_H_
+#define LIB_COMMON_ERRORS_H_
 
 #include <string>
 #include <unordered_map>
 
-using std::string;
-using std::unordered_map;
+using ::std::string;
+using ::std::unordered_map;
 
 #define DECLARE_ENUM_KEY(name, opcode) \
   name,
@@ -18,7 +18,7 @@ using std::unordered_map;
   ITERATE_LOADER_ERRORS(V) \
   ITERATE_CMDLINE_ERRORS(V) \
   ITERATE_RUNTIME_ERRORS(V)
-  
+
 #define ITERATE_LOADER_ERRORS(V) \
   V(LOADER_ILLEGAL_END, "illegal ending byte.") \
   V(LOADER_INVALID_OPCODE, "invalid opcode found.") \
@@ -74,4 +74,4 @@ static unordered_map<Errors, string> errorMapper = {
   ITERATE_ALL_ERRORS(DECLARE_MAP_PAIR)
 };
 
-#endif  // INCLUDE_ERRORS_H_
+#endif  // LIB_COMMON_ERRORS_H_

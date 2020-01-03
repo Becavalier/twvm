@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef CACHE_H_
-#define CACHE_H_
+#ifndef LIB_CACHE_H_
+#define LIB_CACHE_H_
 
 #include <unordered_map>
 #include <typeinfo>
@@ -10,10 +10,9 @@
 #include "lib/type.h"
 #include "lib/utility.h"
 
-using std::unordered_map;
-using std::string;
-using std::type_index;
-using std::vector;
+using ::std::unordered_map;
+using ::std::string;
+using ::std::vector;
 
 #define DECLARE_CACHE_CONTAINER(name, type) \
   unordered_map<uint64_t, vector<type>> name##Map = {};
@@ -81,4 +80,4 @@ class Cache {
   }
 };
 
-#endif  // CACHE_H_
+#endif  // LIB_CACHE_H_

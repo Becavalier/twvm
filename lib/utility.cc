@@ -3,9 +3,9 @@
 #include <iomanip>
 #include <numeric>
 #include "lib/utility.h"
-#include "lib/include/macros.h"
+#include "lib/common/macros.h"
 
-#define BUILDSTAMP ( __DATE__ " " __TIME__ )
+#define BUILDSTAMP (__DATE__ " " __TIME__)
 
 using std::max_element;
 using std::left;

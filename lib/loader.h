@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef LOADER_H_
-#define LOADER_H_
+#ifndef LIB_LOADER_H_
+#define LIB_LOADER_H_
 
 #define WRAP_BUF_VARUINT(type) \
   Decoder::readVarUint<type>(getAbsReaderEndpoint(), &currentReaderOffset)
@@ -23,11 +23,11 @@
 #include <fstream>
 #include <ios>
 #include <istream>
-#include "lib/include/errors.h"
+#include "lib/common/errors.h"
 #include "lib/type.h"
 #include "lib/module.h"
 #include "lib/decoder.h"
-#include "lib/opcode.h"
+#include "lib/common/opcode.h"
 #include "lib/utility.h"
 
 using std::vector;
@@ -103,31 +103,31 @@ class Loader {
   }
 
   static void consumeInitExpr(const shared_module_t& module, WasmInitExpr *const  expr) {
-    const auto opcode = static_cast<WasmOpcode>(WRAP_BUF_UINT8());
+    const auto opcode = static_cast<WasmOpCode>(WRAP_BUF_UINT8());
 
     // MVP: i32.const / i64.const / f32.const / f64.const / get_global;
     switch (opcode) {
-      case WasmOpcode::kOpcodeI32Const: {
+      case WasmOpCode::kOpcodeI32Const: {
         expr->kind = InitExprKind::kI32Const;
         expr->val.vI32Const = WRAP_BUF_VARINT(int32_t);
         break;
       }
-      case WasmOpcode::kOpcodeI64Const: {
+      case WasmOpCode::kOpcodeI64Const: {
         expr->kind = InitExprKind::kI64Const;
         expr->val.vI64Const = WRAP_BUF_VARINT(int64_t);
         break;
       }
-      case WasmOpcode::kOpcodeF32Const: {
+      case WasmOpCode::kOpcodeF32Const: {
         expr->kind = InitExprKind::kF32Const;
         expr->val.vF32Const = WRAP_BUF_UINT32();
         break;
       }
-      case WasmOpcode::kOpcodeF64Const: {
+      case WasmOpCode::kOpcodeF64Const: {
         expr->kind = InitExprKind::kF64Const;
         expr->val.vF64Const = WRAP_BUF_UINT64();
         break;
       }
-      case WasmOpcode::kOpcodeGlobalSet: {
+      case WasmOpCode::kOpcodeGlobalSet: {
         const auto globalIndex = WRAP_BUF_VARUINT(uint32_t);
         const auto moduleGlobal = module->getGlobal(globalIndex);
         if (moduleGlobal->mutability || !moduleGlobal->imported) {
@@ -143,7 +143,7 @@ class Loader {
       }
     }
     // "0x0b" ending byte;
-    if (static_cast<WasmOpcode>(WRAP_BUF_UINT8()) != WasmOpcode::kOpcodeEnd) {
+    if (static_cast<WasmOpCode>(WRAP_BUF_UINT8()) != WasmOpCode::kOpcodeEnd) {
       Printer::instance().error(Errors::LOADER_ILLEGAL_END);
     }
   }
@@ -158,4 +158,4 @@ class Loader {
   }
 };
 
-#endif  // LOADER_H_
+#endif  // LIB_LOADER_H_

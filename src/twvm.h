@@ -3,9 +3,9 @@
 #define TWVM_H_
 
 #include <chrono>
-#include "lib/include/errors.h"
-#include "lib/include/macros.h"
-#include "lib/include/constants.h"
+#include "lib/common/errors.h"
+#include "lib/common/macros.h"
+#include "lib/common/constants.h"
 #include "lib/utility.h"
 #include "lib/loader.h"
 #include "lib/module.h"

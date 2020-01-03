@@ -6,19 +6,15 @@
 #include <sstream>
 #include "lib/cmdline.h"
 #include "lib/utility.h"
-#include "lib/include/errors.h"
-#include "lib/include/constants.h"
+#include "lib/common/errors.h"
+#include "lib/common/constants.h"
 
-using std::ostream;
-using std::string;
-using std::cout;
-using std::endl;
-using std::max;
-using std::stringstream;
-
-// initial configurations;
-bool CommandLine::isDebugMode = false;
-string CommandLine::executeModulePath = string();
+using ::std::ostream;
+using ::std::string;
+using ::std::cout;
+using ::std::endl;
+using ::std::max;
+using ::std::stringstream;
 
 void printWrap(ostream &os, int leftPad, const string &content) {
   int len = content.size();

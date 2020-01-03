@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef CMDLINE_H_
-#define CMDLINE_H_
+#ifndef LIB_CMDLINE_H_
+#define LIB_CMDLINE_H_
 
 #include <functional>
 #include <cassert>
@@ -9,9 +9,9 @@
 #include <utility>
 #include <vector>
 
-using std::function;
-using std::string;
-using std::vector;
+using ::std::function;
+using ::std::string;
+using ::std::vector;
 
 class Options {
  public:
@@ -39,9 +39,4 @@ class Options {
   actionT positionalAction;
 };
 
-struct CommandLine {
-  static bool isDebugMode;
-  static string executeModulePath;
-};
-
-#endif  // CMDLINE_H_
+#endif  // LIB_CMDLINE_H_

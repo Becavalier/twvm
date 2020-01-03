@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef FRAMES_H_
-#define FRAMES_H_
+#ifndef LIB_FRAMES_H_
+#define LIB_FRAMES_H_
 
 #include <cstring>
 #include <vector>
@@ -8,21 +8,20 @@
 #include <ostream>
 #include <type_traits>
 #include <utility>
-#include "lib/include/constants.h"
-#include "lib/include/errors.h"
-#include "lib/include/macros.h"
+#include "lib/common/constants.h"
+#include "lib/common/errors.h"
+#include "lib/common/macros.h"
+#include "lib/instances/ins-section-func.h"
 #include "lib/type.h"
 #include "lib/utility.h"
 
-using std::memcpy;
-using std::memcmp;
-using std::vector;
-using std::shared_ptr;
-using std::ostream;
-using std::is_same;
-using std::move;
-
-struct WasmFuncInstance;
+using ::std::memcpy;
+using ::std::memcmp;
+using ::std::vector;
+using ::std::shared_ptr;
+using ::std::ostream;
+using ::std::is_same;
+using ::std::move;
 
 class ValueFrame {
  public:
@@ -150,4 +149,4 @@ class ActivationFrame {
   size_t labelStackHeight = 0;
 };
 
-#endif  // FRAMES_H_
+#endif  // LIB_FRAMES_H_

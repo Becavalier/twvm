@@ -1,16 +1,16 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef TYPE_H_
-#define TYPE_H_
+#ifndef LIB_TYPE_H_
+#define LIB_TYPE_H_
 
 #include <cstdint>
 #include <cstddef>
 #include <string>
 #include <vector>
-#include "lib/include/macros.h"
+#include "lib/common/macros.h"
 #include "lib/utility.h"
 
-using std::string;
-using std::vector;
+using ::std::string;
+using ::std::vector;
 
 constexpr size_t kSpecMaxWasmMemoryPages = 65536;
 constexpr uint32_t kWasmMagicWord = 0x6d736100;
@@ -215,4 +215,4 @@ struct WasmImport {
   uint32_t index = 0;
 };
 
-#endif  // TYPE_H_
+#endif  // LIB_TYPE_H_

@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef UTILITY_H_
-#define UTILITY_H_
+#ifndef LIB_UTILITY_H_
+#define LIB_UTILITY_H_
 
 #include <ios>
 #include <iostream>
@@ -11,9 +11,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <cmath>
-#include "lib/include/constants.h"
-#include "lib/include/errors.h"
-#include "lib/cmdline.h"
+#include "lib/config.h"
+#include "lib/common/constants.h"
+#include "lib/common/errors.h"
 
 #define OUTPUT_PREFIX "twvm: "
 // ANSI escape code (Colors);
@@ -67,7 +67,7 @@ class Printer {
     return *this;
   }
   inline void debug() {
-    if (!CommandLine::isDebugMode) {
+    if (!Config::isDebugMode) {
       ss.str(string());
       return;
     }
@@ -147,4 +147,4 @@ class Utility {
   static void drawLogoGraphic(bool = true);
 };
 
-#endif  // UTILITY_H_
+#endif  // LIB_UTILITY_H_

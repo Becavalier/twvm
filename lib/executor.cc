@@ -1,14 +1,16 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <array>
 #include "lib/executor.h"
-#include "lib/include/macros.h"
-#include "lib/include/constants.h"
-#include "lib/include/macros.h"
-#include "lib/opcode.h"
+#include "lib/common/macros.h"
+#include "lib/common/constants.h"
+#include "lib/common/opcode.h"
+#include "lib/interpreter.h"
 #include "lib/decoder.h"
 #include "lib/utility.h"
+#include "lib/instances/ins-wasm.h"
 
-using std::array;
+using ::std::array;
+using handlerProto = void (shared_ptr<WasmInstance>&, Executor*);
 
 const bool Executor::checkStackState(shared_ptr<WasmInstance> wasmIns) {
   // check the status of stack;
@@ -24,7 +26,7 @@ const bool Executor::checkStackState(shared_ptr<WasmInstance> wasmIns) {
   }
   cout << endl;
   // reset flags;
-  Executor::resetExecutionEngine(*valueStack->top());
+  Executor::resetExecutionEngine(valueStack->top());
   return leftValueSize <= 1;
 }
 
@@ -48,7 +50,7 @@ const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
   // build a handler lookup table;
   static array<handlerProto*, uint8Size * byteLen> opcodeTokenHandlers;
 #define APPEND_HANDLER_TO_CONTAINER(name, opcode) \
-  opcodeTokenHandlers[opcode] = OpCode::do##name;
+  opcodeTokenHandlers[opcode] = Interpreter::do##name;
   ITERATE_ALL_OPCODE(APPEND_HANDLER_TO_CONTAINER)
 #endif
 
@@ -82,16 +84,16 @@ const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
 }
 
 const void Executor::crawler(
-  const uint8_t* buf, size_t length, const function<bool(WasmOpcode, size_t)> &callback) {
+  const uint8_t* buf, size_t length, const function<bool(WasmOpCode, size_t)> &callback) {
   // skip every opcode and immediate;
   size_t offset = 0;
   while (offset != length) {
-    const auto opcode = static_cast<WasmOpcode>(*(buf + offset++));
+    const auto opcode = static_cast<WasmOpCode>(*(buf + offset++));
     // move pointer to the immediates;
 #if defined(OPT_DCT)
     offset += ptrSize;
 #endif
-    offset += OpCode::calcOpCodeEntityLen(buf + offset, opcode);
+    offset += Interpreter::calcOpCodeEntityLen(buf + offset, opcode);
     if (callback && callback(opcode, offset)) {
       return;
     }

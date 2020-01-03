@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef INCLUDE_MACROS_H_
-#define INCLUDE_MACROS_H_
+#ifndef LIB_COMMON_MACROS_H_
+#define LIB_COMMON_MACROS_H_
 
 // user-defined destructor will prevent compiler from calling -
 // explicit move-constructor;
@@ -22,4 +22,4 @@
   V(F64, ValueFrameTypes::kF64Value, double)
 #endif
 
-#endif  // INCLUDE_MACROS_H_
+#endif  // LIB_COMMON_MACROS_H_

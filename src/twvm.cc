@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include "src/twvm.h"
+#include "lib/config.h"
 #include "lib/cmdline.h"
 #include "lib/inspector.h"
 
@@ -19,7 +20,7 @@ int main(int argc, const char **argv) {
   Options options("twvm", "TWVM - A tiny, lightweight and efficient WebAssembly virtual machine.");
   options.addPositional("<*.wasm>", Options::Arguments::One,
     [](Options *o, const string& argument) -> auto {
-      CommandLine::executeModulePath = argument;
+      Config::executeModulePath = argument;
     });
   options.add(
     "--version", "-v",
@@ -32,20 +33,20 @@ int main(int argc, const char **argv) {
     "--debug", "-d",
     "Show debug info while executing the module.", Options::Arguments::Zero,
     [](Options *o, const string& argument) -> auto {
-      CommandLine::isDebugMode = true;
+      Config::isDebugMode = true;
     });
   
   options.parse(argc, argv);
 
   // start executing;
-  if (CommandLine::executeModulePath.length() == 0) {
+  if (Config::executeModulePath.length() == 0) {
     Printer::instance().error(Errors::CMD_NO_FILE);
   }
 
   auto start = high_resolution_clock::now();
 
   // static loading;
-  const auto wasmModule = Loader::init(CommandLine::executeModulePath);
+  const auto wasmModule = Loader::init(Config::executeModulePath);
   // debug;
   if (wasmModule) {
     (Printer::instance() << "static parsing time: " << calcTimeInterval(start) << "ms.\n").debug();
@@ -64,7 +65,7 @@ int main(int argc, const char **argv) {
   }
 
   // inspect;
-  if (CommandLine::isDebugMode) {
+  if (Config::isDebugMode) {
     Inspector::inspect(wasmInstance);
   }
   

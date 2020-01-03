@@ -1,9 +1,9 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <vector>
 #include "lib/decoder.h"
-#include "lib/include/constants.h"
+#include "lib/common/constants.h"
 
-using std::vector;
+using ::std::vector;
 
 uint8_t Decoder::readUint8(const uint8_t* source, size_t *step) {
   if (step) {
