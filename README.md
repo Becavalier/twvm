@@ -1,6 +1,6 @@
-<p align="left"><img width="130"src="https://github.com/Becavalier/TWVM/blob/master/assets/brand-300x300.png?raw=true"></p>
+<img align="right" width="130"src="/assets/brand-300x300.png?raw=true">
 
-<br>
+# TWVM
 
 <img alt="GitHub Actions status" src="https://github.com/Becavalier/TWVM/workflows/Build CI/badge.svg">
 
