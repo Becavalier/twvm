@@ -22,7 +22,9 @@ using ::std::move;
 
 #define ITERATE_OPERANDS_VALUE_TYPES(V) \
   V(i32, int32_t) \
+  V(u32, uint32_t) \
   V(i64, int64_t) \
+  V(u64, uint64_t) \
   V(f32, float) \
   V(f64, double)
 

@@ -15,11 +15,13 @@
   SET_STRUCT_DISABLE_COPY_CONSTUCT(TypeName);
 
 #if __has_include(<lib/type.h>)
-#define ITERATE_WASM_VAL_TYPE(V) \
-  V(I32, ValueFrameTypes::kI32Value, int32_t) \
-  V(I64, ValueFrameTypes::kI64Value, int64_t) \
-  V(F32, ValueFrameTypes::kF32Value, float) \
-  V(F64, ValueFrameTypes::kF64Value, double)
+#define ITERATE_WASM_RT_VAL_TYPE(V) \
+  V(I32, ValueFrameTypes::kRTI32Value, int32_t) \
+  V(U32, ValueFrameTypes::kRTU32Value, uint32_t) \
+  V(I64, ValueFrameTypes::kRTI64Value, int64_t) \
+  V(U64, ValueFrameTypes::kRTU64Value, uint64_t) \
+  V(F32, ValueFrameTypes::kRTF32Value, float) \
+  V(F64, ValueFrameTypes::kRTF64Value, double)
 #endif
 
 #endif  // LIB_COMMON_MACROS_H_

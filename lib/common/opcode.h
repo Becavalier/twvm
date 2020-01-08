@@ -120,8 +120,8 @@
   V(I32Shl, 0x74) \
   V(I32ShrS, 0x75) \
   V(I32ShrU, 0x76) \
-  V(I32Rol, 0x77) \
-  V(I32Ror, 0x78) \
+  V(I32Rotl, 0x77) \
+  V(I32Rotr, 0x78) \
   V(I64Clz, 0x79) \
   V(I64Ctz, 0x7a) \
   V(I64Popcnt, 0x7b) \
@@ -138,8 +138,8 @@
   V(I64Shl, 0x86) \
   V(I64ShrS, 0x87) \
   V(I64ShrU, 0x88) \
-  V(I64Rol, 0x89) \
-  V(I64Ror, 0x8a) \
+  V(I64Rotl, 0x89) \
+  V(I64Rotr, 0x8a) \
   V(F32Abs, 0x8b) \
   V(F32Neg, 0x8c) \
   V(F32Ceil, 0x8d) \

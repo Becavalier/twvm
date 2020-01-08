@@ -2,6 +2,7 @@
 #ifndef LIB_TYPE_H_
 #define LIB_TYPE_H_
 
+
 #include <cstdint>
 #include <cstddef>
 #include <string>
@@ -57,13 +58,6 @@ enum class SectionTypesCode : uint8_t {
 };
 
 // stack frame types;
-enum class ValueFrameTypes : uint8_t {
-  kI32Value = 0x7f,
-  kI64Value = 0x7e,
-  kF32Value = 0x7d,
-  kF64Value = 0x7c,
-};
-
 enum class StackFrameTypes : uint8_t {
   kValues = 0,
   kLabels,
@@ -86,6 +80,15 @@ union RTValue {
   int64_t i64;
   float f32;
   double f64;
+};
+
+enum class ValueFrameTypes : uint8_t {
+  kRTI32Value,
+  kRTU32Value,
+  kRTI64Value,
+  kRTU64Value,
+  kRTF32Value,
+  kRTF64Value,
 };
 
 enum class OpcodeMeta : uint8_t {
@@ -158,7 +161,7 @@ struct WasmFunction {
   WasmFunctionSig* sig = nullptr;
   uint32_t funcIndex = 0;
   uint32_t sigIndex = 0;
-  vector<ValueFrameTypes> locals = {};
+  vector<ValueTypesCode> locals = {};
   vector<uint8_t> code;
   size_t codeLen = 0;
   bool imported = false;

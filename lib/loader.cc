@@ -330,7 +330,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
     for (uint32_t j = 0; j < localEntryCount; j++) {
       const auto localCount = WRAP_BUF_VARUINT(uint32_t);
       const auto localTypeCode = WRAP_BUF_VARUINT(uint8_t);
-      const auto type = static_cast<ValueFrameTypes>(localTypeCode);
+      const auto type = static_cast<ValueTypesCode>(localTypeCode);
       for (uint32_t k = 0; k < localCount; k++) {
         function->locals.push_back(type);
       }

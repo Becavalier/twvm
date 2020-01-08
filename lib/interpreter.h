@@ -38,13 +38,13 @@ class Interpreter {
   static void retrieveDoubleRTVals(
     shared_wasm_t &wasmIns,
     Executor *executor,
-    const function<void(const shared_ptr<Stack::ValueFrameStack>&, ValueFrame *const&, ValueFrame *const&)>&);
+    const function<void(const shared_ptr<Stack::ValueFrameStack>&, const T, const T)>&);
     
   template <typename T>
   static void retrieveSingleRTVal(
     shared_wasm_t &wasmIns,
     Executor *executor,
-    const function<void(const shared_ptr<Stack::ValueFrameStack>&, ValueFrame *const&)>&);
+    const function<void(const shared_ptr<Stack::ValueFrameStack>&, const T)>&);
 
  public:
   static uint32_t calcOpCodeEntityLen(const uint8_t* buf, WasmOpCode opcode) {

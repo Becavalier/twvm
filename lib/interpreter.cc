@@ -9,6 +9,7 @@
 #include "lib/type.h"
 #include "lib/interpreter.h"
 #include "lib/stack.h"
+#include "lib/common/bits.h"
 #include "lib/common/errors.h"
 #include "lib/common/macros.h"
 #include "lib/decoder.h"
@@ -19,11 +20,11 @@
     retrieveDoubleRTVals<operandType>(wasmIns, executor, \
       [&executor]( \
         const shared_ptr<Stack::ValueFrameStack> &valueStack, \
-        ValueFrame *const &x, \
-        ValueFrame *const &y) -> void { \
+        const operandType x, \
+        const operandType y) -> void { \
         valueStack->pop(); \
         valueStack->top() = executor->checkUpConstant( \
-          static_cast<resultType>(x->to##name() op y->to##name())); \
+          static_cast<resultType>(x op y)); \
       }); \
     INSPECT_STACK(#label, wasmIns, executor); \
 }
@@ -37,6 +38,10 @@
   V(I32, Xor, int32_t, int32_t, ^, i32.xor) \
   V(I32, Eq, int32_t, int32_t, ==, i32.eq) \
   V(I32, Ne, int32_t, int32_t, !=, i32.ne) \
+  V(I32, LtU, uint32_t, uint32_t, <, i32.ltu) \
+  V(I32, LeU, uint32_t, uint32_t, <=, i32.leu) \
+  V(I32, GtU, uint32_t, uint32_t, >, i32.gtu) \
+  V(I32, GeU, uint32_t, uint32_t, >=, i32.geu) \
   V(I32, LtS, int32_t, int32_t, <, i32.lts) \
   V(I32, LeS, int32_t, int32_t, <=, i32.les) \
   V(I32, GtS, int32_t, int32_t, >, i32.gts) \
@@ -49,6 +54,10 @@
   V(I64, Xor, int64_t, int64_t, ^, i64.xor) \
   V(I64, Eq, int64_t, int32_t, ==, i64.eq) \
   V(I64, Ne, int64_t, int32_t, !=, i64.ne) \
+  V(I64, LtU, uint64_t, uint32_t, <, i64.ltu) \
+  V(I64, LeU, uint64_t, uint32_t, <=, i64.leu) \
+  V(I64, GtU, uint64_t, uint32_t, >, i64.gtu) \
+  V(I64, GeU, uint64_t, uint32_t, >=, i64.geu) \
   V(I64, LtS, int64_t, int32_t, <, i64.lts) \
   V(I64, LeS, int64_t, int32_t, <=, i64.les) \
   V(I64, GtS, int64_t, int32_t, >, i64.gts) \
@@ -76,9 +85,9 @@
 
 using ::std::forward;
 using ::std::floor;
-using ::std::ceilf;
-using ::std::ceill;
-using ::std::sqrtf;
+// using ::std::ceilf;
+// using ::std::ceill;
+// using ::std::sqrtf;
 using ::std::sqrt;
 using ::std::abs;
 using ::std::numeric_limits;
@@ -107,8 +116,7 @@ void Interpreter::retrieveDoubleRTVals(
   Executor *executor,
   const function<void(
     const shared_ptr<Stack::ValueFrameStack> &valueStack,
-    ValueFrame *const &x,
-    ValueFrame *const &y)> &handler) {
+    const T x, const T y)> &handler) {
   const auto valueStack = wasmIns->stack->valueStack;
   if (valueStack->size() < 2) {
     Printer::instance().error(Errors::RT_OPERANDS_NOT_ENOUGH);
@@ -117,32 +125,40 @@ void Interpreter::retrieveDoubleRTVals(
   const auto &y = *operands.at(DEFAULT_ELEMENT_INDEX);
   const auto &x = *operands.at(DEFAULT_ELEMENT_INDEX + 1);
   if constexpr (is_same<T, int32_t>::value) {
-    if (y->getValueType() == ValueTypesCode::kI32 &&
-        x->getValueType() == ValueTypesCode::kI32) {
-      handler(valueStack, x, y);
-    } else {
+    if (!(y->getGenericType() == ValueTypesCode::kI32 && x->getGenericType() == ValueTypesCode::kI32)) {
       Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toI32(), y->toI32());
+    }
+  } else if constexpr (is_same<T, uint32_t>::value) {
+    if (!(y->getGenericType() == ValueTypesCode::kI32 && x->getGenericType() == ValueTypesCode::kI32)) {
+      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toU32(), y->toU32());
     }
   } else if constexpr (is_same<T, int64_t>::value) {
-    if (y->getValueType() == ValueTypesCode::kI64 &&
-        x->getValueType() == ValueTypesCode::kI64) {
-      handler(valueStack, x, y);
-    } else {
+    if (!(y->getGenericType() == ValueTypesCode::kI64 && x->getGenericType() == ValueTypesCode::kI64)) {
       Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toI64(), y->toI64());
+    }
+  } else if constexpr (is_same<T, uint64_t>::value) {
+    if (!(y->getGenericType() == ValueTypesCode::kI64 && x->getGenericType() == ValueTypesCode::kI64)) {
+      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toU64(), y->toU64());
     }
   } else if constexpr (is_same<T, float>::value) {
-    if (y->getValueType() == ValueTypesCode::kF32 &&
-        x->getValueType() == ValueTypesCode::kF32) {
-      handler(valueStack, x, y);
-    } else {
+    if (!(y->getGenericType() == ValueTypesCode::kF32 && x->getGenericType() == ValueTypesCode::kF32)) {
       Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toF32(), y->toF32());
     }
   } else if constexpr (is_same<T, double>::value) {
-    if (y->getValueType() == ValueTypesCode::kF64 &&
-        x->getValueType() == ValueTypesCode::kF64) {
-      handler(valueStack, x, y);
+    if (!(y->getGenericType() == ValueTypesCode::kF64 && x->getGenericType() == ValueTypesCode::kF64)) {
+      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH); 
     } else {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+      handler(valueStack, x->toF64(), y->toF64());
     }
   }
 }
@@ -153,32 +169,44 @@ void Interpreter::retrieveSingleRTVal(
   Executor *executor,
   const function<void(
     const shared_ptr<Stack::ValueFrameStack> &valueStack,
-    ValueFrame *const &x)> &handler) {
+    const T x)> &handler) {
   const auto valueStack = wasmIns->stack->valueStack;
   const auto &x = valueStack->top();
   if constexpr (is_same<T, int32_t>::value) {
-    if (x->getValueType() == ValueTypesCode::kI32) {
-      handler(valueStack, x);
-    } else {
+    if (x->getGenericType() != ValueTypesCode::kI32) {
       Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toI32());
+    }
+  } else if constexpr (is_same<T, uint32_t>::value) {
+    if (x->getGenericType() != ValueTypesCode::kI32) {
+      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toU32());
     }
   } else if constexpr (is_same<T, int64_t>::value) {
-    if (x->getValueType() == ValueTypesCode::kI64) {
-      handler(valueStack, x);
-    } else {
+    if (x->getGenericType() != ValueTypesCode::kI64) {
       Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toI64());
+    }
+  } else if constexpr (is_same<T, uint64_t>::value) {
+    if (x->getGenericType() != ValueTypesCode::kI64) {
+      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toU64());
     }
   } else if constexpr (is_same<T, float>::value) {
-    if (x->getValueType() == ValueTypesCode::kF32) {
-      handler(valueStack, x);
-    } else {
+    if (x->getGenericType() != ValueTypesCode::kF32) {
       Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toF32());
     }
   } else if constexpr (is_same<T, double>::value) {
-    if (x->getValueType() == ValueTypesCode::kF64) {
-      handler(valueStack, x);
-    } else {
+    if (x->getGenericType() != ValueTypesCode::kF64) {
       Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
+    } else {
+      handler(valueStack, x->toF64());
     }
   }
 }
@@ -197,31 +225,43 @@ void Interpreter::storeMemarg(
     constexpr auto x = DEFAULT_ELEMENT_INDEX;
     constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
     const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
-    T storeVal;
+    T storeVal = T{};
     // i32 / i64 / f32 / f64;
     const auto storedFrame = *topNVal[x];
     if constexpr (is_same<T, int32_t>::value) {
-      if (storedFrame->getValueType() == ValueTypesCode::kI32) {
+      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTI32Value) {
         storeVal = storedFrame->toI32();
       } else {
         Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
       }
-    } else if constexpr (is_same<T, int64_t>::value) {
-      if (storedFrame->getValueType() == ValueTypesCode::kI64) {
+    } else if constexpr (is_same<T, uint32_t>::value) {
+      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTU32Value) {
+        storeVal = storedFrame->toU32();
+      } else {
+        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
+      }
+    } else if constexpr (is_same<T, uint32_t>::value) {
+      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTI64Value) {
         storeVal = storedFrame->toI64();
+      } else {
+        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
+      }
+    } else if constexpr (is_same<T, uint64_t>::value) {
+      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTU64Value) {
+        storeVal = storedFrame->toU64();
       } else {
         Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
       }
     } else if constexpr (is_same<T, float>::value) {
       static_assert(sizeof(float) == 4, "insufficient size of the type.");
-      if (storedFrame->getValueType() == ValueTypesCode::kF32) {
+      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTF32Value) {
         storeVal = storedFrame->toF32();
       } else {
         Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
       }
     } else if constexpr (is_same<T, double>::value) {
       static_assert(sizeof(double) == 8, "insufficient size of the type.");
-      if (storedFrame->getValueType() == ValueTypesCode::kF64) {
+      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTF64Value) {
         storeVal = storedFrame->toF64();
       } else {
         Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
@@ -229,7 +269,7 @@ void Interpreter::storeMemarg(
     }
     // retrive base address;
     const auto baseFrame = *topNVal[y];
-    if (baseFrame->getValueType() == ValueTypesCode::kI32) {
+    if (baseFrame->getRTValueType() == ValueFrameTypes::kRTI32Value) {
       auto &v = executor->uint32UseMemargCache(
         [&executor](uint32_t *a, uint32_t *o, size_t *step) -> void {
           *a = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
@@ -254,7 +294,7 @@ void Interpreter::retrieveMemarg(
     // pop an i32 value from the stack (base address);
     const auto topVal = wasmIns->stack->valueStack->top();
     constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
-    if (topVal->getValueType() == ValueTypesCode::kI32) {
+    if (topVal->getRTValueType() == ValueFrameTypes::kRTI32Value) {
       const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
       auto &v = executor->uint32UseMemargCache(
         [&executor](uint32_t *a, uint32_t *o, size_t *step) -> void {
@@ -401,7 +441,7 @@ void Interpreter::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
       // check the type of return operands;
       for (size_t i = 0; i < returnTypes.size(); i++) {
         const auto topValue = wasmIns->stack->valueStack->top(i);
-        if (topValue->getValueType() != returnTypes.at(i)) {
+        if (topValue->getGenericType() != returnTypes.at(i)) {
           Printer::instance().error(Errors::RT_ARITY_MISMATCH);
         }
       }
@@ -516,7 +556,7 @@ void Interpreter::doCall(shared_wasm_t &wasmIns, Executor *executor) {
     // initialize locals;
     for (const auto &paramType : wasmFunc->staticProto->sig->getParamTypes()) {
       const auto topVal = wasmIns->stack->valueStack->top();
-      if (topVal->getValueType() == paramType) {
+      if (topVal->getGenericType() == paramType) {
         stack->activationStack->top().locals.emplace_back(topVal);
         wasmIns->stack->valueStack->pop();
       }
@@ -849,36 +889,32 @@ void Interpreter::doF64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
 // numerical comparison;;
 void Interpreter::doF32Floor(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<float>(floor(x->toF32())));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(floor(x));
     });
   INSPECT_STACK("f32.floor", wasmIns, executor);
 }
 
 void Interpreter::doF32Trunc(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<float>(trunc(x->toF32())));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(trunc(x));
     });
   INSPECT_STACK("f32.trunc", wasmIns, executor);
 }
 
 void Interpreter::doF64Floor(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<double>(floor(x->toF64())));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(floor(x));
     });
   INSPECT_STACK("f64.floor", wasmIns, executor);
 }
 
 void Interpreter::doF64Trunc(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<double>(trunc(x->toF64())));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(trunc(x));
     });
   INSPECT_STACK("f64.trunc", wasmIns, executor);
 }
@@ -907,37 +943,33 @@ void Interpreter::doF64NearestInt(shared_wasm_t &wasmIns, Executor *executor) {}
 
 void Interpreter::doI32WrapI64(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<int32_t>(x->toI64() & 0xffffffff));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(x & 0xffffffff));
     });
   INSPECT_STACK("i32.wrap_i64", wasmIns, executor);
 }
 
 void Interpreter::doF32SConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<float>(x->toI32()));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<float>(x));
     });
   INSPECT_STACK("f32.convert_i32_s", wasmIns, executor);
 }
 
 void Interpreter::doF32SConvertI64(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<float>(x->toI64()));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<float>(x));
     });
   INSPECT_STACK("f32.convert_i64_s", wasmIns, executor);
 }
 
 void Interpreter::doF32UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      const int32_t xv = x->toI32();
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
       valueStack->top() = executor->checkUpConstant(
-        xv < 0 ? static_cast<int64_t>(0) : static_cast<int64_t>(xv));
+        x < 0 ? static_cast<int64_t>(0) : static_cast<int64_t>(x));
     });
   INSPECT_STACK("f32.convert_i32_u", wasmIns, executor);
 }
@@ -948,28 +980,25 @@ void Interpreter::doF32UConvertI64(shared_wasm_t &wasmIns, Executor *executor) {
 
 void Interpreter::doF64SConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<double>(x->toI32()));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<double>(x));
     });
   INSPECT_STACK("f64.convert_i32_s", wasmIns, executor);
 }
 
 void Interpreter::doF64SConvertI64(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<double>(x->toI64()));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<double>(x));
     });
   INSPECT_STACK("f64.convert_i64_s", wasmIns, executor);
 }
 
 void Interpreter::doF64UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      const int32_t xv = x->toI32();
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
       valueStack->top() = executor->checkUpConstant(
-        xv < 0 ? static_cast<double>(0) : static_cast<double>(xv));
+        x < 0 ? static_cast<double>(0) : static_cast<double>(x));
     });
   INSPECT_STACK("f64.convert_i32_u", wasmIns, executor);
 }
@@ -990,9 +1019,8 @@ void Interpreter::doI64TruncF64S(shared_wasm_t &wasmIns, Executor *executor) {}
 
 void Interpreter::doI64ExtendI32S(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<int64_t>(x->toI32()));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(x));
     });
   INSPECT_STACK("i64.extend_i32_s", wasmIns, executor);
 }
@@ -1003,10 +1031,9 @@ void Interpreter::doI64TruncF64U(shared_wasm_t &wasmIns, Executor *executor) {}
 
 void Interpreter::doI64ExtendI32U(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      const int32_t xv = x->toI32();
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
       valueStack->top() = executor->checkUpConstant(
-        xv < 0 ? static_cast<int64_t>(0) : static_cast<int64_t>(xv));
+        x < 0 ? static_cast<int64_t>(0) : static_cast<int64_t>(x));
     });
   INSPECT_STACK("i64.extend_i32_u", wasmIns, executor);
 }
@@ -1027,9 +1054,8 @@ void Interpreter::doDrop(shared_wasm_t &wasmIns, Executor *executor) {
 
 void Interpreter::doF32Abs(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<float>(abs(x->toF32())));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(abs(x));
     });
   INSPECT_STACK("f32.abs", wasmIns, executor);
 }
@@ -1038,11 +1064,10 @@ void Interpreter::doF32Max(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveDoubleRTVals<float>(wasmIns, executor,
     [&executor](
       const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      ValueFrame *const &x,
-      ValueFrame *const &y) -> void {
+      const float x,
+      const float y) -> void {
       valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(
-          static_cast<float>(Utility::max<float>(x->toF32(), y->toF32())));
+      valueStack->top() = executor->checkUpConstant(Utility::max<float>(x, y));
     });
   INSPECT_STACK("f32.max", wasmIns, executor);
 }
@@ -1051,11 +1076,10 @@ void Interpreter::doF32Min(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveDoubleRTVals<float>(wasmIns, executor,
     [&executor](
       const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      ValueFrame *const &x,
-      ValueFrame *const &y) -> void {
+      const float x,
+      const float y) -> void {
       valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(
-          static_cast<float>(Utility::min<float>(x->toF32(), y->toF32())));
+      valueStack->top() = executor->checkUpConstant(Utility::min<float>(x, y));
     });
   INSPECT_STACK("f32.min", wasmIns, executor);
 }
@@ -1065,9 +1089,8 @@ void Interpreter::doF32Neg(shared_wasm_t &wasmIns, Executor *executor) {}
 
 void Interpreter::doF64Abs(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<double>(abs(x->toF64())));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(abs(x));
     });
   INSPECT_STACK("f64.abs", wasmIns, executor);
 }
@@ -1076,11 +1099,10 @@ void Interpreter::doF64Max(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveDoubleRTVals<double>(wasmIns, executor,
     [&executor](
       const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      ValueFrame *const &x,
-      ValueFrame *const &y) -> void {
+      const double x,
+      const double y) -> void {
       valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(
-          static_cast<double>(Utility::max<double>(x->toF64(), y->toF64())));
+      valueStack->top() = executor->checkUpConstant(Utility::max<double>(x, y));
     });
   INSPECT_STACK("f64.max", wasmIns, executor);
 }
@@ -1089,91 +1111,168 @@ void Interpreter::doF64Min(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveDoubleRTVals<double>(wasmIns, executor,
     [&executor](
       const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      ValueFrame *const &x,
-      ValueFrame *const &y) -> void {
+      const double x,
+      const double y) -> void {
       valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(
-          static_cast<double>(Utility::min<double>(x->toF64(), y->toF64())));
+      valueStack->top() = executor->checkUpConstant(Utility::min<double>(x, y));
     });
   INSPECT_STACK("f64.min", wasmIns, executor);
 }
 
 void Interpreter::doF64Neg(shared_wasm_t &wasmIns, Executor *executor) {}
 
-void Interpreter::doI32Clz(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32Clz(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int32_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(Bits::countLeadingZeros(x)));
+    });
+  INSPECT_STACK("i32.clz", wasmIns, executor);
+}
 
-void Interpreter::doI32Ctz(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32Ctz(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int32_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(Bits::countTrailingZeros(x)));
+    });
+  INSPECT_STACK("i32.ctz", wasmIns, executor);
+}
 
-void Interpreter::doI32Eqz(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32Eqz(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int32_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(x == 0 ? 1 : 0));
+    });
+  INSPECT_STACK("i32.eqz", wasmIns, executor);
+}
 
-void Interpreter::doI32GeU(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32Rotl(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const int32_t x,
+      const int32_t y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant((x << (y & 0x1f)) | (x >> ((32 - y) & 0x1f)));
+    });
+  INSPECT_STACK("i32.rotl", wasmIns, executor);
+}
 
-void Interpreter::doI32GtU(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32Rotr(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const int32_t x,
+      const int32_t y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant((x >> (y & 0x1f)) | (x << ((32 - y) & 0x1f)));
+    });
+  INSPECT_STACK("i32.rotr", wasmIns, executor);
+}
 
-void Interpreter::doI32LeU(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32Shl(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const int32_t x,
+      const int32_t y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant(x << (y & 0x1f));
+    });
+  INSPECT_STACK("i32.shl", wasmIns, executor);
+}
 
-void Interpreter::doI32LtU(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64Clz(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int64_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(Bits::countLeadingZeros(x)));
+    });
+  INSPECT_STACK("i64.clz", wasmIns, executor);
+}
 
-void Interpreter::doI32Rol(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64Ctz(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int64_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(Bits::countTrailingZeros(x)));
+    });
+  INSPECT_STACK("i64.ctz", wasmIns, executor);
+}
 
-void Interpreter::doI32Ror(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64Eqz(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int64_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(x == 0 ? 1 : 0));
+    });
+  INSPECT_STACK("i64.eqz", wasmIns, executor);
+}
 
-void Interpreter::doI32Shl(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64Rotl(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const int64_t x,
+      const int64_t y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant((x << (y & 0x3f)) | (x >> ((64 - y) & 0x3f)));
+    });
+  INSPECT_STACK("i64.rotl", wasmIns, executor);
+}
 
-void Interpreter::doI64Clz(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64Rotr(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const int64_t x,
+      const int64_t y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant((x >> (y & 0x3f)) | (x << ((64 - y) & 0x3f)));
+    });
+  INSPECT_STACK("i64.rotr", wasmIns, executor);
+}
 
-void Interpreter::doI64Ctz(shared_wasm_t &wasmIns, Executor *executor) {}
-
-void Interpreter::doI64Eqz(shared_wasm_t &wasmIns, Executor *executor) {}
-
-void Interpreter::doI64GeU(shared_wasm_t &wasmIns, Executor *executor) {}
-
-void Interpreter::doI64GtU(shared_wasm_t &wasmIns, Executor *executor) {}
-
-void Interpreter::doI64LeU(shared_wasm_t &wasmIns, Executor *executor) {}
-
-void Interpreter::doI64LtU(shared_wasm_t &wasmIns, Executor *executor) {}
-
-void Interpreter::doI64Rol(shared_wasm_t &wasmIns, Executor *executor) {}
-
-void Interpreter::doI64Ror(shared_wasm_t &wasmIns, Executor *executor) {}
-
-void Interpreter::doI64Shl(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64Shl(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const int64_t x,
+      const int64_t y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant(x << (y & 0x3f));
+    });
+  INSPECT_STACK("i64.shl", wasmIns, executor);
+}
 
 void Interpreter::doSelect(shared_wasm_t &wasmIns, Executor *executor) {}
 
 void Interpreter::doF32Ceil(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<float>(ceilf(x->toF32())));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(ceilf(x));
     });
   INSPECT_STACK("f32.ceil", wasmIns, executor);
 }
 
 void Interpreter::doF32Sqrt(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
       valueStack->top() = executor->checkUpConstant(
-        static_cast<float>(sqrtf(x->toF32())));
+        static_cast<float>(sqrtf(x)));
     });
   INSPECT_STACK("f32.sqrt", wasmIns, executor);
 }
 
 void Interpreter::doF64Ceil(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
       valueStack->top() = executor->checkUpConstant(
-        static_cast<double>(ceill(x->toF64())));
+        static_cast<double>(ceill(x)));
     });
   INSPECT_STACK("f64.ceil", wasmIns, executor);
 }
 
 void Interpreter::doF64Sqrt(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, ValueFrame *const &x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<double>(sqrt(x->toF64())));
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(sqrt(x));
     });
   INSPECT_STACK("f64.sqrt", wasmIns, executor);
 }
@@ -1182,102 +1281,184 @@ void Interpreter::doI32DivS(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveDoubleRTVals<int32_t>(wasmIns, executor,
     [&executor](
       const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      ValueFrame *const &x,
-      ValueFrame *const &y) -> void {
+      const int32_t x,
+      const int32_t y) -> void {
       valueStack->pop();
-      const int32_t xv = x->toI32();
-      const int32_t yv = y->toI32();
-      if (yv == 0) {
+      if (y == 0) {
         Printer::instance().error(Errors::RT_DIV_BY_ZERO);
-      } else if (yv == -1 && xv == numeric_limits<int32_t>::min()) {
+      } else if (y == -1 && x == numeric_limits<int32_t>::min()) {
         // INT32_T_MIN = -INT32_T_MAX - 1;
         Printer::instance().error(Errors::RT_DIV_UNREPRESENTABLE);
       } else {
-        valueStack->top() = executor->checkUpConstant(
-          static_cast<int32_t>(xv / yv));
+        valueStack->top() = executor->checkUpConstant(x / y);
       }
     });
   INSPECT_STACK("i32.div_s", wasmIns, executor);
 }
 
 void Interpreter::doI32DivU(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
+  retrieveDoubleRTVals<uint32_t>(wasmIns, executor,
     [&executor](
       const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      ValueFrame *const &x,
-      ValueFrame *const &y) -> void {
+      const uint32_t x,
+      const uint32_t y) -> void {
       valueStack->pop();
-      const int32_t xv = x->toI32();
-      const int32_t yv = y->toI32();
-      if (yv == 0) {
+      if (y == 0) {
         Printer::instance().error(Errors::RT_DIV_BY_ZERO);
-      } else if (xv <= 0 || yv < 0) {
-        valueStack->top() = executor->checkUpConstant(
-          static_cast<int32_t>(0));
       } else {
-        valueStack->top() = executor->checkUpConstant(
-          static_cast<int32_t>(xv / yv));
+        valueStack->top() = executor->checkUpConstant(x / y);
       }
     });
   INSPECT_STACK("i32.div_u", wasmIns, executor);
 }
 
-void Interpreter::doI32RemS(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32RemS(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const int32_t x,
+      const int32_t y) -> void {
+      valueStack->pop();
+      if (y == 0) {
+        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
+      } else if (y == -1) {
+        valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(0));
+      } else {
+        valueStack->top() = executor->checkUpConstant(x % y);
+      }
+    });
+  INSPECT_STACK("i32.rem_s", wasmIns, executor);
+}
 
-void Interpreter::doI32RemU(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32RemU(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<uint32_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const uint32_t x,
+      const uint32_t y) -> void {
+      valueStack->pop();
+      if (y == 0) {
+        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
+      } else {
+        valueStack->top() = executor->checkUpConstant(x % y);
+      }
+    });
+  INSPECT_STACK("i32.rem_u", wasmIns, executor);
+}
 
-void Interpreter::doI32ShrS(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32ShrS(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const int32_t x,
+      const int32_t y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant(x >> (y & 0x1f));
+    });
+  INSPECT_STACK("i32.shr_s", wasmIns, executor);
+}
 
-void Interpreter::doI32ShrU(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32ShrU(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<uint32_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const uint32_t x,
+      const uint32_t y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant(x >> (y & 0x1f));
+    });
+  INSPECT_STACK("i32.shr_u", wasmIns, executor);
+}
 
 void Interpreter::doI64DivS(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveDoubleRTVals<int64_t>(wasmIns, executor,
     [&executor](
       const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      ValueFrame *const &x,
-      ValueFrame *const &y) -> void {
+      const int64_t x,
+      const int64_t y) -> void {
       valueStack->pop();
-      const int64_t xv = x->toI64();
-      const int64_t yv = y->toI64();
-      if (yv == 0) {
+      if (y == 0) {
         Printer::instance().error(Errors::RT_DIV_BY_ZERO);
-      } else if (yv == -1 && xv == numeric_limits<int64_t>::min()) {
+      } else if (y == -1 && x == numeric_limits<int64_t>::min()) {
         // INT64_T_MIN = -INT64_T_MAX - 1;
         Printer::instance().error(Errors::RT_DIV_UNREPRESENTABLE);
       } else {
-        valueStack->top() = executor->checkUpConstant(
-          static_cast<int64_t>(xv / yv));
+        valueStack->top() = executor->checkUpConstant(x / y);
       }
     });
   INSPECT_STACK("i64.div_s", wasmIns, executor);
 }
 
 void Interpreter::doI64DivU(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
+  retrieveDoubleRTVals<uint64_t>(wasmIns, executor,
     [&executor](
       const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      ValueFrame *const &x,
-      ValueFrame *const &y) -> void {
+      const uint64_t x,
+      const uint64_t y) -> void {
       valueStack->pop();
-      const int64_t xv = x->toI32();
-      const int64_t yv = y->toI32();
-      if (yv == 0) {
+      if (y == 0) {
         Printer::instance().error(Errors::RT_DIV_BY_ZERO);
-      } else if (xv <= 0 || yv < 0) {
-        valueStack->top() = executor->checkUpConstant(
-          static_cast<int64_t>(0));
       } else {
-        valueStack->top() = executor->checkUpConstant(
-          static_cast<int64_t>(xv / yv));
+        valueStack->top() = executor->checkUpConstant(x / y);
       }
     });
   INSPECT_STACK("i64.div_u", wasmIns, executor);
 }
 
-void Interpreter::doI64RemS(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64RemS(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const int64_t x,
+      const int64_t y) -> void {
+      valueStack->pop();
+      if (y == 0) {
+        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
+      } else if (y == -1) {
+        valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(0));
+      } else {
+        valueStack->top() = executor->checkUpConstant(y == -1 ? static_cast<int64_t>(0) : x % y);
+      }
+    });
+  INSPECT_STACK("i64.rem_s", wasmIns, executor);
+}
 
-void Interpreter::doI64RemU(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64RemU(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<uint64_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const uint64_t x,
+      const uint64_t y) -> void {
+      valueStack->pop();
+      if (y == 0) {
+        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
+      } else {
+        valueStack->top() = executor->checkUpConstant(x % y);
+      }
+    });
+  INSPECT_STACK("i64.rem_u", wasmIns, executor);
+}
 
-void Interpreter::doI64ShrS(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64ShrS(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const int64_t x,
+      const int64_t y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant(x >> (y & 0x3f));
+    });
+  INSPECT_STACK("i64.shr_s", wasmIns, executor);
+}
 
-void Interpreter::doI64ShrU(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64ShrU(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<uint64_t>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const uint64_t x,
+      const uint64_t y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant(x >> (y & 0x3f));
+    });
+  INSPECT_STACK("i64.shr_u", wasmIns, executor);
+}
