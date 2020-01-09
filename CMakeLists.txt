@@ -1,11 +1,11 @@
 cmake_minimum_required (VERSION 3.11)
 
+set (CMAKE_C_COMPILER /usr/bin/clang)
+set (CMAKE_CXX_COMPILER /usr/bin/clang++)
+
 project (TWVM)
 
 include_directories(.)
-
-# set (CMAKE_C_COMPILER /usr/bin/clang)
-# set (CMAKE_CXX_COMPILER /usr/bin/clang++)
 
 # setup c++ config;
 set (CMAKE_VERBOSE_MAKEFILE "OFF")

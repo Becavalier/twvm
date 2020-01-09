@@ -9,6 +9,7 @@
 using std::enable_if;
 using std::is_integral;
 using std::is_unsigned;
+using std::make_unsigned;
 
 class Bits {
  public:
@@ -24,8 +25,7 @@ class Bits {
     constexpr uint64_t mask[] = {
       0x5555555555555555, 
       0x3333333333333333, 
-      0x0f0f0f0f0f0f0f0f,
-    };
+      0x0f0f0f0f0f0f0f0f};
     value = ((value >> 1) &
       mask[DEFAULT_ELEMENT_INDEX]) + (value & mask[DEFAULT_ELEMENT_INDEX]);
     value = ((value >> 2) &
@@ -56,7 +56,7 @@ class Bits {
                       : bits == 64 ? __builtin_ctzll(static_cast<uint64_t>(value))
                                    : __builtin_ctz(static_cast<uint32_t>(value));
   #else
-    using U = typename std::make_unsigned<T>::type;
+    using U = typename make_unsigned<T>::type;
     U u = value;
     return CountPopulation(static_cast<U>(~u & (u - 1u)));
   #endif
@@ -84,7 +84,5 @@ class Bits {
   #endif
   }
 };
-
-
 
 #endif  // LIB_COMMON_BITS_H_

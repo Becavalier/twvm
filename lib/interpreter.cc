@@ -85,9 +85,9 @@
 
 using ::std::forward;
 using ::std::floor;
-// using ::std::ceilf;
-// using ::std::ceill;
-// using ::std::sqrtf;
+using ::std::ceilf;
+using ::std::ceill;
+using ::std::sqrtf;
 using ::std::sqrt;
 using ::std::abs;
 using ::std::numeric_limits;
@@ -1084,7 +1084,13 @@ void Interpreter::doF32Min(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("f32.min", wasmIns, executor);
 }
 
-void Interpreter::doF32Neg(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF32Neg(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<float>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(-x);
+    });
+  INSPECT_STACK("f32.neg", wasmIns, executor);
+}
 
 
 void Interpreter::doF64Abs(shared_wasm_t &wasmIns, Executor *executor) {
@@ -1119,7 +1125,13 @@ void Interpreter::doF64Min(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("f64.min", wasmIns, executor);
 }
 
-void Interpreter::doF64Neg(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF64Neg(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<double>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(-x);
+    });
+  INSPECT_STACK("f64.neg", wasmIns, executor);
+}
 
 void Interpreter::doI32Clz(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int32_t>(wasmIns, executor,

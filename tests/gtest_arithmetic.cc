@@ -374,6 +374,23 @@ TEST(TWVM, Arithmetic) {
         0x8a, 0x7f, 0x79, 0x0b,
       })));
   EXPECT_EQ(0, executor->inspectRunningResult<int64_t>());
+
+  /**
+    (module
+      (memory $0 1)
+      (export "main" (func $main))
+      (func $main (; 1 ;) (result i32)
+        (i32.trunc_f32_s
+          (f32.neg (f32.const 123.123)))))
+   */
+  executor->execute(
+    Instantiator::instantiate(
+      Loader::init(vector<uint8_t>{
+        START_BYTES, 0x1, 0x5, 0x1, 0x60, 0, 0x1, 0x7f, 0x3,
+        0x2, 0x1, 0, 0x5, 0x3, 0x1, 0, 0x1, 0x7, 0x8, 0x1, 0x4, 0x6d, 0x61, 0x69, 0x6e,
+        0, 0, 0xa, 0xb, 0x1, 0x9, 0, 0x43, 0xfa, 0x3e, 0xf6, 0x42, 0x8c, 0xa8, 0x0b,
+      })));
+  EXPECT_EQ(-123, executor->inspectRunningResult<int32_t>());
 }
 
 
