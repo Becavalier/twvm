@@ -1,6 +1,7 @@
 #include <memory>
 #include <iostream>
 #include <vector>
+#include <limits>
 #include "gtest/gtest.h"
 #include "tests/macros.h"
 #include "lib/loader.h"
@@ -11,6 +12,7 @@ using std::make_unique;
 using std::cout;
 using std::endl;
 using std::vector;
+using std::numeric_limits;
 
 /**
  * Case ISAs:
@@ -391,7 +393,72 @@ TEST(TWVM, Arithmetic) {
         0, 0, 0xa, 0xb, 0x1, 0x9, 0, 0x43, 0xfa, 0x3e, 0xf6, 0x42, 0x8c, 0xa8, 0x0b,
       })));
   EXPECT_EQ(-123, executor->inspectRunningResult<int32_t>());
+
+  /**
+    (module
+      (memory $0 1)
+      (export "main" (func $main))
+      (func $main (; 1 ;) (result f32)
+        (f32.nearest (f32.const 123.123)))) 
+   */
+  executor->execute(
+    Instantiator::instantiate(
+      Loader::init(vector<uint8_t>{
+        START_BYTES, 0x1, 0x5, 0x1, 0x60, 0, 0x1, 0x7d, 0x3,
+        0x2, 0x1, 0, 0x5, 0x3, 0x1, 0, 0x1, 0x7, 0x8, 0x1, 0x4, 0x6d, 0x61, 0x69, 0x6e,
+        0, 0, 0xa, 0xa, 0x1, 0x8, 0, 0x43, 0xfa, 0x3e, 0xf6, 0x42, 0x90, 0x0b,
+      })));
+  EXPECT_EQ(123, executor->inspectRunningResult<float>());
+
+  /**
+    (module
+      (memory $0 1)
+      (export "main" (func $main))
+      (func $main (; 1 ;) (result f32)
+        (f32.add
+        (f32.copysign (f32.const 1.0) (f32.const 2.0)
+        (f32.copysign (f32.const 1.0) (f32.const -2.0))))))
+   */
+  executor->execute(
+    Instantiator::instantiate(
+      Loader::init(vector<uint8_t>{
+        START_BYTES, 0x1, 0x5, 0x1, 0x60, 0, 0x1, 0x7d, 0x3,
+        0x2, 0x1, 0, 0x5, 0x3, 0x1, 0, 0x1, 0x7, 0x8, 0x1, 0x4, 0x6d, 0x61, 0x69, 0x6e,
+        0, 0, 0xa, 0x1b, 0x1, 0x19, 0, 0x43, 0, 0, 0x80, 0x3f, 0x43, 0, 0, 0,
+        0x40, 0x43, 0, 0, 0x80, 0x3f, 0x43, 0, 0, 0, 0xc0, 0x98, 0x98, 0x92, 0x0b,
+      })));
+  EXPECT_EQ(-1, executor->inspectRunningResult<float>());
+
+  /**
+    (module
+      (memory $0 1)
+      (export "main" (func $main))
+      (func $main (; 1 ;) (result i32)
+        (i32.popcnt (i32.const 1234567890))))
+   */
+  executor->execute(
+    Instantiator::instantiate(
+      Loader::init(vector<uint8_t>{
+        START_BYTES, 0x1, 0x5, 0x1, 0x60, 0, 0x1, 0x7f, 0x3,
+        0x2, 0x1, 0, 0x5, 0x3, 0x1, 0, 0x1, 0x7, 0x8, 0x1, 0x4, 0x6d, 0x61, 0x69, 0x6e,
+        0, 0, 0xa, 0xb, 0x1, 0x9, 0, 0x41, 0xd2, 0x85, 0xd8, 0xcc, 0x4, 0x69, 0x0b,
+      })));
+  EXPECT_EQ(12, executor->inspectRunningResult<int32_t>());
+
+  /**
+    (module
+      (memory $0 1)
+      (export "main" (func $main))
+      (func $main (; 1 ;) (result f32)
+        (f32.demote_f64 (f64.const 123.123e100)))) 
+   */
+  executor->execute(
+    Instantiator::instantiate(
+      Loader::init(vector<uint8_t>{
+        START_BYTES, 0x1, 0x5, 0x1, 0x60, 0, 0x1, 0x7d, 0x3,
+        0x2, 0x1, 0, 0x5, 0x3, 0x1, 0, 0x1, 0x7, 0x8, 0x1, 0x4, 0x6d, 0x61, 0x69, 0x6e,
+        0, 0, 0xa, 0xe, 0x1, 0xc, 0, 0x44, 0x43, 0xfb, 0x5c, 0x13, 0x4c, 0x97, 0x21, 0x55,
+        0xb6, 0x0b,
+      })));
+  EXPECT_EQ(numeric_limits<float>::infinity(), executor->inspectRunningResult<float>());
 }
-
-
- 

@@ -90,6 +90,9 @@ using ::std::ceill;
 using ::std::sqrtf;
 using ::std::sqrt;
 using ::std::abs;
+using ::std::nearbyintf;
+using ::std::copysign;
+using ::std::copysignf;
 using ::std::numeric_limits;
 using ::std::trunc;
 using ::std::string;
@@ -919,27 +922,83 @@ void Interpreter::doF64Trunc(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("f64.trunc", wasmIns, executor);
 }
 
-void Interpreter::doI32Popcnt(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32Popcnt(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int32_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(Bits::countPopulation(x));
+    });
+  INSPECT_STACK("i32.popcnt", wasmIns, executor);
+}
 
-void Interpreter::doI64Popcnt(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64Popcnt(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int64_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(Bits::countPopulation(x));
+    });
+  INSPECT_STACK("i64.popcnt", wasmIns, executor);
+}
 
 void Interpreter::doMemoryGrow(shared_wasm_t &wasmIns, Executor *executor) {}
 
 void Interpreter::doMemorySize(shared_wasm_t &wasmIns, Executor *executor) {}
 
-void Interpreter::doF32CopySign(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF32CopySign(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<float>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const float x,
+      const float y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant(copysignf(x, y));
+    });
+  INSPECT_STACK("f32.copysign", wasmIns, executor);
+}
 
-void Interpreter::doF64CopySign(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF64CopySign(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveDoubleRTVals<double>(wasmIns, executor,
+    [&executor](
+      const shared_ptr<Stack::ValueFrameStack> &valueStack,
+      const double x,
+      const double y) -> void {
+      valueStack->pop();
+      valueStack->top() = executor->checkUpConstant(copysign(x, y));
+    });
+  INSPECT_STACK("f64.copysign", wasmIns, executor);
+}
 
 void Interpreter::doCallIndirect(shared_wasm_t &wasmIns, Executor *executor) {}
 
-void Interpreter::doF32DemoteF64(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF32DemoteF64(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<double>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(Utility::double64ToFloat32(x));
+    });
+  INSPECT_STACK("f32.demote_f64", wasmIns, executor);
+}
 
-void Interpreter::doF32NearestInt(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF32NearestInt(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<float>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(nearbyintf(x));
+    });
+  INSPECT_STACK("f32.nearest", wasmIns, executor);
+}
 
-void Interpreter::doF64PromoteF32(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF64PromoteF32(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<float>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<double>(x));
+    });
+  INSPECT_STACK("f64.promote_f32", wasmIns, executor);
+}
 
-void Interpreter::doF64NearestInt(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF64NearestInt(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<double>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(nearbyintf(x));
+    });
+  INSPECT_STACK("f64.nearest", wasmIns, executor);
+}
 
 void Interpreter::doI32WrapI64(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int64_t>(wasmIns, executor,
@@ -975,6 +1034,7 @@ void Interpreter::doF32UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doF32UConvertI64(shared_wasm_t &wasmIns, Executor *executor) {
+  ////
   INSPECT_STACK("f32.convert_i64_s", wasmIns, executor);
 }
 
@@ -1005,17 +1065,53 @@ void Interpreter::doF64UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
 
 void Interpreter::doF64UConvertI64(shared_wasm_t &wasmIns, Executor *executor) {}
 
-void Interpreter::doI32TruncF32S(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32TruncF32S(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<float>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(x));
+    });
+  INSPECT_STACK("i32.trunc_f32_s", wasmIns, executor);
+}
 
-void Interpreter::doI32TruncF64S(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32TruncF64S(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<double>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(x));
+    });
+  INSPECT_STACK("i32.trunc_f64_s", wasmIns, executor);
+}
 
-void Interpreter::doI32TruncF32U(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32TruncF32U(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<float>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<uint32_t>(x));
+    });
+  INSPECT_STACK("i32.trunc_f32_u", wasmIns, executor);
+}
 
-void Interpreter::doI32TruncF64U(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32TruncF64U(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<double>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<uint32_t>(x));
+    });
+  INSPECT_STACK("i32.trunc_f64_u", wasmIns, executor);
+}
 
-void Interpreter::doI64TruncF32S(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64TruncF32S(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<float>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(x));
+    });
+  INSPECT_STACK("i64.trunc_f32_s", wasmIns, executor);
+}
 
-void Interpreter::doI64TruncF64S(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64TruncF64S(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<double>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(x));
+    });
+  INSPECT_STACK("i64.trunc_f64_s", wasmIns, executor);
+}
 
 void Interpreter::doI64ExtendI32S(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int32_t>(wasmIns, executor,
@@ -1025,9 +1121,21 @@ void Interpreter::doI64ExtendI32S(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("i64.extend_i32_s", wasmIns, executor);
 }
 
-void Interpreter::doI64TruncF32U(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64TruncF32U(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<float>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<uint64_t>(x));
+    });
+  INSPECT_STACK("i64.trunc_f32_u", wasmIns, executor);
+}
 
-void Interpreter::doI64TruncF64U(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64TruncF64U(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<double>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<uint64_t>(x));
+    });
+  INSPECT_STACK("i64.trunc_f64_u", wasmIns, executor);
+}
 
 void Interpreter::doI64ExtendI32U(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<int32_t>(wasmIns, executor,
@@ -1038,18 +1146,46 @@ void Interpreter::doI64ExtendI32U(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("i64.extend_i32_u", wasmIns, executor);
 }
 
-void Interpreter::doF32ReinterpretI32(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF32ReinterpretI32(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int32_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(*reinterpret_cast<float*>(const_cast<int32_t*>(&x)));
+    });
+  INSPECT_STACK("f32.reinterpret_i32", wasmIns, executor);
+}
 
-void Interpreter::doF64ReinterpretI64(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF64ReinterpretI64(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int64_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(*reinterpret_cast<double*>(const_cast<int64_t*>(&x)));
+    });
+  INSPECT_STACK("f64.reinterpret_i64", wasmIns, executor);
+}
 
-void Interpreter::doI32ReinterpretF32(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI32ReinterpretF32(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<float>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
+      valueStack->top() = executor->checkUpConstant(*reinterpret_cast<int32_t*>(const_cast<float*>(&x)));
+    });
+  INSPECT_STACK("i32.reinterpret_f32", wasmIns, executor);
+}
 
-void Interpreter::doI64ReinterpretF64(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doI64ReinterpretF64(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<double>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
+      valueStack->top() = executor->checkUpConstant(*reinterpret_cast<int64_t*>(const_cast<double*>(&x)));
+    });
+  INSPECT_STACK("i64.reinterpret_f64", wasmIns, executor);
+}
 
-void Interpreter::doNop(shared_wasm_t &wasmIns, Executor *executor) { /* no effect */ }
+void Interpreter::doNop(shared_wasm_t &wasmIns, Executor *executor) { 
+  /* no effect */ 
+  INSPECT_STACK("nop", wasmIns, executor); 
+}
 
 void Interpreter::doDrop(shared_wasm_t &wasmIns, Executor *executor) {
   wasmIns->stack->valueStack->pop();
+  INSPECT_STACK("drop", wasmIns, executor);
 }
 
 void Interpreter::doF32Abs(shared_wasm_t &wasmIns, Executor *executor) {

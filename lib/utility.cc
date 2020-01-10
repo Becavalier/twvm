@@ -17,16 +17,6 @@ using std::ostream;
 
 shared_ptr<Printer> Printer::singleIns = nullptr;
 
-vector<string> Utility::splitStr(const string &str, char delimiter) {
-  vector<string> tokens;
-  string token;
-  istringstream tokenStream(str);
-  while (getline(tokenStream, token, delimiter)) {
-    tokens.push_back(token);
-  }
-  return tokens;
-}
-
 void Printer::printTableView() {
   if (lines.size() > 0) {
     // calculate column width;
@@ -66,6 +56,16 @@ void Printer::printTableView() {
     INTERNAL_DEBUG_PREFIX_OUTPUT() << setw(maxLengthPadding) << setfill('-') << left << '|' << endl;
     lines.clear();
   }
+}
+
+vector<string> Utility::splitStr(const string &str, char delimiter) {
+  vector<string> tokens;
+  string token;
+  istringstream tokenStream(str);
+  while (getline(tokenStream, token, delimiter)) {
+    tokens.push_back(token);
+  }
+  return tokens;
 }
 
 void Utility::drawLogoGraphic(bool simplify) {

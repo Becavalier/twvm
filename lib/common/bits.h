@@ -15,7 +15,7 @@ class Bits {
  public:
   template <typename T>
   inline constexpr static 
-    typename enable_if<is_unsigned<T>::value && sizeof(T) <= 8, unsigned>::type
+    typename enable_if<is_integral<T>::value && sizeof(T) <= 8, unsigned>::type
       countPopulation(T value) {
     static_assert(sizeof(T) <= 8);
   #if __has_builtin(__builtin_popcountll) && __has_builtin(__builtin_popcount)

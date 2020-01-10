@@ -11,6 +11,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <cmath>
+#include <limits>
 #include "lib/config.h"
 #include "lib/common/constants.h"
 #include "lib/common/errors.h"
@@ -42,6 +43,7 @@ using std::showbase;
 using std::to_string;
 using std::isnan;
 using std::signbit;
+using std::numeric_limits;
 
 // singleton instance;
 class Printer {
@@ -124,7 +126,7 @@ class Utility {
   static inline void savePtrIntoBytes(vector<uint8_t> *v, T *ptr) {
     const auto ptrVal = reinterpret_cast<uintptr_t>(ptr);
     for (auto i = 0; i < ptrSize; i++) {
-      v->push_back(ptrVal >> (ptrSize * i) & 0x000000FF);
+      v->push_back(ptrVal >> (ptrSize * i) & 0x000000ff);
     }
   }
 
@@ -144,6 +146,24 @@ class Utility {
     return x > y ? y : x;
   }
 
+  static inline float double64ToFloat32(double x) {
+    using limits = numeric_limits<float>;
+    static const double kRoundingThreshold = 3.4028235677973362e+38;
+    if (x > limits::max()) {
+      if (x <= kRoundingThreshold) {
+        return limits::max();
+      } else {
+        return limits::infinity(); 
+      }
+    } else if (x < limits::lowest()) {
+      if (x >= -kRoundingThreshold) {
+        return limits::lowest();
+      } else {
+        return -limits::infinity();
+      }
+    }
+    return static_cast<float>(x);
+  };
   static void drawLogoGraphic(bool = true);
 };
 
