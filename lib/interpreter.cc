@@ -1034,8 +1034,11 @@ void Interpreter::doF32UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doF32UConvertI64(shared_wasm_t &wasmIns, Executor *executor) {
-  ////
-  INSPECT_STACK("f32.convert_i64_s", wasmIns, executor);
+  retrieveSingleRTVal<uint64_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const uint64_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<float>(x));
+    });
+  INSPECT_STACK("f32.convert_i64_u", wasmIns, executor);
 }
 
 void Interpreter::doF64SConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
@@ -1063,7 +1066,13 @@ void Interpreter::doF64UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("f64.convert_i32_u", wasmIns, executor);
 }
 
-void Interpreter::doF64UConvertI64(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doF64UConvertI64(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<uint64_t>(wasmIns, executor,
+    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const uint64_t x) -> void {
+      valueStack->top() = executor->checkUpConstant(static_cast<double>(x));
+    });
+  INSPECT_STACK("f64.convert_i64_u", wasmIns, executor);
+}
 
 void Interpreter::doI32TruncF32S(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<float>(wasmIns, executor,
@@ -1389,7 +1398,22 @@ void Interpreter::doI64Shl(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("i64.shl", wasmIns, executor);
 }
 
-void Interpreter::doSelect(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doSelect(shared_wasm_t &wasmIns, Executor *executor) {
+  retrieveSingleRTVal<int32_t>(wasmIns, executor,
+    [](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
+      if (x != 0) {
+        /**
+         * [operand][operand][select-key]
+         *     ^--------^
+         *      exchange
+         */
+        valueStack->at(valueStack->size() - 3) = valueStack->at(valueStack->size() - 2);
+      }
+      // remove the top 2 elements, including the flag ValueFrame;
+      valueStack->popN(2);
+    });
+  INSPECT_STACK("select", wasmIns, executor);
+}
 
 void Interpreter::doF32Ceil(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<float>(wasmIns, executor,

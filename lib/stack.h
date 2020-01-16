@@ -63,6 +63,7 @@ class Stack {
   // in order to reduce the overhead from casting between parent and child types -
   // caused by "dynamic_cast" and "static_cast", we'd better store these three kinds of Frames -
   // separately.
+  // TODO(Jason Yu) use second-level pointer to chian the ValueStack;
   using ValueFrameStack = StackContainer<ValueFrame*>;
   using LabelFrameStack = StackContainer<LabelFrame>;
   using ActivationFrameStack = StackContainer<ActivationFrame>;
