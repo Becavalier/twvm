@@ -85,9 +85,9 @@
 
 using std::forward;
 using std::floor;
-using std::ceilf;
-using std::ceill;
-using std::sqrtf;
+using ::ceilf;
+using ::ceill;
+using ::sqrtf;
 using std::sqrt;
 using std::abs;
 using std::nearbyintf;
