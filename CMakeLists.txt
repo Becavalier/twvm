@@ -11,6 +11,7 @@ include_directories(.)
 set (CMAKE_VERBOSE_MAKEFILE "OFF")
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} \
+  -v       \
   -pthread \
   -O0      \
   -Wall    \
