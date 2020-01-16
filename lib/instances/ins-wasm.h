@@ -5,9 +5,9 @@
 #include <memory>
 #include "lib/type.h"
 #include "lib/common/macros.h"
-#include "lib/stack.h"
-#include "lib/store.h"
 #include "lib/instances/ins-module.h"
+#include "lib/structures/struct-stack.h"
+#include "lib/structures/struct-store.h"
 
 using std::shared_ptr;
 

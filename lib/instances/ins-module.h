@@ -3,7 +3,7 @@
 #define LIB_INSTANCES_INS_MODULE_H_
 
 #include <vector>
-#include "lib/module.h"
+#include "lib/structures/struct-module.h"
 #include "lib/common/macros.h"
 #include "lib/instances/ins-section-func.h"
 #include "lib/instances/ins-section-export.h"

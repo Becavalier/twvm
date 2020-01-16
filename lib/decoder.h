@@ -10,10 +10,10 @@
 #include <type_traits>
 #include <vector>
 #include <fstream>
-#include "lib/common/constants.h"
 #include "lib/utility.h"
 #include "lib/type.h"
-#include "lib/module.h"
+#include "lib/common/constants.h"
+#include "lib/structures/struct-module.h"
 
 using std::function;
 using std::string;

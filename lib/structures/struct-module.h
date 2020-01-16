@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef LIB_MODULE_H_
-#define LIB_MODULE_H_
+#ifndef LIB_STRUCTURES_STRUCT_MODULE_H_
+#define LIB_STRUCTURES_STRUCT_MODULE_H_
 
 #include <vector>
 #include <iostream>
@@ -51,4 +51,4 @@ class Module {
 
 using shared_module_t = shared_ptr<Module>;
 
-#endif  // LIB_MODULE_H_
+#endif  // LIB_STRUCTURES_STRUCT_MODULE_H_

@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef LIB_FRAMES_H_
-#define LIB_FRAMES_H_
+#ifndef LIB_STRUCTURES_STRUCT_FRAMES_H_
+#define LIB_STRUCTURES_STRUCT_FRAMES_H_
 
 #include <cstring>
 #include <vector>
@@ -9,12 +9,12 @@
 #include <type_traits>
 #include <utility>
 #include <unordered_map>
+#include "lib/type.h"
+#include "lib/utility.h"
 #include "lib/common/constants.h"
 #include "lib/common/errors.h"
 #include "lib/common/macros.h"
 #include "lib/instances/ins-section-func.h"
-#include "lib/type.h"
-#include "lib/utility.h"
 
 using std::memcpy;
 using std::memcmp;
@@ -79,17 +79,7 @@ class ValueFrame {
     Utility::writeUnalignedValue<T>(reinterpret_cast<uintptr_t>(bitPattern), v);
   }
 
-  void outputValue(ostream &out) const {
-    switch (runtimeType) {
-      case ValueFrameTypes::kRTF32Value: { out << toF32(); break; }
-      case ValueFrameTypes::kRTF64Value: { out << toF64(); break; }
-      case ValueFrameTypes::kRTI32Value: { out << toI32(); break; }
-      case ValueFrameTypes::kRTU32Value: { out << toU32(); break; }
-      case ValueFrameTypes::kRTI64Value: { out << toI64(); break; }
-      case ValueFrameTypes::kRTU64Value: { out << toU64(); break; }
-      default: break;
-    }
-  }
+  void outputValue(ostream&) const;
 
   inline const auto isZero() const {
     return isValueZero;
@@ -172,4 +162,4 @@ class ActivationFrame {
   size_t labelStackHeight = 0;
 };
 
-#endif  // LIB_FRAMES_H_
+#endif  // LIB_STRUCTURES_STRUCT_FRAMES_H_

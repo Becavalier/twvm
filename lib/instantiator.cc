@@ -3,9 +3,9 @@
 #include <string>
 #include <memory>
 #include "lib/instantiator.h"
-#include "lib/store.h"
 #include "lib/decoder.h"
 #include "lib/utility.h"
+#include "lib/structures/struct-store.h"
 
 using std::find_if;
 using std::hex;

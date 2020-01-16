@@ -8,12 +8,12 @@
 #include <memory>
 #include <vector>
 #include <functional>
-#include "lib/frames.h"
 #include "lib/utility.h"
 #include "lib/decoder.h"
 #include "lib/executor.h"
 #include "lib/common/opcode.h"
 #include "lib/instances/ins-wasm.h"
+#include "lib/structures/struct-frames.h"
 
 using std::shared_ptr;
 using std::vector;

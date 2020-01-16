@@ -10,8 +10,18 @@ include_directories(.)
 # setup c++ config;
 set (CMAKE_VERBOSE_MAKEFILE "OFF")
 set (CMAKE_CXX_STANDARD 17)
-set (CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -pthread -O0 -Wall -g -ggdb")
-set (CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -pthread -DNDEBUG -O3 -Wall")
+set (CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} \
+  -pthread \
+  -O0      \
+  -Wall    \
+  -g       \
+  -ggdb")
+set (CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} \
+  -v       \
+  -pthread \
+  -Ofast   \
+  -DNDEBUG \
+  -Wall")
 
 set (OUTPUT "twvm")
 set (STATE $ENV{CMAKE_TARGET})
@@ -20,6 +30,9 @@ set (T_OUTPUT_SRC "tests")
 
 # VM options;
 add_definitions(-DBUILD_VERSION="$ENV{BUILD_VERSION}")
+if (DEFINED ENV{ENABLE_DEBUG})
+  add_definitions(-DENABLE_DEBUG)
+endif()
 add_definitions(-DOPT_DCT)
 
 # print all definitions;
@@ -63,19 +76,28 @@ else()
 endif()  
 
 # add subdirectory of the core library;
+add_subdirectory (lib/structures)
 add_subdirectory (lib/)
 
 # add executable;
 add_executable(${OUTPUT} ${DIR_SRCS})
 
 if (STATE STREQUAL TEST) 
-  target_link_libraries (${OUTPUT} twvm-lib gtest_main gtest)
+  target_link_libraries (${OUTPUT} 
+    twvm-core
+    twvm-structure
+    gtest_main
+    gtest)
+
   # run the test;
   add_custom_command(TARGET ${OUTPUT} POST_BUILD COMMAND ${OUTPUT})
 else()
   # linker;
-  target_link_libraries (${OUTPUT} twvm-lib pthread)
-  
+  target_link_libraries (${OUTPUT} 
+    twvm-core
+    twvm-structure
+    pthread)
+
   # installing;
   install(TARGETS ${OUTPUT} RUNTIME DESTINATION bin)
 endif()  

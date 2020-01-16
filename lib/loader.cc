@@ -5,11 +5,11 @@
 #include <iostream>
 #include <vector>
 #include "lib/loader.h"
+#include "lib/utility.h"
+#include "lib/interpreter.h"
 #include "lib/common/constants.h"
 #include "lib/common/errors.h"
-#include "lib/utility.h"
 #include "lib/common/opcode.h"
-#include "lib/interpreter.h"
 
 vector<uint8_t> Loader::buf;
 shared_ptr<Reader> Loader::reader = nullptr;

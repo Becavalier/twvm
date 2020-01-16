@@ -1,6 +1,6 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef LIB_STORE_H_
-#define LIB_STORE_H_
+#ifndef LIB_STRUCTURES_STRUCT_STORE_H_
+#define LIB_STRUCTURES_STRUCT_STORE_H_
 
 #include <vector>
 #include "lib/common/macros.h"
@@ -22,4 +22,4 @@ struct Store {
   vector<WasmTableInstance> tableInsts;
 };
 
-#endif  // LIB_STORE_H_
+#endif  // LIB_STRUCTURES_STRUCT_STORE_H_

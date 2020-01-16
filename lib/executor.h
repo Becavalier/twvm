@@ -8,11 +8,11 @@
 #include <unordered_map>
 #include <utility>
 #include "lib/type.h"
-#include "lib/frames.h"
 #include "lib/cache.h"
 #include "lib/common/opcode.h"
 #include "lib/common/constants.h"
 #include "lib/instances/ins-wasm.h"
+#include "lib/structures/struct-frames.h"
 
 using std::shared_ptr;
 using std::function;

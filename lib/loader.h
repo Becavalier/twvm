@@ -23,12 +23,12 @@
 #include <fstream>
 #include <ios>
 #include <istream>
-#include "lib/common/errors.h"
-#include "lib/type.h"
-#include "lib/module.h"
-#include "lib/decoder.h"
-#include "lib/common/opcode.h"
 #include "lib/utility.h"
+#include "lib/type.h"
+#include "lib/decoder.h"
+#include "lib/common/errors.h"
+#include "lib/common/opcode.h"
+#include "lib/structures/struct-module.h"
 
 using std::vector;
 using std::string;

@@ -1,12 +1,12 @@
 // Copyright 2019 YHSPY. All rights reserved.
 #include <array>
 #include "lib/executor.h"
-#include "lib/common/macros.h"
-#include "lib/common/constants.h"
-#include "lib/common/opcode.h"
 #include "lib/interpreter.h"
 #include "lib/decoder.h"
 #include "lib/utility.h"
+#include "lib/common/macros.h"
+#include "lib/common/constants.h"
+#include "lib/common/opcode.h"
 #include "lib/instances/ins-wasm.h"
 
 using std::array;

@@ -14,7 +14,6 @@ using std::string;
 using std::make_unique;
 using std::exit;
 
-
 int main(int argc, const char **argv) {
   // set up command line arguments;
   Options options("twvm", "TWVM - A tiny, lightweight and efficient WebAssembly virtual machine.");
@@ -43,26 +42,22 @@ int main(int argc, const char **argv) {
     Printer::instance().error(Errors::CMD_NO_FILE);
   }
 
+  // start a timer;
   auto start = high_resolution_clock::now();
 
   // static loading;
   const auto wasmModule = Loader::init(Config::executeModulePath);
-  // debug;
-  if (wasmModule) {
-    (Printer::instance() << "static parsing time: " << calcTimeInterval(start) << "ms.\n").debug();
-  } else {
-    exit(EXIT_FAILURE);
-  }
+  (Printer::instance()
+    << "static parsing time: "
+    << calcTimeInterval(start)
+    << "ms.\n").debug();
 
   // instantiating;
   const auto wasmInstance = Instantiator::instantiate(wasmModule);
-  // debug;
-  if (wasmInstance) {
-    (Printer::instance() << "module instantiating completed.\n").debug();
-    (Printer::instance() << "instantiating time: " << calcTimeInterval(start) << "ms. \n").debug();
-  } else {
-    exit(EXIT_FAILURE);
-  }
+  (Printer::instance()
+    << "instantiating time: "
+    << calcTimeInterval(start)
+    << "ms. \n").debug();
 
   // inspect;
   if (Config::isDebugMode) {
@@ -75,7 +70,10 @@ int main(int argc, const char **argv) {
     executor->execute(wasmInstance);
   });
   if (execThread.joinable()) { execThread.join(); }
-  (Printer::instance() << "executing time: " << calcTimeInterval(start) << "ms. \n").debug();
+  (Printer::instance()
+    << "executing time: "
+    << calcTimeInterval(start) 
+    << "ms. \n").debug();
 
   return EXIT_SUCCESS;
 }

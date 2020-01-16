@@ -7,13 +7,13 @@
 #include <string>
 #include <limits>
 #include "lib/type.h"
+#include "lib/decoder.h"
+#include "lib/utility.h"
 #include "lib/interpreter.h"
-#include "lib/stack.h"
 #include "lib/common/bits.h"
 #include "lib/common/errors.h"
 #include "lib/common/macros.h"
-#include "lib/decoder.h"
-#include "lib/utility.h"
+#include "lib/structures/struct-stack.h"
 
 #define DECLARE_BASIC_BINOP_METHOD(name, action, operandType, resultType, op, label) \
   void Interpreter::do##name##action(shared_wasm_t &wasmIns, Executor *executor) { \
@@ -97,7 +97,6 @@ using std::numeric_limits;
 using std::trunc;
 using std::string;
 
-#define ENABLE_DEBUG
 #define WRAP_FORWARD_INT_FIELD(keyName, type) \
   const auto keyName = Decoder::readVarInt<type>(executor->forward_());
 

@@ -1,15 +1,15 @@
 // Copyright 2019 YHSPY. All rights reserved.
-#ifndef LIB_STACK_H_
-#define LIB_STACK_H_
+#ifndef LIB_STRUCTURES_STRUCT_STACK_H_
+#define LIB_STRUCTURES_STRUCT_STACK_H_
 
 #include <memory>
 #include <cstring>
 #include <utility>
 #include <vector>
-#include "lib/frames.h"
-#include "lib/common/constants.h"
 #include "lib/utility.h"
 #include "lib/type.h"
+#include "lib/common/constants.h"
+#include "lib/structures/struct-frames.h"
 
 using std::shared_ptr;
 using std::make_shared;
@@ -72,4 +72,4 @@ class Stack {
   shared_ptr<ActivationFrameStack> activationStack = make_shared<ActivationFrameStack>();
 };
 
-#endif  // LIB_STACK_H_
+#endif  // LIB_STRUCTURES_STRUCT_STACK_H_

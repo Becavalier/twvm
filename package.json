@@ -21,7 +21,10 @@
   },
   "keywords": [
     "WebAssembly",
-    "VM"
+    "VM",
+    "Virtual",
+    "Machine",
+    "Runtime"
   ],
   "author": "YHSPY",
   "license": "MIT",
