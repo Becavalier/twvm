@@ -9,12 +9,12 @@
 #include "lib/common/errors.h"
 #include "lib/common/constants.h"
 
-using ::std::ostream;
-using ::std::string;
-using ::std::cout;
-using ::std::endl;
-using ::std::max;
-using ::std::stringstream;
+using std::ostream;
+using std::string;
+using std::cout;
+using std::endl;
+using std::max;
+using std::stringstream;
 
 void printWrap(ostream &os, int leftPad, const string &content) {
   int len = content.size();

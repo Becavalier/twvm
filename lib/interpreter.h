@@ -15,9 +15,9 @@
 #include "lib/common/opcode.h"
 #include "lib/instances/ins-wasm.h"
 
-using ::std::shared_ptr;
-using ::std::vector;
-using ::std::function;
+using std::shared_ptr;
+using std::vector;
+using std::function;
 using shared_wasm_t = shared_ptr<WasmInstance>;
 using handlerProto = void (shared_wasm_t&, Executor*);
 

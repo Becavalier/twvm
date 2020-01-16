@@ -83,35 +83,35 @@
   V(F64, Gt, double, int32_t, >, f64.gt) \
   V(F64, Ge, double, int32_t, >=, f64.ge)
 
-using ::std::forward;
-using ::std::floor;
-using ::std::ceilf;
-using ::std::ceill;
-using ::std::sqrtf;
-using ::std::sqrt;
-using ::std::abs;
-using ::std::nearbyintf;
-using ::std::copysign;
-using ::std::copysignf;
-using ::std::numeric_limits;
-using ::std::trunc;
-using ::std::string;
+using std::forward;
+using std::floor;
+using std::ceilf;
+using std::ceill;
+using std::sqrtf;
+using std::sqrt;
+using std::abs;
+using std::nearbyintf;
+using std::copysign;
+using std::copysignf;
+using std::numeric_limits;
+using std::trunc;
+using std::string;
 
 #define ENABLE_DEBUG
 #define WRAP_FORWARD_INT_FIELD(keyName, type) \
   const auto keyName = Decoder::readVarInt<type>(executor->forward_());
 
 #ifdef ENABLE_DEBUG
-  using ::std::hex;
-  using ::std::showbase;
+  using std::hex;
+  using std::showbase;
   #define INSPECT_STACK(opcodeName, wasmIns, executor) \
     debug(opcodeName, wasmIns, executor)
 #else
   #define INSPECT_STACK(...)
 #endif
 
-using ::std::make_shared;
-using ::std::move;
+using std::make_shared;
+using std::move;
 
 template <typename T>
 void Interpreter::retrieveDoubleRTVals(

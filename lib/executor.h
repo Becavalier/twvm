@@ -14,11 +14,11 @@
 #include "lib/common/constants.h"
 #include "lib/instances/ins-wasm.h"
 
-using ::std::shared_ptr;
-using ::std::function;
-using ::std::vector;
-using ::std::unordered_map;
-using ::std::move;
+using std::shared_ptr;
+using std::function;
+using std::vector;
+using std::unordered_map;
+using std::move;
 
 #define ITERATE_OPERANDS_VALUE_TYPES(V) \
   V(i32, int32_t) \

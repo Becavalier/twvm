@@ -11,11 +11,11 @@
 #include "lib/utility.h"
 #include "lib/type.h"
 
-using ::std::shared_ptr;
-using ::std::make_shared;
-using ::std::dec;
-using ::std::forward;
-using ::std::vector;
+using std::shared_ptr;
+using std::make_shared;
+using std::dec;
+using std::forward;
+using std::vector;
 
 // use vector to simulate stack, then we can have the ability of random-access,
 // and high-efficient element accessing (without "stack->deque");

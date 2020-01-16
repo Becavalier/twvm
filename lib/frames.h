@@ -16,14 +16,14 @@
 #include "lib/type.h"
 #include "lib/utility.h"
 
-using ::std::memcpy;
-using ::std::memcmp;
-using ::std::vector;
-using ::std::shared_ptr;
-using ::std::ostream;
-using ::std::is_same;
-using ::std::move;
-using ::std::unordered_map;
+using std::memcpy;
+using std::memcmp;
+using std::vector;
+using std::shared_ptr;
+using std::ostream;
+using std::is_same;
+using std::move;
+using std::unordered_map;
 
 class ValueFrame {
  public:

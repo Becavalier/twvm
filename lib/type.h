@@ -10,8 +10,8 @@
 #include "lib/common/macros.h"
 #include "lib/utility.h"
 
-using ::std::string;
-using ::std::vector;
+using std::string;
+using std::vector;
 
 constexpr size_t kSpecMaxWasmMemoryPages = 65536;
 constexpr uint32_t kWasmMagicWord = 0x6d736100;

@@ -9,7 +9,7 @@
 #include "lib/utility.h"
 #include "lib/instances/ins-wasm.h"
 
-using ::std::array;
+using std::array;
 using handlerProto = void (shared_ptr<WasmInstance>&, Executor*);
 
 const bool Executor::checkStackState(shared_ptr<WasmInstance> wasmIns) {

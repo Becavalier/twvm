@@ -9,11 +9,11 @@
 #include "lib/instances/ins-section-global.h"
 #include "lib/instances/ins-section-table.h"
 
-using ::std::vector;
+using std::vector;
 
 // for storing global instances, it consists of -
 // the runtime representation of all instances of functions, tables, memories, and globals -
-// that have been allocated during the life time of the abstract machine.
+// that have been allocated during the life time of the VM.
 struct Store {
   SET_STRUCT_MOVE_ONLY(Store);
   vector<WasmMemoryInstance> memoryInsts;

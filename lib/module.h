@@ -9,9 +9,9 @@
 #include "lib/type.h"
 #include "lib/common/macros.h"
 
-using ::std::vector;
-using ::std::shared_ptr;
-using ::std::move;
+using std::vector;
+using std::shared_ptr;
+using std::move;
 
 // pay attention to the bound check;
 #define WRAP_SELECT_METHOD(name, key) \

@@ -15,14 +15,14 @@
 #include "lib/type.h"
 #include "lib/module.h"
 
-using ::std::function;
-using ::std::string;
-using ::std::memcpy;
-using ::std::malloc;
-using ::std::vector;
-using ::std::ifstream;
-using ::std::shared_ptr;
-using ::std::is_same;
+using std::function;
+using std::string;
+using std::memcpy;
+using std::malloc;
+using std::vector;
+using std::ifstream;
+using std::shared_ptr;
+using std::is_same;
 
 class Reader {
  private:

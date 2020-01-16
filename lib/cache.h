@@ -10,9 +10,9 @@
 #include "lib/type.h"
 #include "lib/utility.h"
 
-using ::std::unordered_map;
-using ::std::string;
-using ::std::vector;
+using std::unordered_map;
+using std::string;
+using std::vector;
 
 #define DECLARE_CACHE_CONTAINER(name, type) \
   unordered_map<uint64_t, vector<type>> name##Map = {};

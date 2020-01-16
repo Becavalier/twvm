@@ -7,12 +7,12 @@
 #include "lib/decoder.h"
 #include "lib/utility.h"
 
-using ::std::find_if;
-using ::std::hex;
-using ::std::showbase;
-using ::std::to_string;
-using ::std::make_shared;
-using ::std::shared_ptr;
+using std::find_if;
+using std::hex;
+using std::showbase;
+using std::to_string;
+using std::make_shared;
+using std::shared_ptr;
 
 const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module) {
   (Printer::instance() << '\n').debug();

@@ -9,9 +9,9 @@
 #include <utility>
 #include <vector>
 
-using ::std::function;
-using ::std::string;
-using ::std::vector;
+using std::function;
+using std::string;
+using std::vector;
 
 class Options {
  public:

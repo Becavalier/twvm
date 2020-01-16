@@ -5,7 +5,7 @@
 #include <memory>
 #include "lib/instantiator.h"
 
-using ::std::shared_ptr;
+using std::shared_ptr;
 
 // validate the structure of "WasmInstance" before execution;
 class Inspector {

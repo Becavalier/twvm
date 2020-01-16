@@ -8,7 +8,7 @@
 #include "lib/stack.h"
 #include "lib/instances/ins-wasm.h"
 
-using ::std::shared_ptr;
+using std::shared_ptr;
 
 // instantiation;
 class Instantiator {
