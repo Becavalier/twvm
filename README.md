@@ -61,9 +61,8 @@ Then run the following command to detect the memory leak of the binary version p
 - [ ] Full Wasm MVP proposals support;
 - [ ] JIT compiler based optimization;
 - [ ] Stage based full-path type validation;
-- [ ] Full Wasm MVP proposals support;
 - [ ] Experimental SIMD instructions;
-- [ ] Basic WASI standard libraries;
+- [ ] Basic WASI interfaces support;
 
 
 ## Copyright and License
