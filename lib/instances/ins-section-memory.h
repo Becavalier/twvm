@@ -17,7 +17,7 @@ class WasmMemoryInstance {
   WasmMemoryInstance(uint32_t initMemSize = 1, uint32_t maxMemSize = 0) : maxMemSize(maxMemSize) {
     if (initMemSize > 0 && (maxMemSize == 0 || initMemSize <= maxMemSize)) {
       // allocate space (multiple of Wasm page);
-      if ((data = static_cast<uint8_t*>(calloc(initMemSize * WASM_PAGE_SIZE, uint8Size)))) {
+      if ((data = static_cast<uint8_t*>(calloc(initMemSize * WASM_PAGE_SIZE, U8_SIZE)))) {
         currentMemSize = initMemSize;
       } else {
         Printer::instance().error(Errors::LOADER_MEM_ALLOC_ERR);

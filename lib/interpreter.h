@@ -51,8 +51,8 @@ class Interpreter {
     #define OPCODE_CASE(name, ...) \
       case WasmOpCode::kOpcode##name:
     switch (opcode) {
-      case WasmOpCode::kOpcodeF32Const: { return f32Size; }
-      case WasmOpCode::kOpcodeF64Const: { return f64Size; }
+      case WasmOpCode::kOpcodeF32Const: { return F32_SIZE; }
+      case WasmOpCode::kOpcodeF64Const: { return F64_SIZE; }
       ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(OPCODE_CASE) {
         return Decoder::calcPassBytes(buf);
       }

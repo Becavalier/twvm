@@ -129,7 +129,7 @@ class Executor {
     return argsVal;
   }
 
-  inline const uint8_t* absAddr() {
+  inline const uint8_t* absAddr() const {
     return pc->data() + innerOffset;
   }
 

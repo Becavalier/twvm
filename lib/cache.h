@@ -15,7 +15,7 @@ using std::string;
 using std::vector;
 
 #define DECLARE_CACHE_CONTAINER(name, type) \
-  unordered_map<uint64_t, vector<type>> name##Map = {};
+  mutable unordered_map<uint64_t, vector<type>> name##Map = {};
 
 #define ACTION_CLEAR_ALL_CACHE(name, ...) \
   name##Map.clear();
@@ -25,7 +25,7 @@ using std::vector;
     name##Map[hashLoc(index, offset)] = {v, static_cast<type>(step)}; \
   }
 #define DECLARE_CACHE_GET_METHODS(name, type) \
-  const auto& name##GetValueCache(uint32_t index, size_t offset) { \
+  const auto& name##GetValueCache(uint32_t index, size_t offset) const { \
     return name##Map[hashLoc(index, offset)]; \
   }
 
@@ -44,9 +44,9 @@ class Cache {
   // id + offset;
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_CONTAINER)
   // meta cache container;
-  unordered_map<uint64_t, unordered_map<OpcodeMeta, int64_t>> metaContainer = {};
+  mutable unordered_map<uint64_t, unordered_map<OpcodeMeta, int64_t>> metaContainer = {};
   // "memarg" cache container;
-  unordered_map<uint64_t, vector<uint32_t>> memargContainer = {};
+  mutable unordered_map<uint64_t, vector<uint32_t>> memargContainer = {};
 
   inline uint64_t hashLoc(uint32_t index, size_t offset) const {
     // avaiable size: 131072;
@@ -61,11 +61,11 @@ class Cache {
     metaContainer[hashLoc(index, offset)][key] = val;
   }
 
-  inline auto int64GetMetaCache(uint32_t index, size_t offset, OpcodeMeta key) {
+  inline auto int64GetMetaCache(uint32_t index, size_t offset, OpcodeMeta key) const {
     return metaContainer[hashLoc(index, offset)][key];
   }
 
-  inline auto& uint32GetMemargCache(uint32_t index, size_t offset) {
+  inline const auto& uint32GetMemargCache(uint32_t index, size_t offset) const {
     return memargContainer[hashLoc(index, offset)];
   }
 

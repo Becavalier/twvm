@@ -48,7 +48,7 @@ const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
 
 #if !defined(OPT_DCT)
   // build a handler lookup table;
-  static array<handlerProto*, uint8Size * byteLen> opcodeTokenHandlers;
+  static array<handlerProto*, U8_SIZE * BYTE_LEN> opcodeTokenHandlers;
 #define APPEND_HANDLER_TO_CONTAINER(name, opcode) \
   opcodeTokenHandlers[opcode] = Interpreter::do##name;
   ITERATE_ALL_OPCODE(APPEND_HANDLER_TO_CONTAINER)
@@ -71,8 +71,8 @@ const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
     // but not efficient enough on average.
     uintptr_t handlerPtr;
     // skip the identifying byte;
-    memcpy(&handlerPtr, pc->data() + (innerOffset += 2), ptrSize);
-    innerOffset += (ptrSize - 1);
+    memcpy(&handlerPtr, pc->data() + (innerOffset += 2), PTR_SIZE);
+    innerOffset += (PTR_SIZE - 1);
     // direct call;
     reinterpret_cast<handlerProto*>(handlerPtr)(wasmIns, this);
 #else
@@ -91,7 +91,7 @@ const void Executor::crawler(
     const auto opcode = static_cast<WasmOpCode>(*(buf + offset++));
     // move pointer to the immediates;
 #if defined(OPT_DCT)
-    offset += ptrSize;
+    offset += PTR_SIZE;
 #endif
     offset += Interpreter::calcOpCodeEntityLen(buf + offset, opcode);
     if (callback && callback(opcode, offset)) {

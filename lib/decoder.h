@@ -45,7 +45,7 @@ class Reader {
     if (isFileReader) {
       if constexpr (is_same<T, char>::value) {
         char d;
-        fileReader->read(&d, charSize);
+        fileReader->read(&d, CHAR_SIZE);
         return static_cast<char>(d);
       } else {
         char d[sizeof(T)];
