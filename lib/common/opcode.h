@@ -209,7 +209,9 @@
   V(GlobalGet) \
   V(GlobalSet) \
   V(I32Const) \
-  V(I64Const)
+  V(I64Const) \
+  V(MemoryGrow) \
+  V(MemorySize)
 
 #define ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(V) \
   ITERATE_LOAD_MEM_OPCODE(V) \
@@ -222,7 +224,7 @@
   V(Else) \
   V(End) \
   V(Drop) \
-  V(Select) \
+  V(Select)
 
 #define DECLARE_NAMED_ENUM(name, opcode) \
   kOpcode##name = opcode,

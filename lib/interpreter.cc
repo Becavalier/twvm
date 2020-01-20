@@ -937,9 +937,36 @@ void Interpreter::doI64Popcnt(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("i64.popcnt", wasmIns, executor);
 }
 
-void Interpreter::doMemoryGrow(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doMemoryGrow(shared_wasm_t &wasmIns, Executor *executor) {
+  // reserved byte for future usage;
+  [[maybe_unused]] 
+  const auto reseverdByte = executor->uint8UseImmesCache(
+    [&executor](size_t *step, uint8_t *immediate) -> auto {
+      *immediate = Decoder::readUint8(executor->forward_());
+      executor->innerOffset += ((*step = 1) - 1);
+    });
+  retrieveSingleRTVal<uint32_t>(wasmIns, executor,
+    [&executor, &wasmIns](const shared_ptr<Stack::ValueFrameStack> &valueStack, const uint32_t x) -> void {
+      // -1 or "previous page size";
+      wasmIns->stack->valueStack->top() = executor->checkUpConstant(
+        wasmIns->module->memories[DEFAULT_ELEMENT_INDEX]->grow(x));
+    });
+  INSPECT_STACK("memory.grow", wasmIns, executor);
+}
 
-void Interpreter::doMemorySize(shared_wasm_t &wasmIns, Executor *executor) {}
+void Interpreter::doMemorySize(shared_wasm_t &wasmIns, Executor *executor) {
+  // reserved byte for future usage;
+  [[maybe_unused]] 
+  const auto reseverdByte = executor->uint8UseImmesCache(
+    [&executor](size_t *step, uint8_t *immediate) -> auto {
+      *immediate = Decoder::readUint8(executor->forward_());
+      executor->innerOffset += ((*step = 1) - 1);
+    });
+  // use the first one by default in MVP;
+  wasmIns->stack->valueStack->push(executor->checkUpConstant(
+    static_cast<uint32_t>(wasmIns->module->memories[DEFAULT_ELEMENT_INDEX]->getAvailablePage())));
+  INSPECT_STACK("memory.size", wasmIns, executor);
+}
 
 void Interpreter::doF32CopySign(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveDoubleRTVals<float>(wasmIns, executor,

@@ -36,8 +36,8 @@ using std::unordered_map;
   V(LOADER_INVALID_FILE, "can not reading the input file.") \
   V(LOADER_INVALID_WASM_VERSION, "invalid wasm version, expect 0x01.") \
   V(LOADER_INVALID_WASM_MAGIC, "invalid wasm magic word, expect 0x6d736100.") \
-  V(LOADER_MEM_ALLOC_ERR, "memory allocating error.") \
-  V(LOADER_MEM_ALLOC_SIZE_ERR, "invalid memory allocation size.")
+  V(LOADER_MEM_ALLOC_ERR, "memory allocating error, make sure you have enougth space on local machine.") \
+  V(LOADER_MEM_ALLOC_SIZE_ERR, "invalid memory allocation size provided.")
 
 #define ITERATE_CMDLINE_ERRORS(V) \
   V(CMD_NO_FILE, "no input file.") \

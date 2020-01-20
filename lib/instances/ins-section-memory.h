@@ -10,15 +10,16 @@
 
 using std::calloc;
 using std::free;
+using std::realloc;
 
 class WasmMemoryInstance {
  public:
   SET_STRUCT_MOVE_ONLY(WasmMemoryInstance);
-  WasmMemoryInstance(uint32_t initMemSize = 1, uint32_t maxMemSize = 0) : maxMemSize(maxMemSize) {
-    if (initMemSize > 0 && (maxMemSize == 0 || initMemSize <= maxMemSize)) {
+  WasmMemoryInstance(uint32_t initMemSize = 1, uint32_t maxMemPage = 0) : maxMemPage(maxMemPage) {
+    if (initMemSize > 0 && (maxMemPage == 0 || initMemSize <= maxMemPage)) {
       // allocate space (multiple of Wasm page);
       if ((data = static_cast<uint8_t*>(calloc(initMemSize * WASM_PAGE_SIZE, U8_SIZE)))) {
-        currentMemSize = initMemSize;
+        currentMemPage = initMemSize;
       } else {
         Printer::instance().error(Errors::LOADER_MEM_ALLOC_ERR);
       }
@@ -30,22 +31,20 @@ class WasmMemoryInstance {
     free(data);
   }
 
-  inline const auto availableSize() const {
-    return currentMemSize * WASM_PAGE_SIZE;
+  inline const auto getAvailableSize() const {
+    return currentMemPage * WASM_PAGE_SIZE;
   }
 
-  inline const auto maxSize() const {
-    return maxMemSize;
+  inline const auto getAvailablePage() const {
+    return currentMemPage;
   }
 
-  inline const auto& rawDataBuf() {
-    return data;
-  }
+  inline const auto& rawDataBuf() { return data; }
 
   // memory -> stack;
   template <typename T>
   T load(uint32_t offset) {
-    if (offset + sizeof(T) <= availableSize()) {
+    if (offset + sizeof(T) <= getAvailableSize()) {
       return *reinterpret_cast<T*>(data + offset);
     } else {
       Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
@@ -58,7 +57,7 @@ class WasmMemoryInstance {
   template <typename T>
   void store(uint32_t offset, T val) {
     // bound check;
-    if (offset + sizeof(T) <= availableSize()) {
+    if (offset + sizeof(T) <= getAvailableSize()) {
       *(reinterpret_cast<T*>(data + offset)) = val;
     } else {
       Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
@@ -72,21 +71,26 @@ class WasmMemoryInstance {
   }
 
   // expand the maxmium capacity of the memory by Wasm pages;
-  const size_t grow(const size_t &pages) {
-    if (maxMemSize != 0 && currentMemSize + pages > maxMemSize) {
+  const uint32_t grow(const uint32_t pages) {
+    if (maxMemPage != 0 && (currentMemPage + pages > maxMemPage)) {
       return -1;
     } else {
-      const auto previousMemSize = currentMemSize;
-      currentMemSize = currentMemSize + pages;
-      // TODO(Jason Yu): relloc;
+      const auto previousMemSize = currentMemPage;
+      currentMemPage += pages;
+      if (const auto &mem = realloc(data, currentMemPage * WASM_PAGE_SIZE)) {
+        data = reinterpret_cast<uint8_t*>(mem);
+        // initialization of the raw memeory;
+      } else {
+        Printer::instance().error(Errors::LOADER_MEM_ALLOC_ERR);
+      }
       return previousMemSize;
     }
   }
 
  private:
   // 64k per pages;
-  uint32_t maxMemSize = 0;
-  uint32_t currentMemSize = 0;
+  uint32_t maxMemPage = 0;
+  uint32_t currentMemPage = 0;
   uint8_t* data = nullptr;
   const WasmMemory *staticMemory;
 };

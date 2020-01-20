@@ -386,10 +386,12 @@ void Loader::parseCodeSection(const shared_module_t &module) {
         // special cases;
         case WasmOpCode::kOpcodeF32Const: {
           Utility::savePtrIntoBytes<handlerProto>(codeBucket, &Interpreter::doF32Const);
-          innerScopeLen = F32_SIZE; break; }
+          innerScopeLen = F32_SIZE; break; 
+        }
         case WasmOpCode::kOpcodeF64Const: {
           Utility::savePtrIntoBytes<handlerProto>(codeBucket, &Interpreter::doF64Const);
-          innerScopeLen = F64_SIZE; break; }
+          innerScopeLen = F64_SIZE; break; 
+        }
         ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(DEAL_ONE_VAR_IMME_OPCODE)
         ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(DEAL_TWO_VAR_IMME_OPCODE)
         ITERATE_OPCODE_NAME_WITH_NON_VAR_IMME(DEAL_NON_VAR_IMME_OPCODE)
