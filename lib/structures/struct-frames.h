@@ -134,6 +134,7 @@ class ActivationFrame {
  public:
   SET_STRUCT_MOVE_ONLY(ActivationFrame);
   const WasmFuncInstance *pFuncIns = nullptr;
+  // the number of locals can not exceed the params number;
   vector<ValueFrame*> locals = {};
   shared_ptr<PosPtr> leaveEntry;
 
@@ -147,8 +148,11 @@ class ActivationFrame {
     leaveEntry(leaveEntry),
     valueStackHeight(valueStackHeight),
     labelStackHeight(labelStackHeight) {
-      if (locals.size() != 0) {
+      if (inputLocals.size() != 0) {
+        // the number of passed arguments may less than params?
         locals = move(inputLocals);
+      } else {
+        locals = {pFuncIns->type->paramsCount, nullptr};
       }
     }
 

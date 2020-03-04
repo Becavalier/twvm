@@ -343,8 +343,13 @@ void debug(string opcodeName, const shared_wasm_t &wasmIns, Executor *executor) 
       line << "void";
     } else {
       line << '[';
-      for (uint32_t j = 0; j < localSize; j ++) {
-        locals.at(j)->outputValue(line);
+      for (uint32_t j = 0; j < localSize; j++) {
+        const auto local = locals.at(j);
+        if (local != nullptr) { 
+          local->outputValue(line); 
+        } else {
+          line << "n/a"; 
+        }
         if (j < localSize - 1) { line << ", "; }
       }
       line << ']';
@@ -584,15 +589,34 @@ void Interpreter::doLocalGet(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doLocalSet(shared_wasm_t &wasmIns, Executor *executor) {
+  const auto localIndex = executor->uint32UseImmesCache(
+    [&executor](size_t *step, uint32_t *immediate) -> auto {
+      *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
+      executor->innerOffset += (*step - 1);
+    });
+  const auto topActivation = &wasmIns->stack->activationStack->top();
+  const auto topVal = wasmIns->stack->valueStack->top();
+  topActivation->locals[localIndex] = topVal;
+  // remove the top "ValueFrame";
+  wasmIns->stack->valueStack->pop();
   INSPECT_STACK("local.set", wasmIns, executor);
 }
 
 void Interpreter::doLocalTee(shared_wasm_t &wasmIns, Executor *executor) {
+  // write a local and return(keep) the same value;
+  const auto localIndex = executor->uint32UseImmesCache(
+    [&executor](size_t *step, uint32_t *immediate) -> auto {
+      *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
+      executor->innerOffset += (*step - 1);
+    });
+  const auto topActivation = &wasmIns->stack->activationStack->top();
+  const auto topVal = wasmIns->stack->valueStack->top();
+  topActivation->locals[localIndex] = topVal;
   INSPECT_STACK("local.tee", wasmIns, executor);
 }
 
 void Interpreter::doGlobalGet(shared_wasm_t &wasmIns, Executor *executor) {
-  INSPECT_STACK("global.set", wasmIns, executor);
+  INSPECT_STACK("global.get", wasmIns, executor);
 }
 
 void Interpreter::doGlobalSet(shared_wasm_t &wasmIns, Executor *executor) {
@@ -1219,6 +1243,7 @@ void Interpreter::doNop(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doDrop(shared_wasm_t &wasmIns, Executor *executor) {
+  // drop the top "ValueFrame" directly;
   wasmIns->stack->valueStack->pop();
   INSPECT_STACK("drop", wasmIns, executor);
 }
