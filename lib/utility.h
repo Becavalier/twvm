@@ -125,7 +125,7 @@ class Utility {
   template <typename T>
   static inline void savePtrIntoBytes(vector<uint8_t> *v, T *ptr) {
     const auto ptrVal = reinterpret_cast<uintptr_t>(ptr);
-    for (auto i = 0; i < PTR_SIZE; i++) {
+    for (auto i = 0; i < PTR_SIZE; ++i) {
       v->push_back(ptrVal >> (PTR_SIZE * i) & 0x000000ff);
     }
   }

@@ -24,7 +24,7 @@ class StackContainer {
  public:
   inline void popN(size_t n) {
     if (n > 0 && n <= size()) {
-      for (uint32_t i = 0; i < n; i++) {
+      for (uint32_t i = 0; i < n; ++i) {
         container.pop_back();
       }
     }
@@ -42,7 +42,7 @@ class StackContainer {
     vector<T*> t;
     if (n > 0 && n <= size()) {
       bool stop = false;
-      for (uint32_t i = size() - 1; (i >= size() - n) && !stop; i--) {
+      for (uint32_t i = size() - 1; (i >= size() - n) && !stop; --i) {
         if (i == 0) { stop = true; }
         t.push_back(&at(i));
       }

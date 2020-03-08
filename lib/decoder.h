@@ -206,7 +206,7 @@ class Decoder {
 
   static size_t calcPassBytes(const uint8_t *p, size_t num = 1) {
     size_t total = 0;
-    for (size_t i = 0; i < num; i++) {
+    for (size_t i = 0; i < num; ++i) {
       total += ptrWrapValue(p).size();
     }
     return total;

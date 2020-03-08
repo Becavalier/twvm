@@ -325,7 +325,7 @@ void debug(string opcodeName, const shared_wasm_t &wasmIns, Executor *executor) 
   (printer << opcodeName << '\n').debug();
   // "ValueFrame";
   line << "VS (values) | ";
-  for (uint32_t i = 0; i < valueStack->size(); i++) {
+  for (uint32_t i = 0; i < valueStack->size(); ++i) {
     valueStack->at(i)->outputValue(line);
     if (i < valueStack->size() - 1) { line << ", "; }
   }
@@ -336,14 +336,14 @@ void debug(string opcodeName, const shared_wasm_t &wasmIns, Executor *executor) 
   printer.makeLine(line);
   // "ActivationFrame";
   line << "AS (locals) | ";
-  for (uint32_t i = 0; i < activationStack->size(); i++) {
+  for (uint32_t i = 0; i < activationStack->size(); ++i) {
     const auto &locals = activationStack->at(i).locals;
     const auto &localSize = locals.size();
     if (localSize == 0) {
       line << "void";
     } else {
       line << '[';
-      for (uint32_t j = 0; j < localSize; j++) {
+      for (uint32_t j = 0; j < localSize; ++j) {
         const auto local = locals.at(j);
         if (local != nullptr) { 
           local->outputValue(line); 
@@ -399,7 +399,7 @@ void Interpreter::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
             case WasmOpCode::kOpcodeIf:
             case WasmOpCode::kOpcodeLoop:
             case WasmOpCode::kOpcodeBlock: {
-              level++;
+              level += 1;
               break;
             }
             case WasmOpCode::kOpcodeEnd: {
@@ -446,7 +446,7 @@ void Interpreter::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
     if (funcProto->sig->returnCount == (wasmIns->stack->valueStack->size() - activationValueStackHeight)) {
       const auto returnTypes = funcProto->sig->getReturnTypes();
       // check the type of return operands;
-      for (size_t i = 0; i < returnTypes.size(); i++) {
+      for (size_t i = 0; i < returnTypes.size(); ++i) {
         const auto topValue = wasmIns->stack->valueStack->top(i);
         if (topValue->getGenericType() != returnTypes.at(i)) {
           Printer::instance().error(Errors::RT_ARITY_MISMATCH);
@@ -485,7 +485,7 @@ void Interpreter::doBr(shared_wasm_t &wasmIns, Executor *executor) {
   }
 
   if (wasmIns->stack->labelStack->size() >= depth + 1) {
-    for (uint32_t i = 0; i < depth + 1; i++) {
+    for (uint32_t i = 0; i < depth + 1; ++i) {
       // only leave the last "LabelFrame";
       if (i == depth) {
         // last round (end / start), redirect pointer;
@@ -527,7 +527,7 @@ void Interpreter::doReturn(shared_wasm_t &wasmIns, Executor *executor) {
   executor->pc = leaveEntry->pc;
   executor->innerOffset = leaveEntry->offset;
   // reset labels;
-  for (size_t i = 0; i < wasmIns->stack->labelStack->size() - topActivation->getLabelStackHeight(); i++) {
+  for (size_t i = 0; i < wasmIns->stack->labelStack->size() - topActivation->getLabelStackHeight(); ++i) {
     wasmIns->stack->labelStack->pop();
   }
   // reset activations;
@@ -616,6 +616,7 @@ void Interpreter::doLocalTee(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doGlobalGet(shared_wasm_t &wasmIns, Executor *executor) {
+  
   INSPECT_STACK("global.get", wasmIns, executor);
 }
 

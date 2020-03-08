@@ -21,7 +21,7 @@ void printWrap(ostream &os, int leftPad, const string &content) {
   int space = SCREEN_WIDTH - leftPad;
   string nextWord;
   string pad(leftPad, ' ');
-  for (int i = 0; i <= len; i++) {
+  for (int i = 0; i <= len; ++i) {
     if (i != len && content[i] != ' ' && content[i] != '\n') {
       nextWord += content[i];
     } else {
@@ -98,13 +98,13 @@ Options& Options::addPositional(const string &name, Arguments arguments, const a
 void Options::parse(int argc, const char* argv[]) {
   size_t positionalsSeen = 0;
   auto dashes = [](const string &s) {
-    for (size_t i = 0;; i++) {
+    for (size_t i = 0;; ++i) {
       if (s[i] != '-') {
         return i;
       }
     }
   };
-  for (size_t i = 1, e = argc; i != e; i++) {
+  for (size_t i = 1, e = argc; i != e; ++i) {
     string currentOption = argv[i];
     if (dashes(currentOption) == 0) {
       switch (positional) {
@@ -121,7 +121,7 @@ void Options::parse(int argc, const char* argv[]) {
         }
         case Arguments::N: {
           positionalAction(this, currentOption);
-          ++positionalsSeen;
+          positionalsSeen += 1;
           break;
         }
       }
@@ -177,6 +177,6 @@ void Options::parse(int argc, const char* argv[]) {
       }
     }
     option->action(this, argument);
-    ++option->seen;
+    option->seen += 1;
   }
 }

@@ -65,7 +65,7 @@ class WasmMemoryInstance {
   }
 
   void inspect(uint32_t size = 20) const {
-    for (uint32_t i = 0; i < size; i++) {
+    for (uint32_t i = 0; i < size; ++i) {
       cout << static_cast<int>(*(data + i)) << ' ';
     }
   }

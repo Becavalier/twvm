@@ -28,12 +28,12 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
     const auto reps = type->reps;
     printer << "[";
     printer << type->index << ": ";
-    for (; i < type->paramsCount; i++) {
+    for (; i < type->paramsCount; ++i) {
       printer << static_cast<int>(reps[i]) << ' ';
     }
     if (type->paramsCount == 0) { printer << "void"; }
     const auto slotCount = type->paramsCount + type->returnCount;
-    for (; i < slotCount; i++) {
+    for (; i < slotCount; ++i) {
       printer << "-> " << static_cast<int>(reps[i]);
     }
     if (type->returnCount == 0) { printer << "void"; }

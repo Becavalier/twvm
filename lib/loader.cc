@@ -110,16 +110,16 @@ void Loader::parseTypeSection(const shared_module_t &module) {
   retrieveBytes(WRAP_READER_VARUINT(uint32_t));
   // self-counting from "buf";
   const auto entryCount = WRAP_BUF_VARUINT(uint32_t);
-  for (uint32_t i = 0; i < entryCount; i++) {
+  for (uint32_t i = 0; i < entryCount; ++i) {
     if (static_cast<ValueTypesCode>(WRAP_BUF_UINT8()) == ValueTypesCode::kFunc) {
       module->getFunctionSig()->emplace_back();
       const auto sig = &module->getFunctionSig()->back();
       const auto paramsCount = WRAP_BUF_VARUINT(uint32_t);
-      for (uint32_t j = 0; j < paramsCount; j++) {
+      for (uint32_t j = 0; j < paramsCount; ++j) {
         sig->reps.push_back(static_cast<ValueTypesCode>(WRAP_BUF_UINT8()));
       }
       const auto returnCount = WRAP_BUF_VARUINT(uint8_t);
-      for (uint32_t j = 0; j < returnCount; j++) {
+      for (uint32_t j = 0; j < returnCount; ++j) {
         sig->reps.push_back(static_cast<ValueTypesCode>(WRAP_BUF_UINT8()));
       }
       sig->index = i;
@@ -135,7 +135,7 @@ void Loader::parseImportSection(const shared_module_t &module) {
   (Printer::instance() << "parsing import section.\n").debug();
   retrieveBytes(WRAP_READER_VARUINT(uint32_t));
   const auto importCount = WRAP_BUF_VARUINT(uint32_t);
-  for (uint32_t i = 0; i < importCount; i++) {
+  for (uint32_t i = 0; i < importCount; ++i) {
     // set module name;
     const auto moduleName = WRAP_BUF_STRING(WRAP_BUF_VARUINT(uint32_t));
 
@@ -189,7 +189,7 @@ void Loader::parseFunctionSection(const shared_module_t &module) {
   (Printer::instance() << "parsing function section.\n").debug();
   retrieveBytes(WRAP_READER_VARUINT(uint32_t));
   const auto declaredFuncCount = WRAP_BUF_VARUINT(uint32_t);
-  for (uint32_t i = 0; i < declaredFuncCount; i++) {
+  for (uint32_t i = 0; i < declaredFuncCount; ++i) {
     module->getFunction()->emplace_back();
     const auto func = &module->getFunction()->back();
     // indices: uint32_t;
@@ -206,7 +206,7 @@ void Loader::parseTableSection(const shared_module_t &module) {
   (Printer::instance() << "parsing table section.\n").debug();
   retrieveBytes(WRAP_READER_VARUINT(uint32_t));
   const auto tableCount = WRAP_BUF_VARUINT(uint32_t);
-  for (uint32_t i = 0; i < tableCount; i++) {
+  for (uint32_t i = 0; i < tableCount; ++i) {
     // MVP: only support "anyfunc" (by default);
     const auto tableType = static_cast<ValueTypesCode>(WRAP_BUF_UINT8());
     if (tableType != ValueTypesCode::kFuncRef) {
@@ -251,7 +251,7 @@ void Loader::parseGlobalSection(const shared_module_t &module) {
   (Printer::instance() << "parsing global section.\n").debug();
   retrieveBytes(WRAP_READER_VARUINT(uint32_t));
   const auto globalCount = WRAP_BUF_VARUINT(uint32_t);
-  for (uint32_t i = 0; i < globalCount; i++) {
+  for (uint32_t i = 0; i < globalCount; ++i) {
     const auto contentType = static_cast<ValueTypesCode>(WRAP_BUF_UINT8());
     const auto mutability = WRAP_BUF_UINT8() == kWasmTrue;
 
@@ -270,7 +270,7 @@ void Loader::parseExportSection(const shared_module_t &module) {
   (Printer::instance() << "parsing export section.\n").debug();
   retrieveBytes(WRAP_READER_VARUINT(uint32_t));
   const auto exportCount = WRAP_BUF_VARUINT(uint32_t);
-  for (uint32_t i = 0; i < exportCount; i++) {
+  for (uint32_t i = 0; i < exportCount; ++i) {
     const auto nameLen = WRAP_BUF_VARUINT(uint32_t);
     const auto name = WRAP_BUF_STRING(nameLen);
     const auto exportType = static_cast<ExternalTypesCode>(WRAP_BUF_UINT8());
@@ -320,24 +320,24 @@ void Loader::parseCodeSection(const shared_module_t &module) {
   (Printer::instance() << "parsing code section.\n").debug();
   [[maybe_unused]] const auto payloadLen = WRAP_READER_VARUINT(uint32_t);
   const auto bodyCount = WRAP_READER_VARUINT(uint32_t);
-  for (uint32_t i = 0; i < bodyCount; i++) {
+  for (uint32_t i = 0; i < bodyCount; ++i) {
     const auto bodySize = WRAP_READER_VARUINT(uint32_t);
     retrieveBytes(bodySize);
     // update function body;
     const auto function = module->getFunction(module->importedFuncCount + i);
     // resolve locals;
     const auto localEntryCount = WRAP_BUF_VARUINT(uint32_t);
-    for (uint32_t j = 0; j < localEntryCount; j++) {
+    for (uint32_t j = 0; j < localEntryCount; ++j) {
       const auto localCount = WRAP_BUF_VARUINT(uint32_t);
       const auto localTypeCode = WRAP_BUF_VARUINT(uint8_t);
       const auto type = static_cast<ValueTypesCode>(localTypeCode);
-      for (uint32_t k = 0; k < localCount; k++) {
+      for (uint32_t k = 0; k < localCount; ++k) {
         function->locals.push_back(type);
       }
     }
     function->codeLen = bodySize - currentReaderOffset;
     uint32_t innerScopeLen = 0;
-    for (size_t j = 0; j < function->codeLen; j++) {
+    for (size_t j = 0; j < function->codeLen; ++j) {
       // use TTC by default;
 #if defined(OPT_DCT)
       const auto byte = WRAP_BUF_UINT8();
@@ -357,7 +357,7 @@ void Loader::parseCodeSection(const shared_module_t &module) {
             const auto nextVal = WRAP_BUF_UINT8(); \
             codeBucket->push_back(nextVal); \
             if (!(nextVal & 0x80)) { break; } \
-            innerOffset++; \
+            innerOffset += 1; \
           } \
           j += innerOffset; \
           break; \
@@ -366,12 +366,12 @@ void Loader::parseCodeSection(const shared_module_t &module) {
         case WasmOpCode::kOpcode##name: { \
           Utility::savePtrIntoBytes<handlerProto>(codeBucket, &Interpreter::do##name); \
           auto innerOffset = 1; \
-          for (auto k = 0; k < 2; k++) { \
+          for (auto k = 0; k < 2; ++k) { \
             while (true) { \
               const auto nextVal = WRAP_BUF_UINT8(); \
               codeBucket->push_back(nextVal); \
               if (!(nextVal & 0x80)) { break; } \
-              innerOffset++; \
+              innerOffset += 1; \
             } \
             j += innerOffset; \
           } \
@@ -414,7 +414,7 @@ void Loader::parseElementSection(const shared_module_t &module) {
   if (elemCount > 0 && module->getTable()->size() == 0) {
     Printer::instance().error(Errors::LOADER_NO_TABLE);
   }
-  for (uint32_t i = 0; i < elemCount; i++) {
+  for (uint32_t i = 0; i < elemCount; ++i) {
     const auto tableIndex = WRAP_BUF_VARUINT(uint32_t);
     if (tableIndex != 0) {
       Printer::instance().error(Errors::LOADER_NOT_DEFAULT_TABLE);
@@ -428,7 +428,7 @@ void Loader::parseElementSection(const shared_module_t &module) {
 
     // # of the element exprs;
     const auto elemExprCount = WRAP_BUF_VARUINT(uint32_t);
-    for (uint32_t j = 0; j < elemExprCount; j++) {
+    for (uint32_t j = 0; j < elemExprCount; ++j) {
       elem->entities.push_back(module->getFunction(WRAP_BUF_VARUINT(uint32_t)));
     }
   }
