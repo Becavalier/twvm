@@ -95,9 +95,9 @@ class ValueFrame {
   }
 
  private:
+  bool isValueZero;
   ValueTypesCode genericType;
   ValueFrameTypes runtimeType;
-  bool isValueZero;
   uint8_t bitPattern[WASM_VALUE_BIT_PATTERN_WIDTH];
   unordered_map<ValueFrameTypes, ValueTypesCode> runtimeTypeMapper = {
     { ValueFrameTypes::kRTI32Value, ValueTypesCode::kI32 },
@@ -115,19 +115,14 @@ class LabelFrame {
   shared_ptr<PosPtr> end;
   shared_ptr<PosPtr> branch;
   shared_ptr<PosPtr> start;
+  // for "block", "loop" and "if";
+  const ValueTypesCode resultType;
+  // determine the # of returning arity;
+  const size_t valueStackHeight = 0;
 
   LabelFrame(
-    ValueTypesCode resultType,
-    size_t valueStackHeight) : resultType(resultType), valueStackHeight(valueStackHeight) {}
-
-  inline const auto getResultType() const { return resultType; }
-  inline const auto getValueStackHeight() const { return valueStackHeight; }
-
- private:
-  // for "block", "loop" and "if";
-  ValueTypesCode resultType;
-  // determine the # of returning arity;
-  size_t valueStackHeight = 0;
+    const ValueTypesCode resultType,
+    const size_t valueStackHeight) : resultType(resultType), valueStackHeight(valueStackHeight) {}
 };
 
 class ActivationFrame {
@@ -137,11 +132,16 @@ class ActivationFrame {
   // the number of locals can not exceed the params number;
   vector<ValueFrame*> locals = {};
   shared_ptr<PosPtr> leaveEntry;
+  
+  // determine the # of returning arity;
+  const size_t valueStackHeight = 0;
+  // determine whether we reach the "end" of the function;
+  const size_t labelStackHeight = 0;
 
   ActivationFrame(
     const WasmFuncInstance *pFuncIns,
-    size_t valueStackHeight,
-    size_t labelStackHeight,
+    const size_t valueStackHeight,
+    const size_t labelStackHeight,
     shared_ptr<PosPtr> leaveEntry = nullptr,
     vector<ValueFrame*> inputLocals = {}) :
     pFuncIns(pFuncIns),
@@ -155,15 +155,6 @@ class ActivationFrame {
         locals = {pFuncIns->type->paramsCount, nullptr};
       }
     }
-
-  inline const auto getValueStackHeight() const { return valueStackHeight; }
-  inline const auto getLabelStackHeight() const { return labelStackHeight; }
-
- private:
-  // determine the # of returning arity;
-  size_t valueStackHeight = 0;
-  // determine whether we reach the "end" of the function;
-  size_t labelStackHeight = 0;
 };
 
 #endif  // LIB_STRUCTURES_STRUCT_FRAMES_H_

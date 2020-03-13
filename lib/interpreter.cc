@@ -438,8 +438,8 @@ void Interpreter::doElse(shared_wasm_t &wasmIns, Executor *executor) {
 void Interpreter::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
   const auto &currentLabelStackSize = wasmIns->stack->labelStack->size();
   const auto &currentActivation = &wasmIns->stack->activationStack->top();
-  const auto activationLabelStackHeight = currentActivation->getLabelStackHeight();
-  const auto activationValueStackHeight = currentActivation->getValueStackHeight();
+  const auto activationLabelStackHeight = currentActivation->labelStackHeight;
+  const auto activationValueStackHeight = currentActivation->valueStackHeight;
   if (currentLabelStackSize == activationLabelStackHeight) {
     // function end;
     const auto &funcProto = currentActivation->pFuncIns->staticProto;
@@ -480,7 +480,7 @@ void Interpreter::doBr(shared_wasm_t &wasmIns, Executor *executor) {
     });
   const auto targetLabel = &wasmIns->stack->labelStack->top(depth);
   size_t skipTopVal = 0;
-  if (targetLabel->getResultType() != ValueTypesCode::kVoid) {
+  if (targetLabel->resultType != ValueTypesCode::kVoid) {
     skipTopVal = 1;
   }
 
@@ -494,7 +494,7 @@ void Interpreter::doBr(shared_wasm_t &wasmIns, Executor *executor) {
         executor->innerOffset = topLabel->end->offset;
       } else {
         const auto topLabel = &wasmIns->stack->labelStack->top();
-        const auto stackHeightDiff = wasmIns->stack->valueStack->size() - topLabel->getValueStackHeight() - skipTopVal;
+        const auto stackHeightDiff = wasmIns->stack->valueStack->size() - topLabel->valueStackHeight - skipTopVal;
         wasmIns->stack->valueStack->erase(skipTopVal, stackHeightDiff);
         wasmIns->stack->labelStack->pop();
       }
@@ -527,7 +527,7 @@ void Interpreter::doReturn(shared_wasm_t &wasmIns, Executor *executor) {
   executor->pc = leaveEntry->pc;
   executor->innerOffset = leaveEntry->offset;
   // reset labels;
-  for (size_t i = 0; i < wasmIns->stack->labelStack->size() - topActivation->getLabelStackHeight(); ++i) {
+  for (size_t i = 0; i < wasmIns->stack->labelStack->size() - topActivation->labelStackHeight; ++i) {
     wasmIns->stack->labelStack->pop();
   }
   // reset activations;
