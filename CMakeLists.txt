@@ -31,8 +31,8 @@ set (T_OUTPUT_SRC "tests")
 
 # VM options;
 add_definitions(-DBUILD_VERSION="$ENV{BUILD_VERSION}")
-if (DEFINED ENV{ENABLE_DEBUG})
-  add_definitions(-DENABLE_DEBUG)
+if (DEFINED ENV{NDEBUG})
+  add_definitions(-DNDEBUG)
 endif()
 add_definitions(-DOPT_DCT)
 

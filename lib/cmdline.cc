@@ -16,7 +16,7 @@ using std::endl;
 using std::max;
 using std::stringstream;
 
-void printWrap(ostream &os, int leftPad, const string &content) {
+void printWrap(ostream& os, int leftPad, const string& content) {
   int len = content.size();
   int space = SCREEN_WIDTH - leftPad;
   string nextWord;
@@ -43,7 +43,7 @@ void printWrap(ostream &os, int leftPad, const string &content) {
   }
 }
 
-Options::Options(const string &command, const string &description) : positional(Arguments::Zero) {
+Options::Options(const string& command, const string& description) : positional(Arguments::Zero) {
   add("--help", "-h", "Show help messages and exit.", Arguments::Zero,
     [this, command, description](Options *o, const string&) {
       Utility::drawLogoGraphic();
@@ -79,16 +79,16 @@ Options::Options(const string &command, const string &description) : positional(
 }
 
 Options& Options::add(
-  const string &longName,
-  const string &shortName,
-  const string &description,
+  const string& longName,
+  const string& shortName,
+  const string& description,
   Arguments arguments,
-  const actionT &action) {
+  const actionT& action) {
     options.push_back({longName, shortName, description, arguments, action, 0});
     return *this;
 }
 
-Options& Options::addPositional(const string &name, Arguments arguments, const actionT &action) {
+Options& Options::addPositional(const string& name, Arguments arguments, const actionT& action) {
   positional = arguments;
   positionalName = name;
   positionalAction = action;
@@ -97,7 +97,7 @@ Options& Options::addPositional(const string &name, Arguments arguments, const a
 
 void Options::parse(int argc, const char* argv[]) {
   size_t positionalsSeen = 0;
-  auto dashes = [](const string &s) {
+  auto dashes = [](const string& s) {
     for (size_t i = 0;; ++i) {
       if (s[i] != '-') {
         return i;

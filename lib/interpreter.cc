@@ -100,7 +100,8 @@ using std::string;
 #define WRAP_FORWARD_INT_FIELD(keyName, type) \
   const auto keyName = Decoder::readVarInt<type>(executor->forward_());
 
-#ifdef ENABLE_DEBUG
+// use C-Standard "NDEBUG" macro;
+#ifndef NDEBUG
   using std::hex;
   using std::showbase;
   #define INSPECT_STACK(opcodeName, wasmIns, executor) \
