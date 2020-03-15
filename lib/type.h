@@ -147,10 +147,10 @@ struct WasmFunctionSig {
   size_t returnCount = 0;
   vector<ValueTypesCode> reps;
   // TODO(Jason Yu) reduce vector copying overhead;
-  inline vector<ValueTypesCode> getParamTypes() {
+  vector<ValueTypesCode> getParamTypes() {
     return vector<ValueTypesCode>(begin(reps), begin(reps) + paramsCount);
   }
-  inline vector<ValueTypesCode> getReturnTypes() {
+  vector<ValueTypesCode> getReturnTypes() {
     return vector<ValueTypesCode>(begin(reps) + paramsCount, end(reps));
   }
 };

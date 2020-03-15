@@ -35,12 +35,12 @@ using std::move;
   name##ConstantPool.clear();
 
 #define DECLARE_CONSTANT_POOL_SETTERS(name, type) \
-  inline auto checkUpConstant(type val) { \
+  auto checkUpConstant(type val) { \
     return &((name##ConstantPool.try_emplace(val, val).first->second)); \
   }
 
 #define DECLARE_CONSTANT_POOL_DEBUGGER(name, type) \
-  inline void name##ConstantPoolDebug(stringstream &ss) { \
+  void name##ConstantPoolDebug(stringstream &ss) { \
     unordered_map<type, ValueFrame>::size_type counter = 0; \
     for (const auto& val : name##ConstantPool) { \
       val.second.outputValue(ss); \
@@ -129,16 +129,16 @@ class Executor {
     return argsVal;
   }
 
-  inline const uint8_t* absAddr() const {
+  const uint8_t* absAddr() const {
     return pc->data() + innerOffset;
   }
 
-  inline void switchStatus(bool flag) {
+  void switchStatus(bool flag) {
     runningStatus = flag;
   }
 
   template <typename T>
-  inline const T inspectRunningResult() {
+  const T inspectRunningResult() {
     if (lastRunningResult.initialized) {
       return lastRunningResult.resolveValue<T>();
     } else {
@@ -147,7 +147,7 @@ class Executor {
     }
   }
 
-  inline const uint8_t* forward_(size_t step = 1) {
+  const uint8_t* forward_(size_t step = 1) {
     innerOffset += step;
     return absAddr();
   }

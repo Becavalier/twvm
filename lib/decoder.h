@@ -41,7 +41,7 @@ class Reader {
   Reader(uint8_t *buffer, size_t len) : isFileReader(false), buffer(buffer), bufferLen(len) {}
 
   template <typename T = char>
-  inline T read() {
+  T read() {
     if (isFileReader) {
       if constexpr (is_same<T, char>::value) {
         char d;
@@ -64,7 +64,7 @@ class Reader {
     }
   }
 
-  inline bool hasReachEnd() {
+  bool hasReachEnd() {
     if (isFileReader) {
       return fileReader->peek() == EOF;
     } else {

@@ -31,15 +31,15 @@ class WasmMemoryInstance {
     free(data);
   }
 
-  inline const auto getAvailableSize() const {
+  const auto getAvailableSize() const {
     return currentMemPage * WASM_PAGE_SIZE;
   }
 
-  inline const auto getAvailablePage() const {
+  const auto getAvailablePage() const {
     return currentMemPage;
   }
 
-  inline const auto& rawDataBuf() { return data; }
+  const auto& rawDataBuf() { return data; }
 
   // memory -> stack;
   template <typename T>

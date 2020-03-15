@@ -15,8 +15,8 @@ using std::move;
 
 // pay attention to the bound check;
 #define WRAP_SELECT_METHOD(name, key) \
-  inline const auto name() { return &key; } \
-  inline const auto name(uint32_t index) \
+  const auto name() { return &key; } \
+  const auto name(uint32_t index) \
     { return (index >= 0 && index < key.size()) ? &key[index] : nullptr; }
 
 class Module {
@@ -34,7 +34,7 @@ class Module {
   WRAP_SELECT_METHOD(getGlobal, globals)
   WRAP_SELECT_METHOD(getElement, elements)
 
-  inline auto& getMemory() { return memory; }
+  auto& getMemory() { return memory; }
 
  private:
   // params, returns;

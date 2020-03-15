@@ -48,7 +48,7 @@ class Cache {
   // "memarg" cache container;
   mutable unordered_map<uint64_t, vector<uint32_t>> memargContainer = {};
 
-  inline uint64_t hashLoc(uint32_t index, size_t offset) const {
+  uint64_t hashLoc(uint32_t index, size_t offset) const {
     // avaiable size: 131072;
     return index * (2 << 16) + offset;
   }
@@ -57,19 +57,19 @@ class Cache {
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_SET_METHODS)
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_GET_METHODS)
 
-  inline void int64SetMetaCache(uint32_t index, size_t offset, OpcodeMeta key, int64_t val) {
+  void int64SetMetaCache(uint32_t index, size_t offset, OpcodeMeta key, int64_t val) {
     metaContainer[hashLoc(index, offset)][key] = val;
   }
 
-  inline auto int64GetMetaCache(uint32_t index, size_t offset, OpcodeMeta key) const {
+  auto int64GetMetaCache(uint32_t index, size_t offset, OpcodeMeta key) const {
     return metaContainer[hashLoc(index, offset)][key];
   }
 
-  inline const auto& uint32GetMemargCache(uint32_t index, size_t offset) const {
+  const auto& uint32GetMemargCache(uint32_t index, size_t offset) const {
     return memargContainer[hashLoc(index, offset)];
   }
 
-  inline void uint32SetMemargCache(uint32_t index, size_t offset, uint32_t memAlign, uint32_t memOffset, size_t step) {
+  void uint32SetMemargCache(uint32_t index, size_t offset, uint32_t memAlign, uint32_t memOffset, size_t step) {
     memargContainer[hashLoc(index, offset)] = {memAlign, memOffset, static_cast<uint32_t>(step)};
   }
 

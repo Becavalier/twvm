@@ -22,23 +22,23 @@ using std::vector;
 template <typename T>
 class StackContainer {
  public:
-  inline void popN(size_t n) {
+  void popN(size_t n) {
     if (n > 0 && n <= size()) {
       for (uint32_t i = 0; i < n; ++i) {
         container.pop_back();
       }
     }
   }
-  inline void pop() { container.pop_back(); }
-  inline void erase(size_t start, size_t height) {
+  void pop() { container.pop_back(); }
+  void erase(size_t start, size_t height) {
     container.erase(end(container) - start - height, end(container) - start);
   }
-  inline void push(T&& v) { container.push_back(forward<T>(v)); }
-  inline void emplace(T&& v) { container.emplace_back(forward<T>(v)); }
+  void push(T&& v) { container.push_back(forward<T>(v)); }
+  void emplace(T&& v) { container.emplace_back(forward<T>(v)); }
   // back index, start from 0;
-  inline auto& top(size_t i = 0) { return at(size() - 1 - i); }
-  inline auto& at(size_t i) { return container.at(i); }
-  inline vector<T*> topN(size_t n) {
+  auto& top(size_t i = 0) { return at(size() - 1 - i); }
+  auto& at(size_t i) { return container.at(i); }
+  vector<T*> topN(size_t n) {
     vector<T*> t;
     if (n > 0 && n <= size()) {
       bool stop = false;
@@ -49,8 +49,8 @@ class StackContainer {
     }
     return t;
   }
-  inline const auto size() const { return container.size(); }
-  inline const auto& data() { return container; }
+  const auto size() const { return container.size(); }
+  const auto& data() { return container; }
 
  private:
   // stack: (bottom) [head ... back] (top);

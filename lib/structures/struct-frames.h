@@ -30,7 +30,7 @@ class ValueFrame {
   bool initialized = false;
   SET_STRUCT_MOVE_ONLY(ValueFrame);
   ValueFrame(ValueFrameTypes runtimeType) : bitPattern{} {}
-  ValueFrame(const ValueFrame *other) : runtimeType(other->runtimeType), isValueZero(other->isValueZero) {
+  ValueFrame(const ValueFrame *other) : isValueZero(other->isValueZero), runtimeType(other->runtimeType) {
     // copy "bitPattern";
     memcpy(bitPattern, other->bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
     initialized = true;
@@ -43,7 +43,7 @@ class ValueFrame {
     Utility::writeUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern), v); \
     initialized = true; \
   } \
-  inline const ctype to##name() const { \
+  const ctype to##name() const { \
     return Utility::readUnalignedValue<ctype>(reinterpret_cast<uintptr_t>(bitPattern)); \
   }
   ITERATE_WASM_RT_VAL_TYPE(DEFINE_VALUEFRAME_TYPE_SPECIFIC_METHODS)
@@ -53,12 +53,12 @@ class ValueFrame {
       !memcmp(bitPattern, other.bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
   }
 
-  inline ValueFrameTypes getRTValueType() const {
+  ValueFrameTypes getRTValueType() const {
     return static_cast<ValueFrameTypes>(runtimeType);
   }
 
   template <typename T>
-  inline void resetValue(T v) {
+  void resetValue(T v) {
     if constexpr (is_same<T, int32_t>::value) {
       runtimeType = ValueFrameTypes::kRTI32Value;
     } else if constexpr (is_same<T, uint32_t>::value) {
@@ -81,16 +81,16 @@ class ValueFrame {
 
   void outputValue(ostream&) const;
 
-  inline const auto isZero() const {
+  const auto isZero() const {
     return isValueZero;
   }
 
-  inline const auto getGenericType() const {
+  const auto getGenericType() const {
     return genericType;
   }
 
   template <typename T>
-  inline const T resolveValue() {
+  const T resolveValue() {
     return Utility::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(bitPattern));
   }
 

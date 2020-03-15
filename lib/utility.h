@@ -64,11 +64,11 @@ class Printer {
     ss << x;
     return *this;
   }
-  inline Printer& useHexFormat() {
+  Printer& useHexFormat() {
     ss << hex << showbase;
     return *this;
   }
-  inline void debug() {
+  void debug() {
     if (!Config::isDebugMode) {
       ss.str(string());
       return;
@@ -76,15 +76,15 @@ class Printer {
     INTERNAL_DEBUG_PREFIX_OUTPUT() << ss.str();
     ss.str(string());
   }
-  inline void say() {
+  void say() {
     INTERNAL_SAY_PREFIX_OUTPUT() << ss.str();
     ss.str(string());
   }
-  inline void warn() {
+  void warn() {
     INTERNAL_WARNING_PREFIX_OUTPUT() << ss.str();
     ss.str(string());
   }
-  inline void error(Errors code, bool throwException = true) {
+  void error(Errors code, bool throwException = true) {
     ss << errorMapper[code] << '\n';
     INTERNAL_ERROR_PREFIX_OUTPUT() << ss.str();
     ss.str(string());
@@ -92,14 +92,14 @@ class Printer {
       throw runtime_error('(' + to_string(static_cast<uint8_t>(code)) + ')');
     }
   }
-  inline void feedLine(const string &line) {
+  void feedLine(const string &line) {
     lines.push_back(line);
   }
-  inline void makeLine() {
+  void makeLine() {
     lines.push_back(ss.str());
     ss.str(string());
   }
-  inline void makeLine(stringstream &ss) {
+  void makeLine(stringstream &ss) {
     lines.push_back(ss.str());
     ss.str(string());
   }
@@ -111,19 +111,19 @@ class Utility {
   static vector<string> splitStr(const string&, char);
 
   template <typename T>
-  static inline void writeUnalignedValue(uintptr_t p, T value) {
+  static void writeUnalignedValue(uintptr_t p, T value) {
     memcpy(reinterpret_cast<void*>(p), &value, sizeof(T));
   }
 
   template <typename T>
-  static inline T readUnalignedValue(uintptr_t p) {
+  static T readUnalignedValue(uintptr_t p) {
     T r;
     memcpy(&r, reinterpret_cast<void*>(p), sizeof(T));
     return r;
   }
 
   template <typename T>
-  static inline void savePtrIntoBytes(vector<uint8_t> *v, T *ptr) {
+  static void savePtrIntoBytes(vector<uint8_t> *v, T *ptr) {
     const auto ptrVal = reinterpret_cast<uintptr_t>(ptr);
     for (auto i = 0; i < PTR_SIZE; ++i) {
       v->push_back(ptrVal >> (PTR_SIZE * i) & 0x000000ff);
@@ -131,7 +131,7 @@ class Utility {
   }
 
   template <typename T>
-  static inline T max(T x, T y) {
+  static T max(T x, T y) {
     if (isnan(x)) { return x; }
     if (isnan(y)) { return y; }
     if (signbit(x) < signbit(y)) { return x; }
@@ -139,14 +139,14 @@ class Utility {
   }
 
   template <typename T>
-  static inline T min(T x, T y) {
+  static T min(T x, T y) {
     if (isnan(x)) { return x; }
     if (isnan(y)) { return y; }
     if (signbit(x) < signbit(y)) { return y; }
     return x > y ? y : x;
   }
 
-  static inline float double64ToFloat32(double x) {
+  static float double64ToFloat32(double x) {
     using limits = numeric_limits<float>;
     static const double kRoundingThreshold = 3.4028235677973362e+38;
     if (x > limits::max()) {

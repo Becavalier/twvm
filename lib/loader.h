@@ -153,7 +153,7 @@ class Loader {
   static shared_module_t init(uint8_t*, size_t);
   static shared_module_t init(vector<uint8_t>);
 
-  static inline uint8_t* getAbsReaderEndpoint() {
+  static uint8_t* getAbsReaderEndpoint() {
     return buf.data() + currentReaderOffset;
   }
 };
