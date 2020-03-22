@@ -7,7 +7,7 @@
 
 using std::shared_ptr;
 
-// validate the structure of "WasmInstance" before execution;
+// validate the structure of "WasmInstance" before execution.
 class Inspector {
  public:
   static void inspect(shared_ptr<WasmInstance>);

@@ -3,7 +3,7 @@
 #define LIB_COMMON_MACROS_H_
 
 // user-defined destructor will prevent compiler from calling -
-// explicit move-constructor;
+// explicit move-constructor.
 #define SET_STRUCT_DISABLE_COPY_CONSTUCT(TypeName) \
   TypeName(const TypeName&) = delete; \
   TypeName& operator=(const TypeName&) = delete

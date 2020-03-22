@@ -13,7 +13,7 @@ using std::shared_ptr;
 
 struct WasmInstance {
   SET_STRUCT_MOVE_ONLY(WasmInstance);
-  // start function, or main function;
+  // start function, or main function.
   shared_ptr<PosPtr> startPoint = nullptr;
   bool startEntry = true;
   shared_ptr<WasmModuleInstance> module;

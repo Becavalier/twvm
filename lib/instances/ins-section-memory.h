@@ -17,7 +17,8 @@ class WasmMemoryInstance {
   SET_STRUCT_MOVE_ONLY(WasmMemoryInstance);
   WasmMemoryInstance(uint32_t initMemSize = 1, uint32_t maxMemPage = 0) : maxMemPage(maxMemPage) {
     if (initMemSize > 0 && (maxMemPage == 0 || initMemSize <= maxMemPage)) {
-      // allocate space (multiple of Wasm page);
+      // allocate space (multiple of Wasm page).
+      // TODO(Jason) use shared_ptr instead.
       if ((data = static_cast<uint8_t*>(calloc(initMemSize * WASM_PAGE_SIZE, U8_SIZE)))) {
         currentMemPage = initMemSize;
       } else {
@@ -41,22 +42,22 @@ class WasmMemoryInstance {
 
   const auto& rawDataBuf() { return data; }
 
-  // memory -> stack;
+  // memory -> stack.
   template <typename T>
   T load(uint32_t offset) {
     if (offset + sizeof(T) <= getAvailableSize()) {
       return *reinterpret_cast<T*>(data + offset);
     } else {
       Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
-      // unreachable;
+      // unreachable.
       return false;
     }
   }
 
-  // stack -> memory;
+  // stack -> memory.
   template <typename T>
   void store(uint32_t offset, T val) {
-    // bound check;
+    // bound check.
     if (offset + sizeof(T) <= getAvailableSize()) {
       *(reinterpret_cast<T*>(data + offset)) = val;
     } else {
@@ -70,7 +71,7 @@ class WasmMemoryInstance {
     }
   }
 
-  // expand the maxmium capacity of the memory by Wasm pages;
+  // expand the maxmium capacity of the memory by Wasm pages.
   const uint32_t grow(const uint32_t pages) {
     if (maxMemPage != 0 && (currentMemPage + pages > maxMemPage)) {
       return -1;
@@ -79,7 +80,7 @@ class WasmMemoryInstance {
       currentMemPage += pages;
       if (const auto &mem = realloc(data, currentMemPage * WASM_PAGE_SIZE)) {
         data = reinterpret_cast<uint8_t*>(mem);
-        // initialization of the raw memeory;
+        // initialization of the raw memeory.
       } else {
         Printer::instance().error(Errors::LOADER_MEM_ALLOC_ERR);
       }
@@ -88,7 +89,7 @@ class WasmMemoryInstance {
   }
 
  private:
-  // 64k per pages;
+  // 64k per pages.
   uint32_t maxMemPage = 0;
   uint32_t currentMemPage = 0;
   uint8_t* data = nullptr;

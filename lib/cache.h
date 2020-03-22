@@ -7,12 +7,15 @@
 #include <typeindex>
 #include <string>
 #include <vector>
+#include <utility>
+#include <functional>
 #include "lib/type.h"
 #include "lib/utility.h"
 
 using std::unordered_map;
 using std::string;
 using std::vector;
+using std::make_pair;
 
 #define DECLARE_CACHE_CONTAINER(name, type) \
   mutable unordered_map<uint64_t, vector<type>> name##Map = {};
@@ -22,8 +25,9 @@ using std::vector;
 
 #define DECLARE_CACHE_SET_METHODS(name, type) \
   void name##SetValueCache(uint32_t index, size_t offset, type v, size_t step) { \
-    name##Map[hashLoc(index, offset)] = {v, static_cast<type>(step)}; \
+    name##Map.emplace(make_pair(hashLoc(index, offset), vector<type>{v, static_cast<type>(step)})); \
   }
+// create a default {} if no cache exists.
 #define DECLARE_CACHE_GET_METHODS(name, type) \
   const auto& name##GetValueCache(uint32_t index, size_t offset) const { \
     return name##Map[hashLoc(index, offset)]; \
@@ -38,18 +42,18 @@ using std::vector;
   V(float, float) \
   V(double, double)
 
-// keep the runtime immediates in memory, and then can be re-used;
+// keep the runtime immediates in memory, and then can be re-used.
 class Cache {
  private:
-  // id + offset;
+  // id + offset.
   ITERATE_IMMEDIATES_VALUE_TYPES(DECLARE_CACHE_CONTAINER)
-  // meta cache container;
+  // meta cache container.
   mutable unordered_map<uint64_t, unordered_map<OpcodeMeta, int64_t>> metaContainer = {};
-  // "memarg" cache container;
+  // "memarg" cache container.
   mutable unordered_map<uint64_t, vector<uint32_t>> memargContainer = {};
 
   uint64_t hashLoc(uint32_t index, size_t offset) const {
-    // avaiable size: 131072;
+    // avaiable size: 131072.
     return index * (2 << 16) + offset;
   }
 

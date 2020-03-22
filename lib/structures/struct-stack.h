@@ -18,7 +18,7 @@ using std::forward;
 using std::vector;
 
 // use vector to simulate stack, then we can have the ability of random-access,
-// and high-efficient element accessing (without "stack->deque");
+// and high-efficient element accessing (without "stack->deque").
 template <typename T>
 class StackContainer {
  public:
@@ -35,7 +35,7 @@ class StackContainer {
   }
   void push(T&& v) { container.push_back(forward<T>(v)); }
   void emplace(T&& v) { container.emplace_back(forward<T>(v)); }
-  // back index, start from 0;
+  // back index, start from 0.
   auto& top(size_t i = 0) { return at(size() - 1 - i); }
   auto& at(size_t i) { return container.at(i); }
   vector<T*> topN(size_t n) {
@@ -53,17 +53,17 @@ class StackContainer {
   const auto& data() { return container; }
 
  private:
-  // stack: (bottom) [head ... back] (top);
+  // stack: (bottom) [head ... back] (top).
   vector<T> container = {};
 };
 
-// for saving "Values" / "Labels" / "Activations";
+// for saving "Values" / "Labels" / "Activations".
 class Stack {
  public:
   // in order to reduce the overhead from casting between parent and child types -
   // caused by "dynamic_cast" and "static_cast", we'd better store these three kinds of Frames -
   // separately.
-  // TODO(Jason Yu) use second-level pointer to chian the ValueStack;
+  // TODO(Jason Yu) use second-level pointer to chian the ValueStack.
   using ValueFrameStack = StackContainer<ValueFrame*>;
   using LabelFrameStack = StackContainer<LabelFrame>;
   using ActivationFrameStack = StackContainer<ActivationFrame>;

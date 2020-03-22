@@ -195,7 +195,7 @@
   V(F64ReinterpretI64, 0xbf)
 
 
-// opcode classifications (make sure to except unknown opcodes);
+// opcode classifications (make sure to except unknown opcodes).
 #define ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(V) \
   V(Block) \
   V(Loop) \

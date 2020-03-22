@@ -72,7 +72,7 @@ class Bits {
                       : bits == 64 ? __builtin_clzll(static_cast<uint64_t>(value))
                                    : __builtin_clz(static_cast<uint32_t>(value)) - (32 - bits);
   #else
-    // binary search algorithm (from "Hacker's Delight");
+    // binary search algorithm (from "Hacker's Delight").
     if (bits == 1) {
       return static_cast<unsigned>(value) ^ 1;
     }

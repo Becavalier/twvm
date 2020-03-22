@@ -18,20 +18,20 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
   (Printer::instance() << '\n').debug();
   (Printer::instance() << "- [INSTANTIATING PHASE] -\n").debug();
 
-  // produce store, stack and module instance;
+  // produce store, stack and module instance.
   (Printer::instance() << "instantiating (store, stack and instances).\n").debug();
   const auto store = make_shared<Store>();
   const auto stack = make_shared<Stack>();
   const auto moduleInst = make_shared<WasmModuleInstance>();
   const auto staticFuncTypes = module->getFunctionSig();
 
-  // keep the static module alive;
+  // keep the static module alive.
   moduleInst->staticModuleRef = module;
   for (auto &i : (*staticFuncTypes)) {
     moduleInst->types.push_back(&i);
   }
 
-  // memory instance;
+  // memory instance.
   (Printer::instance() << "store: creating memory instances.\n").debug();
   const auto staticMemory = module->getMemory();
   if (staticMemory) {
@@ -41,10 +41,10 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     // so, only allow the way of "placement-new" here.
     store->memoryInsts.emplace_back(staticMemory->initialPages, staticMemory->maximumPages);
     moduleInst->memories.push_back(&store->memoryInsts.back());
-    // TODO(Jason Yu): init data section;
+    // TODO(Jason Yu): init data section.
   }
 
-  // function instances;
+  // function instances.
   (Printer::instance() << "store: creating function instances.\n").debug();
   const auto staticFunctions = module->getFunction();
   for (auto &i : *staticFunctions) {
@@ -55,12 +55,12 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     ins->staticProto = &i;
   }
   // We need to perform this loop separately, since -
-  // the address of the vector elements are not stable due to the "resize" of each "*_back";
+  // the address of the vector elements are not stable due to the "resize" of each "*_back".
   for (auto &i : store->functionInsts) {
     moduleInst->funcs.push_back(&i);
   }
 
-  // global instances;
+  // global instances.
   (Printer::instance() << "store: creating global instances.\n").debug();
   const auto staticGlobal = module->getGlobal();
   for (auto &i : *staticGlobal) {
@@ -73,14 +73,14 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     moduleInst->globals.push_back(&i);
   }
 
-  // table instances;
+  // table instances.
   (Printer::instance() << "store: creating table instances.\n").debug();
   const auto staticTable = module->getTable();
   for (auto &i : *staticTable) {
     store->tableInsts.push_back({i.maximumSize});
     const auto tableInst = &store->tableInsts.back();
     for (auto &j : *module->getElement()) {
-      // MVP: use default element section;
+      // MVP: use default element section.
       if (j.tableIndex == 0) {
         for (const auto p : j.entities) {
           tableInst->funcIndices.push_back(p);
@@ -92,20 +92,20 @@ const shared_ptr<WasmInstance> Instantiator::instantiate(shared_module_t module)
     moduleInst->tables.push_back(&i);
   }
 
-  // export instances;
+  // export instances.
   (Printer::instance() << "store: creating export instances.\n").debug();
   const auto staticExport = module->getExport();
   for (auto &i : *staticExport) {
     moduleInst->exports.push_back({i.name, i.type, i.index});
   }
 
-  // global Wasm instance;
+  // global Wasm instance.
   const auto wasmIns = make_shared<WasmInstance>();
   wasmIns->module = moduleInst;
   wasmIns->store = store;
   wasmIns->stack = stack;
 
-  // setup start point;
+  // setup start point.
   if (module->hasValidStartFunc) {
     const uint32_t startFunctionIndex = module->startFuncIndex;
     const auto wasmFunc = &store->functionInsts.at(startFunctionIndex);

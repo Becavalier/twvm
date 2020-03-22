@@ -40,12 +40,12 @@ using std::move;
   }
 
 #define DECLARE_CONSTANT_POOL_DEBUGGER(name, type) \
-  void name##ConstantPoolDebug(stringstream &ss) { \
+  void name##ConstantPoolDebug(ostringstream &oss) { \
     unordered_map<type, ValueFrame>::size_type counter = 0; \
     for (const auto& val : name##ConstantPool) { \
-      val.second.outputValue(ss); \
+      val.second.outputValue(oss); \
       if (++counter != name##ConstantPool.size()) { \
-        ss << ", "; \
+        oss << ", "; \
       } \
     } \
   }
@@ -76,19 +76,19 @@ class Executor {
   ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CONSTANT_POOL)
   ValueFrame lastRunningResult = {};
   void resetExecutionEngine(ValueFrame *result) {
-    // keep running result;
+    // keep running result.
     lastRunningResult = move(*result);
-    // release shared_ptr;
+    // release shared_ptr.
     currentWasmIns = nullptr;
-    // reset cache;
+    // reset cache.
     cache->reset();
-    // reset constant pool;
+    // reset constant pool.
     ITERATE_OPERANDS_VALUE_TYPES(ACTION_CLEAR_CONSTANT_POOL)
-    // reset params;
+    // reset params.
     pc = nullptr;
     innerOffset = -1;
     contextIndex = -1;
-    // re-start engine;
+    // re-start engine.
     runningStatus = true;
   }
 
@@ -123,7 +123,7 @@ class Executor {
       size_t step = 0;
       uint32_t align = 0, offset = 0;
       accessor(&align, &offset, &step);
-      // prevent from copy-constructing;
+      // prevent from copy-constructing.
       cache->uint32SetMemargCache(contextIndex, opcodeStaticOffset, align, offset, step);
     }
     return argsVal;

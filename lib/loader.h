@@ -44,10 +44,10 @@ class Loader {
   static uint32_t byteCounter;
   static size_t currentReaderOffset;
 
-  // analyzer invokers;
+  // analyzer invokers.
   static shared_module_t parse(const shared_module_t&);
 
-  // analyzer helpers;
+  // analyzer helpers.
   static void parseSection(const shared_module_t&);
   static void parseUnkownSection(uint8_t, const shared_module_t&);
   static void parseTypeSection(const shared_module_t&);
@@ -76,13 +76,13 @@ class Loader {
     }
   }
 
-  // feeding module pointer directly (due to MVP version);
+  // feeding module pointer directly (due to MVP version).
   static void consumeMemoryParams(const shared_module_t& module) {
     const auto memoryFlags = WRAP_BUF_VARUINT(uint8_t);
     const auto initialPages = WRAP_BUF_VARUINT(uint32_t);
     auto memory = make_shared<WasmMemory>();
     memory->initialPages = initialPages;
-    // (0 : no /1: has) maximum field;
+    // (0 : no /1: has) maximum field.
     if (memoryFlags == kWasmTrue) {
       const auto maximumPages = WRAP_BUF_VARUINT(uint32_t);
       memory->maximumPages = maximumPages;
@@ -105,7 +105,7 @@ class Loader {
   static void consumeInitExpr(const shared_module_t& module, WasmInitExpr *const  expr) {
     const auto opcode = static_cast<WasmOpCode>(WRAP_BUF_UINT8());
 
-    // MVP: i32.const / i64.const / f32.const / f64.const / get_global;
+    // MVP: i32.const / i64.const / f32.const / f64.const / get_global.
     switch (opcode) {
       case WasmOpCode::kOpcodeI32Const: {
         expr->kind = InitExprKind::kI32Const;
@@ -142,7 +142,7 @@ class Loader {
         break;
       }
     }
-    // "0x0b" ending byte;
+    // "0x0b" ending byte.
     if (static_cast<WasmOpCode>(WRAP_BUF_UINT8()) != WasmOpCode::kOpcodeEnd) {
       Printer::instance().error(Errors::LOADER_ILLEGAL_END);
     }

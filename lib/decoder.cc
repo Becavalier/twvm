@@ -52,7 +52,7 @@ string Decoder::decodeName(const uint8_t* source, size_t len, size_t *step) {
     heapCharSeq = readLittleEndian<char>(source, len);
     str = string(heapCharSeq, len);
   }
-  // pay attention to free the memory;
+  // pay attention to free the memory.
   free(reinterpret_cast<void*>(heapCharSeq));
   return str;
 }

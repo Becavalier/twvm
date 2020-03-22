@@ -8,7 +8,7 @@ constexpr u_char WASM_VALUE_BIT_PATTERN_WIDTH = 16;
 constexpr u_char DEFAULT_BYTE_LENGTH = 4;
 constexpr u_char SCREEN_WIDTH = 80;
 
-// basic;
+// basic constants.
 constexpr auto PTR_SIZE = sizeof(uintptr_t);
 constexpr auto CHAR_SIZE = sizeof(char);
 constexpr auto FLOAT_SIZE = sizeof(float);

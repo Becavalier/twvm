@@ -17,7 +17,7 @@
 #include "lib/common/errors.h"
 
 #define OUTPUT_PREFIX "twvm: "
-// ANSI escape code (Colors);
+// ANSI escape code (Colors).
 #define COLOR_CTL_NORMAL "\x1b[37;40m"
 #define INTERNAL_DEBUG_PREFIX_OUTPUT() \
   cout << OUTPUT_PREFIX << "\x1b[36;40m" << "info: " << COLOR_CTL_NORMAL
@@ -35,8 +35,7 @@ using std::shared_ptr;
 using std::make_shared;
 using std::cout;
 using std::endl;
-using std::stringstream;
-using std::istringstream;
+using std::ostringstream;
 using std::memcpy;
 using std::hex;
 using std::showbase;
@@ -45,11 +44,11 @@ using std::isnan;
 using std::signbit;
 using std::numeric_limits;
 
-// singleton instance;
+// singleton instance.
 class Printer {
  private:
   vector<string> lines;
-  stringstream ss;
+  ostringstream oss;
   static shared_ptr<Printer> singleIns;
 
  public:
@@ -61,33 +60,33 @@ class Printer {
   }
   template <typename T>
   Printer& operator << (const T &x) {
-    ss << x;
+    oss << x;
     return *this;
   }
   Printer& useHexFormat() {
-    ss << hex << showbase;
+    oss << hex << showbase;
     return *this;
   }
   void debug() {
     if (!Config::isDebugMode) {
-      ss.str(string());
+      oss.str(string());
       return;
     }
-    INTERNAL_DEBUG_PREFIX_OUTPUT() << ss.str();
-    ss.str(string());
+    INTERNAL_DEBUG_PREFIX_OUTPUT() << oss.str();
+    oss.str(string());
   }
   void say() {
-    INTERNAL_SAY_PREFIX_OUTPUT() << ss.str();
-    ss.str(string());
+    INTERNAL_SAY_PREFIX_OUTPUT() << oss.str();
+    oss.str(string());
   }
   void warn() {
-    INTERNAL_WARNING_PREFIX_OUTPUT() << ss.str();
-    ss.str(string());
+    INTERNAL_WARNING_PREFIX_OUTPUT() << oss.str();
+    oss.str(string());
   }
   void error(Errors code, bool throwException = true) {
-    ss << errorMapper[code] << '\n';
-    INTERNAL_ERROR_PREFIX_OUTPUT() << ss.str();
-    ss.str(string());
+    oss << errorMapper[code] << '\n';
+    INTERNAL_ERROR_PREFIX_OUTPUT() << oss.str();
+    oss.str(string());
     if (throwException) {
       throw runtime_error('(' + to_string(static_cast<uint8_t>(code)) + ')');
     }
@@ -96,12 +95,12 @@ class Printer {
     lines.push_back(line);
   }
   void makeLine() {
-    lines.push_back(ss.str());
-    ss.str(string());
+    lines.push_back(oss.str());
+    oss.str(string());
   }
-  void makeLine(stringstream &ss) {
-    lines.push_back(ss.str());
-    ss.str(string());
+  void makeLine(ostringstream &oss) {
+    lines.push_back(oss.str());
+    oss.str(string());
   }
   void printTableView();
 };

@@ -53,7 +53,7 @@ class Reader {
         return Utility::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(d));
       }
     } else {
-      // buffer way;
+      // buffer way.
       if constexpr (sizeof(T) == 1) {
         return static_cast<T>(*(buffer + bufferCounter++));
       } else {
@@ -80,7 +80,7 @@ class Decoder {
     const uint8_t* buf,
     const function<void(T)> &callback = nullptr) {
     auto r = Utility::readUnalignedValue<T>(reinterpret_cast<uintptr_t>(buf));
-    // callback function;
+    // callback function.
     if (callback) {
       callback(r);
     }
@@ -94,10 +94,10 @@ class Decoder {
     const function<void(T*)> &callback = nullptr) {
     const size_t size = sizeof(T) * len;
     auto r = malloc(size);
-    // copy amount of bytes accordingly;
+    // copy amount of bytes accordingly.
     memcpy(r, reinterpret_cast<const void*>(buf), size);
     auto typedPointer = reinterpret_cast<T*>(r);
-    // callback function;
+    // callback function.
     if (callback) {
       callback(typedPointer);
     }
@@ -133,7 +133,7 @@ class Decoder {
       shift += 7;
     }
     if ((shift < sizeof(T) * 8) && (b & 0x40)) {
-      // sign extend;
+      // sign extend.
       r |= (~0 << shift);
     }
     if (step) {
@@ -176,7 +176,7 @@ class Decoder {
   template <typename T>
   static T readVarUint(shared_ptr<Reader> reader) {
     if (sizeof(T) == 1) {
-      // uint8_t;
+      // uint8_t.
       return reader->read<T>();
     } else {
       vector<uint8_t> t = Decoder::ifsWrapValue(reader);

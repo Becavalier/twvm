@@ -7,18 +7,17 @@
 #include "lib/inspector.h"
 #include "lib/common/macros.h"
 
-using std::stringstream;
 using std::to_string;
 
 void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
   auto &printer = Printer::instance();
-  // set up display format;
+  // set up display format.
   printer.useHexFormat();
 
   (printer << '\n').debug();
   (printer << "- [INSPECTING PHASE] -\n").debug();
 
-  // WasmFunctionSig;
+  // WasmFunctionSig.
   const auto &typeSize = wasmIns->module->types.size();
   (printer
     << "# Signatures (" << typeSize << "): "
@@ -42,7 +41,7 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
   }
   printer.printTableView();
 
-  // WasmFunction;
+  // WasmFunction.
   const auto &funcSize = wasmIns->module->funcs.size();
   (printer
     << "# Functions (" << funcSize << "): "
@@ -59,7 +58,7 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
   }
   printer.printTableView();
 
-  // WasmTable;
+  // WasmTable.
   const auto &tableSize = wasmIns->module->tables.size();
   (printer
     << "# Tables (" << tableSize << "): "
@@ -71,7 +70,7 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
   }
   printer.printTableView();
 
-  // WasmMemory;
+  // WasmMemory.
   const auto &memorySize = wasmIns->module->memories.size();
   (printer << "# Memories (" << memorySize << "): " << (memorySize == 0 ? "N/A" : string()) << '\n').debug();
   for (const auto &memory : wasmIns->module->memories) {
@@ -81,7 +80,7 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
   }
   printer.printTableView();
 
-  // WasmGlobal;
+  // WasmGlobal.
   const auto &globalSize = wasmIns->module->globals.size();
   (printer
     << "# Globals (" << globalSize << "): "
@@ -94,7 +93,7 @@ void Inspector::inspect(shared_ptr<WasmInstance> wasmIns) {
   }
   printer.printTableView();
 
-  // WasmExport;
+  // WasmExport.
   const auto &exportSize = wasmIns->module->exports.size();
   (printer
     << "# Exports (" << exportSize << "): "

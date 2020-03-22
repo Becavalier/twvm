@@ -14,7 +14,7 @@ using std::string;
 using std::cout;
 using std::endl;
 using std::max;
-using std::stringstream;
+using std::ostringstream;
 
 void printWrap(ostream& os, int leftPad, const string& content) {
   int len = content.size();
@@ -61,15 +61,15 @@ Options::Options(const string& command, const string& description) : positional(
       for (const auto &o : options) {
         bool longNShort = o.longName.size() != 0 && o.shortName.size() != 0;
         size_t pad = 1 + optionWidth - o.longName.size() - o.shortName.size();
-        stringstream ss;
-        ss << "  " << o.longName;
+        ostringstream oss;
+        oss << "  " << o.longName;
         if (longNShort) {
-          ss << ", ";
+          oss << ", ";
         } else {
-          ss << ' ';
+          oss << ' ';
         }
-        ss << o.shortName << string(pad, ' ');
-        cout << ss.str();
+        oss << o.shortName << string(pad, ' ');
+        cout << oss.str();
         printWrap(cout, optionWidth + 4, o.description);
         cout << endl;
       }

@@ -10,7 +10,7 @@
 
 using std::shared_ptr;
 
-// instantiation;
+// instantiation.
 class Instantiator {
  public:
   static const shared_ptr<WasmInstance> instantiate(shared_module_t);

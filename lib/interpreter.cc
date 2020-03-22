@@ -96,11 +96,12 @@ using std::copysignf;
 using std::numeric_limits;
 using std::trunc;
 using std::string;
+using std::ostringstream;
 
 #define WRAP_FORWARD_INT_FIELD(keyName, type) \
   const auto keyName = Decoder::readVarInt<type>(executor->forward_());
 
-// use C-Standard "NDEBUG" macro;
+// use C-Standard "NDEBUG" macro.
 #ifndef NDEBUG
   using std::hex;
   using std::showbase;
@@ -223,13 +224,13 @@ void Interpreter::storeMemarg(
     if (valueStack->size() < 2) {
       Printer::instance().error(Errors::RT_OPERANDS_NOT_ENOUGH);
     }
-    // pop an i32 value from the stack (value to be stored);
+    // pop an i32 value from the stack (value to be stored).
     auto topNVal = valueStack->topN(2);
     constexpr auto x = DEFAULT_ELEMENT_INDEX;
     constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
     const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
     T storeVal = T{};
-    // i32 / i64 / f32 / f64;
+    // i32 / i64 / f32 / f64.
     const auto storedFrame = *topNVal[x];
     if constexpr (is_same<T, int32_t>::value) {
       if (storedFrame->getRTValueType() == ValueFrameTypes::kRTI32Value) {
@@ -270,7 +271,7 @@ void Interpreter::storeMemarg(
         Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
       }
     }
-    // retrive base address;
+    // retrive base address.
     const auto baseFrame = *topNVal[y];
     if (baseFrame->getRTValueType() == ValueFrameTypes::kRTI32Value) {
       auto &v = executor->uint32UseMemargCache(
@@ -280,7 +281,7 @@ void Interpreter::storeMemarg(
           executor->innerOffset += (*step - 2);
         });
       const int32_t ea = baseFrame->toI32() + v[y];
-      // "sizeof(int8_t / 8)";
+      // "sizeof(int8_t / 8)".
       if (ea >= 0) {
         handler(ea, mem, storeVal);
       } else {
@@ -294,7 +295,7 @@ void Interpreter::retrieveMemarg(
   shared_wasm_t &wasmIns,
   Executor *executor,
   const function<void(const int32_t, WasmMemoryInstance *const &mem)> &handler) {
-    // pop an i32 value from the stack (base address);
+    // pop an i32 value from the stack (base address).
     const auto topVal = wasmIns->stack->valueStack->top();
     constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
     if (topVal->getRTValueType() == ValueFrameTypes::kRTI32Value) {
@@ -306,7 +307,7 @@ void Interpreter::retrieveMemarg(
           executor->innerOffset += (*step - 2);
         });
       const auto ea = topVal->toI32() + v[y];
-      // "sizeof(int8_t / 8)";
+      // "sizeof(int8_t / 8)".
       if (ea >= 0) {
         handler(ea, mem);
       } else {
@@ -322,9 +323,9 @@ void debug(string opcodeName, const shared_wasm_t &wasmIns, Executor *executor) 
   const auto &labelStack = wasmIns->stack->labelStack;
   const auto &activationStack = wasmIns->stack->activationStack;
   auto &printer = Printer::instance();
-  stringstream line;
+  ostringstream line;
   (printer << opcodeName << '\n').debug();
-  // "ValueFrame";
+  // "ValueFrame".
   line << "VS (values) | ";
   for (uint32_t i = 0; i < valueStack->size(); ++i) {
     valueStack->at(i)->outputValue(line);
@@ -332,10 +333,10 @@ void debug(string opcodeName, const shared_wasm_t &wasmIns, Executor *executor) 
   }
   line << " <-";
   printer.makeLine(line);
-  // "LabelFrame";
+  // "LabelFrame".
   line << "# of LS | " << labelStack->size();
   printer.makeLine(line);
-  // "ActivationFrame";
+  // "ActivationFrame".
   line << "AS (locals) | ";
   for (uint32_t i = 0; i < activationStack->size(); ++i) {
     const auto &locals = activationStack->at(i).locals;
@@ -359,7 +360,7 @@ void debug(string opcodeName, const shared_wasm_t &wasmIns, Executor *executor) 
   }
   line << " <-";
   printer.makeLine(line);
-  // Constant Pool;
+  // constant pool.
   #define DECLARE_CP_INSPECT_METHOD(name, ...) \
     line << "CP (" << #name << ") | "; \
     executor->name##ConstantPoolDebug(line); \
@@ -371,23 +372,23 @@ void debug(string opcodeName, const shared_wasm_t &wasmIns, Executor *executor) 
 ITERATE_SIMPLE_BINOP(DECLARE_BASIC_BINOP_METHOD)
 
 void Interpreter::doUnreachable(shared_wasm_t &wasmIns, Executor *executor) {
-  // trap immediately;
+  // trap immediately.
   Printer::instance().error(Errors::RT_UNREACHABLE_CODE);
 }
 
 void Interpreter::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
   const auto labelStack = wasmIns->stack->labelStack;
-  // find immediate in cache first;
+  // find immediate in cache first.
   const auto immediate = executor->uint8UseImmesCache(
     [&executor](size_t *step, uint8_t *immediate) -> auto {
       *immediate = Decoder::readUint8(executor->forward_());
-      // it has already been forward by one "sizeof(uint8_t)", we need to subtract by one here;
+      // it has already been forward by one "sizeof(uint8_t)", we need to subtract by one here.
       executor->innerOffset += ((*step = 1) - 1);
     });
   const auto returnType = static_cast<ValueTypesCode>(immediate);
   labelStack->emplace({returnType, wasmIns->stack->valueStack->size()});
   const auto topLabel = &labelStack->top();
-  // find "end" entry;
+  // find "end" entry.
   const auto topActivation = &wasmIns->stack->activationStack->top();
   const auto endOffset = executor->int64UseMetaCache(
     OpcodeMeta::EndOffset, [&executor, &topActivation](int64_t *metaVal) -> auto {
@@ -405,7 +406,7 @@ void Interpreter::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
             }
             case WasmOpCode::kOpcodeEnd: {
               if (level == 0) {
-                // move the pointer back to the opcode;
+                // move the pointer back to the opcode.
 #if defined(OPT_DCT)
                 *metaVal = offset - 8;
 #else
@@ -427,7 +428,7 @@ void Interpreter::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doLoop(shared_wasm_t &wasmIns, Executor *executor) {
-  // "end" should be the start;
+  // "end" should be the start.
 }
 
 void Interpreter::doIf(shared_wasm_t &wasmIns, Executor *executor) {
@@ -442,11 +443,11 @@ void Interpreter::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
   const auto activationLabelStackHeight = currentActivation->labelStackHeight;
   const auto activationValueStackHeight = currentActivation->valueStackHeight;
   if (currentLabelStackSize == activationLabelStackHeight) {
-    // function end;
+    // function end.
     const auto &funcProto = currentActivation->pFuncIns->staticProto;
     if (funcProto->sig->returnCount == (wasmIns->stack->valueStack->size() - activationValueStackHeight)) {
       const auto returnTypes = funcProto->sig->getReturnTypes();
-      // check the type of return operands;
+      // check the type of return operands.
       for (size_t i = 0; i < returnTypes.size(); ++i) {
         const auto topValue = wasmIns->stack->valueStack->top(i);
         if (topValue->getGenericType() != returnTypes.at(i)) {
@@ -457,7 +458,7 @@ void Interpreter::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
       if (wasmIns->stack->activationStack->size() == 1) {
         executor->switchStatus(false);
       } else {
-        // go-on here;
+        // go-on here.
         const auto &leaveEntry = currentActivation->leaveEntry;
         executor->pc = leaveEntry->pc;
         executor->innerOffset = leaveEntry->offset;
@@ -465,7 +466,7 @@ void Interpreter::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
     }
     wasmIns->stack->activationStack->pop();
   } else if (currentLabelStackSize > activationLabelStackHeight) {
-    // control structure end;
+    // control structure end.
     wasmIns->stack->labelStack->pop();
   } else {
     Printer::instance().error(Errors::RT_INVALID_END);
@@ -487,9 +488,9 @@ void Interpreter::doBr(shared_wasm_t &wasmIns, Executor *executor) {
 
   if (wasmIns->stack->labelStack->size() >= depth + 1) {
     for (uint32_t i = 0; i < depth + 1; ++i) {
-      // only leave the last "LabelFrame";
+      // only leave the last "LabelFrame".
       if (i == depth) {
-        // last round (end / start), redirect pointer;
+        // last round (end / start), redirect pointer.
         const auto topLabel = &wasmIns->stack->labelStack->top();
         executor->pc = topLabel->end->pc;
         executor->innerOffset = topLabel->end->offset;
@@ -513,7 +514,7 @@ void Interpreter::doBrIf(shared_wasm_t &wasmIns, Executor *executor) {
   if (!isZero) {
     doBr(wasmIns, executor);
   } else {
-    // remove "depth" field;
+    // remove "depth" field.
     executor->innerOffset += Decoder::calcPassBytes(executor->absAddr() + 1);
   }
   INSPECT_STACK("br_if", wasmIns, executor);
@@ -527,11 +528,11 @@ void Interpreter::doReturn(shared_wasm_t &wasmIns, Executor *executor) {
   const auto &leaveEntry = topActivation->leaveEntry;
   executor->pc = leaveEntry->pc;
   executor->innerOffset = leaveEntry->offset;
-  // reset labels;
+  // reset labels.
   for (size_t i = 0; i < wasmIns->stack->labelStack->size() - topActivation->labelStackHeight; ++i) {
     wasmIns->stack->labelStack->pop();
   }
-  // reset activations;
+  // reset activations.
   wasmIns->stack->activationStack->pop();
   INSPECT_STACK("return", wasmIns, executor);
 }
@@ -544,7 +545,7 @@ void Interpreter::doCall(shared_wasm_t &wasmIns, Executor *executor) {
       executor->innerOffset += (*step - 1);
     });
   if (funcIndex < modFuncs.size()) {
-    // add an activation frame;
+    // add an activation frame.
     const auto &stack = wasmIns->stack;
     const auto &wasmFunc = wasmIns->module->funcs.at(funcIndex);
     const auto &paramCount = wasmFunc->staticProto->sig->paramsCount;
@@ -553,15 +554,15 @@ void Interpreter::doCall(shared_wasm_t &wasmIns, Executor *executor) {
     }
     stack->activationStack->emplace({
       wasmFunc,
-      // subtract the count of locals for initialization;
+      // subtract the count of locals for initialization.
       stack->valueStack->size() - paramCount,
       stack->labelStack->size(),
       make_shared<PosPtr>(funcIndex, executor->pc, executor->innerOffset)});
-    // redirect;
+    // redirect.
     const auto funcIns = modFuncs[funcIndex];
     executor->innerOffset = -1;
     executor->pc = funcIns->code;
-    // initialize locals;
+    // initialize locals.
     for (const auto &paramType : wasmFunc->staticProto->sig->getParamTypes()) {
       const auto topVal = wasmIns->stack->valueStack->top();
       if (topVal->getGenericType() == paramType) {
@@ -583,7 +584,7 @@ void Interpreter::doLocalGet(shared_wasm_t &wasmIns, Executor *executor) {
     });
   const auto topActivation = &wasmIns->stack->activationStack->top();
   if (localIndex < topActivation->locals.size()) {
-    // keep the "ValueFrames" in locals;
+    // keep the "ValueFrames" in locals.
     wasmIns->stack->valueStack->emplace(forward<ValueFrame*>(topActivation->locals[localIndex]));
   }
   INSPECT_STACK("local.get", wasmIns, executor);
@@ -598,13 +599,13 @@ void Interpreter::doLocalSet(shared_wasm_t &wasmIns, Executor *executor) {
   const auto topActivation = &wasmIns->stack->activationStack->top();
   const auto topVal = wasmIns->stack->valueStack->top();
   topActivation->locals[localIndex] = topVal;
-  // remove the top "ValueFrame";
+  // remove the top "ValueFrame".
   wasmIns->stack->valueStack->pop();
   INSPECT_STACK("local.set", wasmIns, executor);
 }
 
 void Interpreter::doLocalTee(shared_wasm_t &wasmIns, Executor *executor) {
-  // write a local and return(keep) the same value;
+  // write a local and return(keep) the same value.
   const auto localIndex = executor->uint32UseImmesCache(
     [&executor](size_t *step, uint32_t *immediate) -> auto {
       *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
@@ -626,7 +627,7 @@ void Interpreter::doGlobalSet(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
-  // push an i32 value onto the stack;
+  // push an i32 value onto the stack.
   wasmIns->stack->valueStack->emplace(
     executor->checkUpConstant(
       executor->int32UseImmesCache(
@@ -638,7 +639,7 @@ void Interpreter::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doI64Const(shared_wasm_t &wasmIns, Executor *executor) {
-  // push an i64 value onto the stack;
+  // push an i64 value onto the stack.
   wasmIns->stack->valueStack->emplace(
     executor->checkUpConstant(
       executor->int64UseImmesCache(
@@ -650,7 +651,7 @@ void Interpreter::doI64Const(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doF32Const(shared_wasm_t &wasmIns, Executor *executor) {
-  // push a f32 value onto the stack;
+  // push a f32 value onto the stack.
   wasmIns->stack->valueStack->emplace(
     executor->checkUpConstant(
       executor->floatUseImmesCache(
@@ -662,7 +663,7 @@ void Interpreter::doF32Const(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doF64Const(shared_wasm_t &wasmIns, Executor *executor) {
-  // push a f64 value onto the stack;
+  // push a f64 value onto the stack.
   wasmIns->stack->valueStack->emplace(
     executor->checkUpConstant(
       executor->doubleUseImmesCache(
@@ -673,7 +674,7 @@ void Interpreter::doF64Const(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("f64.const", wasmIns, executor);
 }
 
-// operands: [baseAddr]; immes: [flags, offset]; return: [loadVal];
+// operands: [baseAddr]; immes: [flags, offset]; return: [loadVal].
 void Interpreter::doI32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveMemarg(wasmIns, executor,
     [&wasmIns, &executor](
@@ -728,7 +729,7 @@ void Interpreter::doI32LoadMem16U(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("i32.load16_u", wasmIns, executor);
 }
 
-// operands: [storeVal, baseAddr]; immes: [flags, offset];
+// operands: [storeVal, baseAddr]; immes: [flags, offset].
 void Interpreter::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
   storeMemarg<int32_t>(wasmIns, executor, [](
     const uint32_t ea,
@@ -914,7 +915,7 @@ void Interpreter::doF64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
   INSPECT_STACK("f64.load", wasmIns, executor);
 }
 
-// numerical comparison;;
+// numerical comparison.
 void Interpreter::doF32Floor(shared_wasm_t &wasmIns, Executor *executor) {
   retrieveSingleRTVal<float>(wasmIns, executor,
     [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
@@ -964,7 +965,7 @@ void Interpreter::doI64Popcnt(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doMemoryGrow(shared_wasm_t &wasmIns, Executor *executor) {
-  // reserved byte for future usage;
+  // reserved byte for future usage.
   [[maybe_unused]] 
   const auto reseverdByte = executor->uint8UseImmesCache(
     [&executor](size_t *step, uint8_t *immediate) -> auto {
@@ -973,7 +974,7 @@ void Interpreter::doMemoryGrow(shared_wasm_t &wasmIns, Executor *executor) {
     });
   retrieveSingleRTVal<uint32_t>(wasmIns, executor,
     [&executor, &wasmIns](const shared_ptr<Stack::ValueFrameStack> &valueStack, const uint32_t x) -> void {
-      // -1 or "previous page size";
+      // -1 or "previous page size".
       wasmIns->stack->valueStack->top() = executor->checkUpConstant(
         wasmIns->module->memories[DEFAULT_ELEMENT_INDEX]->grow(x));
     });
@@ -981,14 +982,14 @@ void Interpreter::doMemoryGrow(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doMemorySize(shared_wasm_t &wasmIns, Executor *executor) {
-  // reserved byte for future usage;
+  // reserved byte for future usage.
   [[maybe_unused]] 
   const auto reseverdByte = executor->uint8UseImmesCache(
     [&executor](size_t *step, uint8_t *immediate) -> auto {
       *immediate = Decoder::readUint8(executor->forward_());
       executor->innerOffset += ((*step = 1) - 1);
     });
-  // use the first one by default in MVP;
+  // use the first one by default in MVP.
   wasmIns->stack->valueStack->push(executor->checkUpConstant(
     static_cast<uint32_t>(wasmIns->module->memories[DEFAULT_ELEMENT_INDEX]->getAvailablePage())));
   INSPECT_STACK("memory.size", wasmIns, executor);
@@ -1245,7 +1246,7 @@ void Interpreter::doNop(shared_wasm_t &wasmIns, Executor *executor) {
 }
 
 void Interpreter::doDrop(shared_wasm_t &wasmIns, Executor *executor) {
-  // drop the top "ValueFrame" directly;
+  // drop the top "ValueFrame" directly.
   wasmIns->stack->valueStack->pop();
   INSPECT_STACK("drop", wasmIns, executor);
 }
@@ -1462,7 +1463,7 @@ void Interpreter::doSelect(shared_wasm_t &wasmIns, Executor *executor) {
          */
         valueStack->at(valueStack->size() - 3) = valueStack->at(valueStack->size() - 2);
       }
-      // remove the top 2 elements, including the flag ValueFrame;
+      // remove the top 2 elements, including the flag ValueFrame.
       valueStack->popN(2);
     });
   INSPECT_STACK("select", wasmIns, executor);
@@ -1512,7 +1513,7 @@ void Interpreter::doI32DivS(shared_wasm_t &wasmIns, Executor *executor) {
       if (y == 0) {
         Printer::instance().error(Errors::RT_DIV_BY_ZERO);
       } else if (y == -1 && x == numeric_limits<int32_t>::min()) {
-        // INT32_T_MIN = -INT32_T_MAX - 1;
+        // INT32_T_MIN = -INT32_T_MAX - 1.
         Printer::instance().error(Errors::RT_DIV_UNREPRESENTABLE);
       } else {
         valueStack->top() = executor->checkUpConstant(x / y);
@@ -1605,7 +1606,7 @@ void Interpreter::doI64DivS(shared_wasm_t &wasmIns, Executor *executor) {
       if (y == 0) {
         Printer::instance().error(Errors::RT_DIV_BY_ZERO);
       } else if (y == -1 && x == numeric_limits<int64_t>::min()) {
-        // INT64_T_MIN = -INT64_T_MAX - 1;
+        // INT64_T_MIN = -INT64_T_MAX - 1.
         Printer::instance().error(Errors::RT_DIV_UNREPRESENTABLE);
       } else {
         valueStack->top() = executor->checkUpConstant(x / y);

@@ -37,9 +37,9 @@ class Module {
   auto& getMemory() { return memory; }
 
  private:
-  // params, returns;
+  // params, returns.
   vector<WasmFunctionSig> funcSignatures;
-  // order: external imported | internal defined;
+  // order: external imported | internal defined.
   vector<WasmFunction> functions;
   vector<WasmTable> tables;
   shared_ptr<WasmMemory> memory = nullptr;

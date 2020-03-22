@@ -31,7 +31,7 @@ class ValueFrame {
   SET_STRUCT_MOVE_ONLY(ValueFrame);
   ValueFrame(ValueFrameTypes runtimeType) : bitPattern{} {}
   ValueFrame(const ValueFrame *other) : isValueZero(other->isValueZero), runtimeType(other->runtimeType) {
-    // copy "bitPattern";
+    // copy "bitPattern".
     memcpy(bitPattern, other->bitPattern, WASM_VALUE_BIT_PATTERN_WIDTH);
     initialized = true;
   }
@@ -115,9 +115,9 @@ class LabelFrame {
   shared_ptr<PosPtr> end;
   shared_ptr<PosPtr> branch;
   shared_ptr<PosPtr> start;
-  // for "block", "loop" and "if";
+  // for "block", "loop" and "if".
   const ValueTypesCode resultType;
-  // determine the # of returning arity;
+  // determine the # of returning arity.
   const size_t valueStackHeight = 0;
 
   LabelFrame(
@@ -129,13 +129,13 @@ class ActivationFrame {
  public:
   SET_STRUCT_MOVE_ONLY(ActivationFrame);
   const WasmFuncInstance *pFuncIns = nullptr;
-  // the number of locals can not exceed the params number;
+  // the number of locals can not exceed the params number.
   vector<ValueFrame*> locals = {};
   shared_ptr<PosPtr> leaveEntry;
   
-  // determine the # of returning arity;
+  // determine the # of returning arity.
   const size_t valueStackHeight = 0;
-  // determine whether we reach the "end" of the function;
+  // determine whether we reach the "end" of the function.
   const size_t labelStackHeight = 0;
 
   ActivationFrame(

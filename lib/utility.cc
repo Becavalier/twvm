@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <numeric>
+#include <sstream>
 #include "lib/utility.h"
 #include "lib/common/macros.h"
 
@@ -14,12 +15,13 @@ using std::setfill;
 using std::transform;
 using std::accumulate;
 using std::ostream;
+using std::istringstream;
 
 shared_ptr<Printer> Printer::singleIns = nullptr;
 
 void Printer::printTableView() {
   if (lines.size() > 0) {
-    // calculate column width;
+    // calculate column width.
     vector<size_t> columnWidth;
     vector<vector<string>> columnContent;
     for (const auto &line : lines) {
@@ -38,7 +40,7 @@ void Printer::printTableView() {
         }
       }
     }
-    // calculate line width;
+    // calculate line width.
     const auto columnWidthSize = columnWidth.size();
     const auto maxLengthPadding =
       accumulate(begin(columnWidth), end(columnWidth), 0) + columnWidthSize + 3;

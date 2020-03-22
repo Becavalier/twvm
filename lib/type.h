@@ -19,9 +19,9 @@ constexpr uint32_t kWasmVersion = 0x01;
 constexpr uint8_t kWasmTrue = 1;
 constexpr uint8_t kWasmFalse = 0;
 
-// basic types;
+// basic types.
 enum class ValueTypesCode : int8_t {
-  kVoid = 0x40,  // block_type;
+  kVoid = 0x40,  // block_type.
   kI32 = 0x7f,
   kI64 = 0x7e,
   kF32 = 0x7d,
@@ -30,7 +30,7 @@ enum class ValueTypesCode : int8_t {
   kFuncRef = 0x70,
 };
 
-// import/export;
+// import/export.
 enum class ExternalTypesCode : uint8_t {
   kExternalFunction = 0,
   kExternalTable = 1,
@@ -39,7 +39,7 @@ enum class ExternalTypesCode : uint8_t {
   kExternalException = 4,
 };
 
-// sections;
+// sections.
 enum class SectionTypesCode : uint8_t {
   kUnknownSection = 0,
   kTypeSection = 1,
@@ -57,7 +57,7 @@ enum class SectionTypesCode : uint8_t {
   kExceptionSection = 13,
 };
 
-// stack frame types;
+// stack frame types.
 enum class StackFrameTypes : uint8_t {
   kValues = 0,
   kLabels,
@@ -74,7 +74,7 @@ enum class InitExprKind : uint8_t {
 };
 
 /* runtime types */
-// here we directly use "int32_t", "int64_t", "float", "double" to present 4 kinds of Wasm values;
+// here we directly use "int32_t", "int64_t", "float", "double" to present 4 kinds of Wasm values.
 union RTValue {
   int32_t i32;
   int64_t i64;
@@ -107,7 +107,7 @@ struct PosPtr {
 };
 
 /* compound types */
-// for initial value of global section, offset of data/elements segment;
+// for initial value of global section, offset of data/elements segment.
 struct WasmInitExpr {
   WasmInitExpr() = default;
   InitExprKind kind = InitExprKind::kNone;
@@ -117,7 +117,7 @@ struct WasmInitExpr {
     int64_t vI64Const;
     float vF32Const;
     double vF64Const;
-    // op: get_global (refer to an immutable import);
+    // op: get_global (refer to an immutable import).
     uint32_t vGlobalIndex;
   } val;
   RTValue toRTValue() {
@@ -133,7 +133,7 @@ struct WasmInitExpr {
         }
       }
     } else  {
-      // deal with platform-hosted imported "global";
+      // deal with platform-hosted imported "global".
     }
     return rtVal;
   }
@@ -146,7 +146,7 @@ struct WasmFunctionSig {
   size_t paramsCount = 0;
   size_t returnCount = 0;
   vector<ValueTypesCode> reps;
-  // TODO(Jason Yu) reduce vector copying overhead;
+  // TODO(Jason Yu) reduce vector copying overhead.
   vector<ValueTypesCode> getParamTypes() {
     return vector<ValueTypesCode>(begin(reps), begin(reps) + paramsCount);
   }
@@ -155,7 +155,7 @@ struct WasmFunctionSig {
   }
 };
 
-// wasm indirect call table;
+// wasm indirect call table.
 struct WasmFunction {
   SET_STRUCT_MOVE_ONLY(WasmFunction);
   WasmFunctionSig* sig = nullptr;
@@ -181,9 +181,9 @@ struct WasmTable {
 template <typename T = WasmFunction>
 struct WasmElement {
   SET_STRUCT_MOVE_ONLY(WasmElement<T>);
-  uint32_t tableIndex = 0;  // default;
-  ExternalTypesCode type = ExternalTypesCode::kExternalException;  // anyfunc;
-  WasmInitExpr init = {};  // offset in table (initialization expr);
+  uint32_t tableIndex = 0;  // default;.
+  ExternalTypesCode type = ExternalTypesCode::kExternalException;  // anyfunc.
+  WasmInitExpr init = {};  // offset in table (initialization expr).
   vector<T*> entities = {};
 };
 
@@ -200,7 +200,7 @@ struct WasmGlobal {
   SET_STRUCT_MOVE_ONLY(WasmGlobal);
   ValueTypesCode type = ValueTypesCode::kVoid;
   bool mutability = false;
-  WasmInitExpr init = {};  // initialization expr;
+  WasmInitExpr init = {};  // initialization expr.
   bool imported = false;
   bool exported = false;
 };

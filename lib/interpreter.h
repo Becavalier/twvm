@@ -56,7 +56,7 @@ class Interpreter {
       ITERATE_OPCODE_NAME_WITH_ONE_VAR_IMME(OPCODE_CASE) {
         return Decoder::calcPassBytes(buf);
       }
-      // "memory_immediate";
+      // "memory_immediate".
       ITERATE_OPCODE_NAME_WITH_TWO_VAR_IMME(OPCODE_CASE) {
         return Decoder::calcPassBytes(buf, 2);
       }

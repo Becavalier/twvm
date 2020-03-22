@@ -18,7 +18,7 @@ using std::exception;
 using std::cerr;
 
 int main(int argc, const char **argv) {
-  // set up command line arguments;
+  // set up command line arguments.
   Options options("twvm", "TWVM - A tiny, lightweight and efficient WebAssembly virtual machine.");
   options.addPositional("<*.wasm>", Options::Arguments::One,
     [](Options *o, const string& argument) -> auto {
@@ -40,34 +40,34 @@ int main(int argc, const char **argv) {
   options.parse(argc, argv);
 
   try {
-    // start executing;
+    // start executing.
     if (Config::executeModulePath.length() == 0) {
       Printer::instance().error(Errors::CMD_NO_FILE);
     }
 
-    // start a timer;
+    // start a timer.
     auto start = high_resolution_clock::now();
 
-    // static loading;
+    // static loading.
     const auto wasmModule = Loader::init(Config::executeModulePath);
     (Printer::instance()
       << "static parsing time: "
       << calcTimeInterval(start)
       << "ms.\n").debug();
 
-    // instantiating;
+    // instantiating.
     const auto wasmInstance = Instantiator::instantiate(wasmModule);
     (Printer::instance()
       << "instantiating time: "
       << calcTimeInterval(start)
       << "ms. \n").debug();
 
-    // inspect;
+    // inspect.
     if (Config::isDebugMode) {
       Inspector::inspect(wasmInstance);
     }
     
-    // execution
+    // execution.
     thread execThread([&wasmInstance]() -> void {
       const auto executor = make_unique<Executor>();
       executor->execute(wasmInstance);
