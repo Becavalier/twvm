@@ -33,8 +33,13 @@ class StackContainer {
   void erase(size_t start, size_t height) {
     container.erase(end(container) - start - height, end(container) - start);
   }
-  void push(T&& v) { container.push_back(forward<T>(v)); }
-  void emplace(T&& v) { container.emplace_back(forward<T>(v)); }
+
+  template<typename V = T>
+  void push(V&& v) { container.push_back(forward<V>(v)); }
+
+  template<typename V = T>
+  void emplace(V&& v) { container.emplace_back(forward<V>(v)); }
+
   // back index, start from 0.
   auto& top(size_t i = 0) { return at(size() - 1 - i); }
   auto& at(size_t i) { return container.at(i); }

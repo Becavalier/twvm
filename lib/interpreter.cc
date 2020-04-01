@@ -585,10 +585,10 @@ void Interpreter::doLocalGet(shared_wasm_t &wasmIns, Executor *executor) {
   const auto topActivation = &wasmIns->stack->activationStack->top();
   if (localIndex < topActivation->locals.size()) {
     // keep the "ValueFrames" in locals.
-    wasmIns->stack->valueStack->emplace(forward<ValueFrame*>(topActivation->locals[localIndex]));
+    wasmIns->stack->valueStack->emplace(topActivation->locals[localIndex]);
   }
   INSPECT_STACK("local.get", wasmIns, executor);
-}
+} 
 
 void Interpreter::doLocalSet(shared_wasm_t &wasmIns, Executor *executor) {
   const auto localIndex = executor->uint32UseImmesCache(
