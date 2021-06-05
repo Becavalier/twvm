@@ -25,7 +25,7 @@ namespace TWVM {
     static void parseCodeSection(Reader&, shared_module_t);
     static void parseElementSection(Reader&, shared_module_t);
     static void parseDataSection(Reader&, shared_module_t);
-    static shared_module_t init(const std::string&);
+    static shared_module_t load(const std::string&);
     static void prelude(std::ifstream&, shared_module_t);
     static void parse(std::ifstream&, shared_module_t);
   };

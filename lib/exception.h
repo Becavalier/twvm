@@ -14,17 +14,20 @@ class Exception {
     INVALID_MAGIC,
     INVALID_VER,
     INVALID_SECTION_ID,
+    INVALID_FUNC_TYPE,
+    INVALID_ELEM_TYPE,
+    BAD_FSTREAM,
   };
   [[noreturn]]
-  static void terminate(ErrorType type, size_t pos = 0) {
+  static void terminate(ErrorType type, ssize_t pos = 0) {
     std::stringstream ss;
     ss << std::hex << std::showbase
       << "\n[TWVM] " 
-      << errorMsg.find(type)->second 
-      << "At byte index: "
-      << pos 
-      << '.' 
-      << std::endl;
+      << errorMsg.find(type)->second;
+    if (pos) {
+      ss << "Before byte index: " << pos  << '.';
+    }  
+    ss << std::endl;
     throw std::runtime_error(ss.str());
   }
  private:

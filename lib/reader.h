@@ -6,14 +6,27 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <string>
 #include "lib/structs.h"
 #include "lib/decoder.h"
 #include "lib/constants.h"
 #include "lib/exception.h"
 
+#define WALK_FUNC_DEF(name, type, suffix) \
+    type walk##name() { \
+      return Decoder::decodeVar##suffix<type>(in); \
+    }
+#define DEFINE_WALK_FUNCS(V) \
+  V(U8, uint8_t, uint) \
+  V(U16, uint16_t, uint) \
+  V(U32, uint32_t, uint) \
+  V(I8, int8_t, int) \
+  V(I16, int16_t, int) \
+  V(I32, int32_t, int)
+
 namespace TWVM {
   class Reader {
-    size_t sectionId = 0;
+    int8_t sectionId = 0;
     std::ifstream& in;
    public: 
     auto currentSectionId() const { return sectionId; }
@@ -21,22 +34,30 @@ namespace TWVM {
       if (mod->hasValidHeader) {
         // check next section id.
         const auto parsedSectionId = static_cast<int8_t>(in.get());
-        if (parsedSectionId != 0 && parsedSectionId != mod->lastParsedSectionId + 1) {
-          Exception::terminate(Exception::ErrorType::INVALID_SECTION_ID, in.tellg());
-        }
+        if (parsedSectionId > 0 && parsedSectionId <= mod->lastParsedSectionId) {
+            Exception::terminate(Exception::ErrorType::INVALID_SECTION_ID, in.tellg());
+          }
         mod->lastParsedSectionId = parsedSectionId;
         sectionId = parsedSectionId;
       }
     }
     // member functions.
     std::vector<uint8_t> retrieveBytes(size_t);
-    bool skipBytes(size_t n) {
+    size_t pos() {
+      return in.tellg();
+    }
+    uint8_t walkByte() {
+      return static_cast<uint8_t>(in.get());
+    }
+    std::string walkStringByBytes(size_t n) {
+      char str[n];
+      in.read(str, n);
+      return std::string(str, n);
+    }
+    void skipBytes(size_t n) {
       in.seekg(n, std::ios_base::cur);
-      return in.rdstate() == std::ios_base::goodbit;
     }
-    uint32_t walkSectionSize() {
-      return Decoder::decodeVaruint<u_int32_t>(in);  // section size - u32.
-    }
+    DEFINE_WALK_FUNCS(WALK_FUNC_DEF)
   };
 }
 
