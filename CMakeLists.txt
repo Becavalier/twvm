@@ -7,7 +7,7 @@ project (TWVM)
 
 include_directories(.)
 
-# setup c++ config;
+# setup C++ configure;
 set (CMAKE_VERBOSE_MAKEFILE "OFF")
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} \
@@ -35,6 +35,7 @@ if (DEFINED ENV{NDEBUG})
   add_definitions(-DNDEBUG)
 endif()
 add_definitions(-DOPT_DCT)
+# add_definitions(-DOPT_PAR_LOADING)
 
 # print all definitions;
 get_directory_property(DirDefs COMPILE_DEFINITIONS)
@@ -77,7 +78,7 @@ else()
 endif()  
 
 # add subdirectory of the core library;
-add_subdirectory (lib/structures)
+# add_subdirectory (lib/structures)
 add_subdirectory (lib/)
 
 # add executable;
@@ -86,17 +87,17 @@ add_executable(${OUTPUT} ${DIR_SRCS})
 if (STATE STREQUAL TEST) 
   target_link_libraries (${OUTPUT} 
     twvm-core
-    twvm-structure
+    #twvm-structure
     gtest_main
     gtest)
 
-  # run the test;
+  # run testsuites;
   add_custom_command(TARGET ${OUTPUT} POST_BUILD COMMAND ${OUTPUT})
 else()
   # linker;
   target_link_libraries (${OUTPUT} 
     twvm-core
-    twvm-structure
+    #twvm-structure
     pthread)
 
   # installing;

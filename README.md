@@ -58,7 +58,7 @@ Then run the following command to detect the memory leak of the binary version p
   - [x] Constant pool;
   - [x] Module stream loading;
   - [x] Simple DCT/TTC implementation;
-- [ ] Full Wasm MVP proposals support;
+- [ ] Full Wasm spec version 1.0 support;
 - [ ] JIT compiler based optimization;
 - [ ] Stage based full-path type validation;
 - [ ] Experimental SIMD instructions;

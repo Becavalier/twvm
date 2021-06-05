@@ -1,4 +1,4 @@
-// Copyright 2019 YHSPY. All rights reserved.
+// Copyright 2021 YHSPY. All rights reserved.
 #ifndef MACROS_H_
 #define MACROS_H_
 

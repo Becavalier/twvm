@@ -1,4 +1,4 @@
-// Copyright 2019 YHSPY. All rights reserved.
+// Copyright 2021 YHSPY. All rights reserved.
 #include "gtest/gtest.h"
 #include "lib/config.h"
 
