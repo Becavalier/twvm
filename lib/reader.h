@@ -35,8 +35,8 @@ namespace TWVM {
         // check next section id.
         const auto parsedSectionId = static_cast<int8_t>(in.get());
         if (parsedSectionId > 0 && parsedSectionId <= mod->lastParsedSectionId) {
-            Exception::terminate(Exception::ErrorType::INVALID_SECTION_ID, in.tellg());
-          }
+          Exception::terminate(Exception::ErrorType::INVALID_SECTION_ID, in.tellg());
+        }
         mod->lastParsedSectionId = parsedSectionId;
         sectionId = parsedSectionId;
       }
@@ -57,15 +57,7 @@ namespace TWVM {
     void skipBytes(size_t n) {
       in.seekg(n, std::ios_base::cur);
     }
-    std::vector<uint8_t> getBytesTillDelim(uint8_t delim) {
-      std::vector<uint8_t> v;
-      while (true) {
-        uint8_t b = walkByte();
-        v.push_back(b);
-        if (b == delim) break;
-      }
-      return v;
-    }
+    std::vector<uint8_t> getBytesTillDelim(uint8_t);
     DEFINE_WALK_FUNCS(WALK_FUNC_DEF)
   };
 }

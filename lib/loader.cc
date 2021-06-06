@@ -63,7 +63,7 @@ namespace TWVM {
     std::ifstream in {fileName, std::ifstream::binary};
     auto wasmModule = std::make_shared<Module>();
     if (in.is_open() && in.good()) {
-      prelude(in, wasmModule);
+      preamble(in, wasmModule);
 #if defined(OPT_PAR_LOADING)
       // TODO: loading with multi-threading.
 #else
@@ -81,12 +81,12 @@ namespace TWVM {
   void Loader::parse(std::ifstream& in, shared_module_t mod) {
     auto reader = Reader(in, mod);
     const auto sectionId = reader.currentSectionId();
-    if (sectionId > 0) {
+    if (sectionId >= 0) {
       handlers.at(sectionId)(reader, mod);
     }
   }
 
-  void Loader::prelude(std::ifstream& in, shared_module_t mod) {
+  void Loader::preamble(std::ifstream& in, shared_module_t mod) {
     auto reader = Reader(in, mod);
     constexpr size_t totalHeaderBytes = MAGIC_BYTES_COUNT + VER_BYTES_COUNT;
     auto v = reader.retrieveBytes(totalHeaderBytes);

@@ -10,4 +10,13 @@ namespace TWVM {
     }
     return v;
   }
+  std::vector<uint8_t> Reader::getBytesTillDelim(uint8_t delim) {
+    std::vector<uint8_t> v;
+    while (true) {
+      uint8_t b = walkByte();
+      v.push_back(b);
+      if (b == delim) break;
+    }
+    return v;
+  }
 }
