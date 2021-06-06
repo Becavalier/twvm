@@ -12,4 +12,7 @@ constexpr uint8_t EXT_KIND_TAB = 0x1;
 constexpr uint8_t EXT_KIND_MEM = 0x2;
 constexpr uint8_t EXT_KIND_GLB = 0x3;
 
+/* Magic Num */
+constexpr uint8_t CONST_OP_PLUS_TYPE = 0xc0;
+
 #endif  // LIB_CONSTANTS_H_

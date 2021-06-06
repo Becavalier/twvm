@@ -32,8 +32,8 @@ namespace TWVM {
         extMetaRef = reader.walkU32();
       }
       case EXT_KIND_TAB: {  // Table.
-        const auto elemType = reader.walkI8();
-        const auto limitFlags = reader.walkU8();
+        const auto elemType = reader.walkByte();
+        const auto limitFlags = reader.walkByte();
         const auto limitInitial = reader.walkU32();
         Module::TableType tableType { elemType, limitInitial };
         if (limitFlags == Util::asInteger(LimitFlags::MAX_EXIST)) {
@@ -42,7 +42,7 @@ namespace TWVM {
         extMetaRef = tableType;
       }
       case EXT_KIND_MEM: {  // Memory.
-        const auto limitFlags = reader.walkU8();
+        const auto limitFlags = reader.walkByte();
         const auto limitInitial = reader.walkU32();
         Module::MemType memType { limitInitial };
         if (limitFlags == Util::asInteger(LimitFlags::MAX_EXIST)) {
@@ -51,8 +51,8 @@ namespace TWVM {
         extMetaRef = memType;
       }
       case EXT_KIND_GLB: {  // Global.
-        const auto valType = reader.walkI8();
-        const auto valMut = reader.walkU8() == 1;
+        const auto valType = reader.walkByte();
+        const auto valMut = reader.walkByte() == 1;
         Module::GlobalType globalType { valType, valMut };
         extMetaRef = globalType;
       }
@@ -67,10 +67,11 @@ namespace TWVM {
 #if defined(OPT_PAR_LOADING)
       // TODO: loading with multi-threading.
 #else
-      // loading within the current thread.
+      // Loading within the current thread.
       while (!in.eof()) {
         Loader::parse(in, wasmModule);
       }
+      in.close();
 #endif
     } else {
       Exception::terminate(Exception::ErrorType::BAD_FSTREAM);
@@ -92,21 +93,21 @@ namespace TWVM {
     auto v = reader.retrieveBytes(totalHeaderBytes);
     const auto vSize = v.size();
 
-    // incomplete magic bytes.
+    // Incomplete magic bytes.
     if (vSize < MAGIC_BYTES_COUNT) 
       Exception::terminate(Exception::ErrorType::INVALID_MAGIC);
 
-    // validate magic code.
+    // Validate magic code.
     auto parsedMagic = *reinterpret_cast<uint32_t*>(v.data());
     if (parsedMagic != VALID_MAGIC) {
       Exception::terminate(Exception::ErrorType::INVALID_MAGIC, reader.pos());
     }
 
-    // incomplete version bytes.
+    // Incomplete version bytes.
     if (vSize < totalHeaderBytes) 
       Exception::terminate(Exception::ErrorType::INVALID_VER); 
 
-    // validate version code.
+    // Validate version code.
     auto parsedVersion = *reinterpret_cast<uint32_t*>(v.data() + MAGIC_BYTES_COUNT);
     if (parsedVersion != VALID_VERSION) {
       Exception::terminate(Exception::ErrorType::INVALID_VER, reader.pos());
@@ -124,17 +125,17 @@ namespace TWVM {
     [[maybe_unused]] const auto sectionSize = reader.walkU32();
     const auto entityCount = reader.walkU32();
     for (uint32_t i = 0; i < entityCount; ++i) {
-      if (reader.walkU8() == Util::asInteger(LangTypes::FuncType)) {
+      if (reader.walkByte() == Util::asInteger(LangTypes::FuncType)) {
         auto pair = std::make_pair(
-          std::vector<int8_t>{}, 
-          std::vector<int8_t>{});
+          std::vector<uint8_t>{}, 
+          std::vector<uint8_t>{});
         const auto paramsCount = reader.walkU32();
         for (uint32_t i = 0; i < paramsCount; ++i) {
-          pair.first.push_back(reader.walkI8());
+          pair.first.push_back(reader.walkByte());
         }
         const auto resultCount = reader.walkU32();
         for (uint32_t i = 0; i < resultCount; ++i) {
-          pair.second.push_back(reader.walkI8());
+          pair.second.push_back(reader.walkByte());
         }
         mod->funcTypes.emplace_back(std::move(pair));
       } else {
@@ -151,9 +152,9 @@ namespace TWVM {
       const auto modNameStr = reader.walkStringByBytes(modNameLen);
       const auto fieldLen = reader.walkU32();
       const auto fieldStr = reader.walkStringByBytes(fieldLen);
-      const auto extKind = reader.walkByte();  // the kind of definition being imported.
+      const auto extKind = reader.walkByte();  // The kind of definition being imported.
       mod->imports.emplace_back(modNameStr, fieldStr, extKind);
-      // process external meta.
+      // Process external meta.
       walkExtMeta(reader, mod->imports.back().extMeta, extKind);
     }
   }
@@ -184,8 +185,8 @@ namespace TWVM {
     [[maybe_unused]] const auto sectionSize = reader.walkU32();
     const auto tableCount = reader.walkU32();
     for (uint32_t i = 0; i < tableCount; ++i) {
-      const auto elemType = reader.walkI8();
-      const auto limitFlags = reader.walkU8();
+      const auto elemType = reader.walkByte();
+      const auto limitFlags = reader.walkByte();
       const auto limitInitial = reader.walkU32();
       mod->tables.emplace_back(elemType, limitInitial);
       if (limitFlags == Util::asInteger(LimitFlags::MAX_EXIST)) {
@@ -198,7 +199,7 @@ namespace TWVM {
     [[maybe_unused]] const auto sectionSize = reader.walkU32();
     const auto memCount = reader.walkU32();
     for (uint32_t i = 0; i < memCount; ++i) {
-      const auto limitFlags = reader.walkU8();
+      const auto limitFlags = reader.walkByte();
       const auto limitInitial = reader.walkU32();
       mod->mems.emplace_back(limitInitial);
       if (limitFlags == Util::asInteger(LimitFlags::MAX_EXIST)) {
@@ -215,8 +216,8 @@ namespace TWVM {
     [[maybe_unused]] const auto sectionSize = reader.walkU32();
     const auto globalCount = reader.walkU32();
     for (uint32_t i = 0; i < globalCount; ++i) {
-      const auto valType = reader.walkI8();
-      const auto valMut = reader.walkU8() == 1;
+      const auto valType = reader.walkByte();
+      const auto valMut = reader.walkByte() == 1;
       auto initExprOps = reader.getBytesTillDelim(Util::asInteger(OpCodes::End));
       mod->globals.emplace_back(valType, valMut, std::move(initExprOps));
     }
@@ -229,10 +230,10 @@ namespace TWVM {
       const auto bodySize = reader.walkU32();
       const auto startPos = reader.pos();
       const auto locCount = reader.walkU32();
-      std::vector<int8_t> locVarTypeVec = {};
+      std::vector<uint8_t> locVarTypeVec = {};
       for (uint32_t j = 0; j < locCount; ++j) {
         const auto locVarCount = reader.walkU32();
-        const auto locVarType = reader.walkI8();
+        const auto locVarType = reader.walkByte();
         locVarTypeVec.insert(locVarTypeVec.end(), locVarCount, locVarType);
       }
       auto body = reader.retrieveBytes(bodySize - (reader.pos() - startPos));

@@ -87,7 +87,6 @@ add_executable(${OUTPUT} ${DIR_SRCS})
 if (STATE STREQUAL TEST) 
   target_link_libraries (${OUTPUT} 
     twvm-core
-    #twvm-structure
     gtest_main
     gtest)
 
@@ -97,7 +96,6 @@ else()
   # linker;
   target_link_libraries (${OUTPUT} 
     twvm-core
-    #twvm-structure
     pthread)
 
   # installing;

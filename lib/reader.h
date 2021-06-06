@@ -32,7 +32,7 @@ namespace TWVM {
     auto currentSectionId() const { return sectionId; }
     Reader(std::ifstream& in, shared_module_t mod) : in(in) {
       if (mod->hasValidHeader) {
-        // check next section id.
+        // Check next section id.
         const auto parsedSectionId = static_cast<int8_t>(in.get());
         if (parsedSectionId > 0 && parsedSectionId <= mod->lastParsedSectionId) {
           Exception::terminate(Exception::ErrorType::INVALID_SECTION_ID, in.tellg());
@@ -41,7 +41,7 @@ namespace TWVM {
         sectionId = parsedSectionId;
       }
     }
-    // member functions.
+    // Member functions.
     std::vector<uint8_t> retrieveBytes(size_t);
     size_t pos() {
       return in.tellg();

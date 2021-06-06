@@ -10,7 +10,7 @@
       "request": "launch",
       // Resolved by CMake Tools:
       "program": "${command:cmake.launchTargetPath}",
-      "args": ["${workspaceFolder}/tests/modules/data.wasm"],
+      "args": ["${workspaceFolder}/tests/modules/table.wasm", "-g", "-O0"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [

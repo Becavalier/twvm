@@ -17,12 +17,19 @@ class Exception {
     INVALID_FUNC_TYPE,
     INVALID_ELEM_TYPE,
     BAD_FSTREAM,
+    INVALID_GLOBAL_SIG,
+    MEM_EXCEED_MAX,
+    MEM_DATA_EXCEED_MAX,
+    MEM_ACCESS_OOB,
+    TBL_EXCEED_MAX,
+    TBL_ELEM_EXCEED_MAX,
+    TBL_ACCESS_OOB,
   };
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {
     std::stringstream ss;
     ss << std::hex << std::showbase
-      << "\n[TWVM] " 
+      << "\n[twvm] " 
       << errorMsg.find(type)->second;
     if (pos) {
       ss << "Before byte index: " << pos  << '.';

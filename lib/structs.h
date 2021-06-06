@@ -9,6 +9,7 @@
 #include <optional>
 #include <type_traits>
 #include <variant>
+#include <algorithm>
 
 #define SET_STRUCT_DISABLE_COPY_CONSTUCT(TypeName) \
   TypeName(const TypeName&) = delete; \
@@ -20,6 +21,7 @@
   SET_STRUCT_DISABLE_COPY_CONSTUCT(TypeName);
 
 namespace TWVM {
+  /* Basic Types */
   enum class LangTypes : uint8_t {
     Void = 0x40,
     FuncType = 0x60,
@@ -37,11 +39,11 @@ namespace TWVM {
     MAX_NO_EXIST = 0,
     MAX_EXIST,
   };
-  
+
   class Module {
    public:
     struct TableType {
-      int8_t refType;
+      uint8_t refType;
       uint32_t initial;
       uint32_t maximum;
     };
@@ -50,7 +52,7 @@ namespace TWVM {
       uint32_t maximum;
     };
     struct GlobalType {
-      int8_t valType;
+      uint8_t valType;
       bool mutability;
     };
     using ext_meta_t = std::variant<uint32_t, TableType, MemType, GlobalType>;
@@ -58,7 +60,7 @@ namespace TWVM {
     struct TableSeg {
       SET_STRUCT_MOVE_ONLY(TableSeg)
       TableType tableType;
-      TableSeg(int8_t refType, uint32_t initial, uint32_t maximum = 0) 
+      TableSeg(uint8_t refType, uint32_t initial, uint32_t maximum = 0) 
         : tableType({ refType, initial, maximum }) {}
     };
     struct MemSeg {
@@ -70,8 +72,8 @@ namespace TWVM {
     struct GlobalSeg {
       SET_STRUCT_MOVE_ONLY(GlobalSeg)
       GlobalType globalType;
-      std::vector<uint8_t> initOpCodes;  // used in instantiation stage.
-      GlobalSeg(int8_t valType, bool mutability, std::vector<uint8_t>&& initOpCodes) 
+      std::vector<uint8_t> initOpCodes;  // Used in instantiation stage.
+      GlobalSeg(uint8_t valType, bool mutability, std::vector<uint8_t>&& initOpCodes) 
         : globalType({ valType, mutability }), initOpCodes(initOpCodes) {}
     };
     struct ExportSeg {
@@ -84,9 +86,9 @@ namespace TWVM {
     };
     struct FuncDefSeg {
       SET_STRUCT_MOVE_ONLY(FuncDefSeg)
-      std::vector<int8_t> locals;
+      std::vector<uint8_t> locals;
       std::vector<uint8_t> body;
-      FuncDefSeg(std::vector<int8_t> &&locals, std::vector<uint8_t> &&body)
+      FuncDefSeg(std::vector<uint8_t> &&locals, std::vector<uint8_t> &&body)
         : locals(locals), body(body) {}
     };
     struct ImportSeg {
@@ -119,8 +121,8 @@ namespace TWVM {
     size_t lastParsedSectionId = 0;
     uint32_t version = 1;
     std::optional<uint32_t> startFuncIdx;
-    std::vector<std::pair<std::vector<int8_t>, std::vector<int8_t>>> funcTypes;
-    std::vector<std::pair<std::vector<int8_t>, std::vector<int8_t>>*> funcTypesIndices;
+    std::vector<std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> funcTypes;
+    std::vector<std::pair<std::vector<uint8_t>, std::vector<uint8_t>>*> funcTypesIndices;
     std::vector<TableSeg> tables;
     std::vector<MemSeg> mems;
     std::vector<GlobalSeg> globals;
@@ -130,12 +132,42 @@ namespace TWVM {
     std::vector<ElemSeg> elements;
     std::vector<DataSeg> data;
   };
-
-  class Instance {
-
-  };
-
   using shared_module_t = std::shared_ptr<Module>;
+  
+  /* Runtime Types */
+  using RTI32 = int32_t;
+  using RTI64 = int64_t;
+  using RTF32 = float;
+  using RTF64 = double;
+  using runtime_value_t = std::variant<RTI32, RTI64, RTF32, RTF64>;
+  class Instance {
+    class ValueFrame {
+      SET_STRUCT_MOVE_ONLY(ValueFrame)
+      runtime_value_t v;
+    };
+    class LabelFrame {
+      SET_STRUCT_MOVE_ONLY(LabelFrame)
+      
+    };
+    class CallFrame {
+      SET_STRUCT_MOVE_ONLY(CallFrame)
+    };
+   public:
+    shared_module_t mod;
+    std::vector<uint8_t*> runtimeMemRefs;
+    std::vector<std::vector<std::optional<uint32_t>>> runtimeTables;  // Func idx inside.
+    std::vector<runtime_value_t> runtimeGlobals;
+    std::vector<ValueFrame> valueStack;
+    std::vector<LabelFrame> labelStack;
+    std::vector<CallFrame> callStack;
+    Instance(shared_module_t mod) : mod(mod) {};
+    ~Instance() {
+      // Free allocated mem.
+      std::for_each(runtimeMemRefs.begin(), runtimeMemRefs.end(), [](uint8_t* ptr) {
+        std::free(ptr);
+      });
+    }
+  };
   using shared_module_instance_t = std::shared_ptr<Instance>;
 }
 

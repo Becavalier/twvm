@@ -25,10 +25,10 @@ namespace TWVM {
     static void parseCodeSection(Reader&, shared_module_t);
     static void parseElementSection(Reader&, shared_module_t);
     static void parseDataSection(Reader&, shared_module_t);
-    static shared_module_t load(const std::string&);
     static void preamble(std::ifstream&, shared_module_t);
     static void parse(std::ifstream&, shared_module_t);
     static void walkExtMeta(Reader&, Module::ext_meta_t&, uint8_t);
+    static shared_module_t load(const std::string&);
   };
 }
 
