@@ -57,6 +57,15 @@ namespace TWVM {
     void skipBytes(size_t n) {
       in.seekg(n, std::ios_base::cur);
     }
+    std::vector<uint8_t> getBytesTillDelim(uint8_t delim) {
+      std::vector<uint8_t> v;
+      while (true) {
+        uint8_t b = walkByte();
+        v.push_back(b);
+        if (b == delim) break;
+      }
+      return v;
+    }
     DEFINE_WALK_FUNCS(WALK_FUNC_DEF)
   };
 }

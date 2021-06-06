@@ -11,8 +11,8 @@
 
 namespace TWVM {
   struct Loader {
-    using handlerType = void(*)(Reader&, shared_module_t);
-    static std::vector<handlerType> handlers;
+    using handler_t = void(*)(Reader&, shared_module_t);
+    static std::vector<handler_t> handlers;
     static void parseCustomSection(Reader&, shared_module_t);
     static void parseTypeSection(Reader&, shared_module_t);
     static void parseImportSection(Reader&, shared_module_t);
@@ -28,6 +28,7 @@ namespace TWVM {
     static shared_module_t load(const std::string&);
     static void prelude(std::ifstream&, shared_module_t);
     static void parse(std::ifstream&, shared_module_t);
+    static void walkExtMeta(Reader&, Module::ext_meta_t&, uint8_t);
   };
 }
 

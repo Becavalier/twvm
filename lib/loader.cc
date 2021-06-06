@@ -8,9 +8,10 @@
 #include "lib/decoder.h"
 #include "lib/util.h"
 #include "lib/exception.h"
+#include "lib/opcodes.h"
 
 namespace TWVM {
-  std::vector<Loader::handlerType> Loader::handlers = {
+  std::vector<Loader::handler_t> Loader::handlers = {
     Loader::parseCustomSection,
     Loader::parseTypeSection,
     Loader::parseImportSection,
@@ -23,6 +24,39 @@ namespace TWVM {
     Loader::parseElementSection,
     Loader::parseCodeSection,
     Loader::parseDataSection,
+  };
+
+  void Loader::walkExtMeta(Reader& reader, Module::ext_meta_t& extMetaRef, uint8_t extKind) {
+    switch (extKind) {
+      case EXT_KIND_FUNC: {  // Function.
+        extMetaRef = reader.walkU32();
+      }
+      case EXT_KIND_TAB: {  // Table.
+        const auto elemType = reader.walkI8();
+        const auto limitFlags = reader.walkU8();
+        const auto limitInitial = reader.walkU32();
+        Module::TableType tableType { elemType, limitInitial };
+        if (limitFlags == Util::asInteger(LimitFlags::MAX_EXIST)) {
+          tableType.maximum = reader.walkU32();
+        }
+        extMetaRef = tableType;
+      }
+      case EXT_KIND_MEM: {  // Memory.
+        const auto limitFlags = reader.walkU8();
+        const auto limitInitial = reader.walkU32();
+        Module::MemType memType { limitInitial };
+        if (limitFlags == Util::asInteger(LimitFlags::MAX_EXIST)) {
+          memType.maximum = reader.walkU32();
+        }
+        extMetaRef = memType;
+      }
+      case EXT_KIND_GLB: {  // Global.
+        const auto valType = reader.walkI8();
+        const auto valMut = reader.walkU8() == 1;
+        Module::GlobalType globalType { valType, valMut };
+        extMetaRef = globalType;
+      }
+    }
   };
 
   shared_module_t Loader::load(const std::string& fileName) {
@@ -110,7 +144,30 @@ namespace TWVM {
   }
 
   void Loader::parseImportSection(Reader& reader, shared_module_t mod) {
-    
+    [[maybe_unused]] const auto sectionSize = reader.walkU32();
+    const auto importEntryCount = reader.walkU32();
+    for (uint32_t i = 0; i < importEntryCount; ++i) {
+      const auto modNameLen = reader.walkU32();
+      const auto modNameStr = reader.walkStringByBytes(modNameLen);
+      const auto fieldLen = reader.walkU32();
+      const auto fieldStr = reader.walkStringByBytes(fieldLen);
+      const auto extKind = reader.walkByte();  // the kind of definition being imported.
+      mod->imports.emplace_back(modNameStr, fieldStr, extKind);
+      // process external meta.
+      walkExtMeta(reader, mod->imports.back().extMeta, extKind);
+    }
+  }
+
+  void Loader::parseExportSection(Reader& reader, shared_module_t mod) {
+    [[maybe_unused]] const auto sectionSize = reader.walkU32();
+    const auto exportCount = reader.walkU32();
+    for (uint32_t i = 0; i < exportCount; ++i) {
+      const auto fieldLen = reader.walkU32();
+      const auto fieldStr = reader.walkStringByBytes(fieldLen);
+      const auto extKind = reader.walkByte();
+      const auto extIdx = reader.walkU32();
+      mod->exports.emplace_back(fieldStr, extKind, extIdx);
+    }
   }
 
   void Loader::parseFunctionSection(Reader& reader, shared_module_t mod) {
@@ -132,7 +189,7 @@ namespace TWVM {
       const auto limitInitial = reader.walkU32();
       mod->tables.emplace_back(elemType, limitInitial);
       if (limitFlags == Util::asInteger(LimitFlags::MAX_EXIST)) {
-        mod->tables.back().maximum = reader.walkU32();
+        mod->tables.back().tableType.maximum = reader.walkU32();
       }
     }
   }
@@ -145,7 +202,7 @@ namespace TWVM {
       const auto limitInitial = reader.walkU32();
       mod->mems.emplace_back(limitInitial);
       if (limitFlags == Util::asInteger(LimitFlags::MAX_EXIST)) {
-        mod->mems.back().maximum = reader.walkU32();
+        mod->mems.back().memType.maximum = reader.walkU32();
       }
     }
   }
@@ -158,19 +215,10 @@ namespace TWVM {
     [[maybe_unused]] const auto sectionSize = reader.walkU32();
     const auto globalCount = reader.walkU32();
     for (uint32_t i = 0; i < globalCount; ++i) {
-      const auto valType = reader.walkI32();
-    }
-  }
-
-  void Loader::parseExportSection(Reader& reader, shared_module_t mod) {
-    [[maybe_unused]] const auto sectionSize = reader.walkU32();
-    const auto exportCount = reader.walkU32();
-    for (uint32_t i = 0; i < exportCount; ++i) {
-      const auto fieldLen = reader.walkU32();
-      const auto fieldStr = reader.walkStringByBytes(fieldLen);
-      const auto kind = reader.walkByte();
-      const auto idx = reader.walkU32();
-      mod->exports.emplace_back(fieldStr, kind, idx);
+      const auto valType = reader.walkI8();
+      const auto valMut = reader.walkU8() == 1;
+      auto initExprOps = reader.getBytesTillDelim(Util::asInteger(OpCodes::End));
+      mod->globals.emplace_back(valType, valMut, std::move(initExprOps));
     }
   }
 
@@ -193,8 +241,29 @@ namespace TWVM {
   }
 
   void Loader::parseElementSection(Reader& reader, shared_module_t mod) {
+    [[maybe_unused]] const auto sectionSize = reader.walkU32();
+    const auto elemSegCount = reader.walkU32();
+    for (uint32_t i = 0; i < elemSegCount; ++i) {
+      const auto tblIdx = reader.walkU32();
+      auto initExprOps = reader.getBytesTillDelim(Util::asInteger(OpCodes::End));
+      const auto funcIndicesCount = reader.walkU32();
+      std::vector<uint32_t> funcIndices = {};
+      for (uint32_t j = 0; j < funcIndicesCount; ++j) {
+        funcIndices.push_back(reader.walkU32());
+      }
+      mod->elements.emplace_back(tblIdx, std::move(initExprOps), std::move(funcIndices));
+    }
   }
 
   void Loader::parseDataSection(Reader& reader, shared_module_t mod) {
+    [[maybe_unused]] const auto sectionSize = reader.walkU32();
+    const auto dataSegCount = reader.walkU32();
+    for (uint32_t i = 0; i < dataSegCount; ++i) {
+      const auto memIdx = reader.walkU32();
+      auto initExprOps = reader.getBytesTillDelim(Util::asInteger(OpCodes::End));
+      const auto size = reader.walkU32();
+      auto data = reader.retrieveBytes(size);
+      mod->data.emplace_back(memIdx, std::move(initExprOps), std::move(data));
+    } 
   }
 }
