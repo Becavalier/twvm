@@ -1,9 +1,17 @@
 #include <array>
+#include <iostream>
 #include "lib/interpreter.h"
+#include "lib/decoder.h"
+#include "lib/structs.h"
+#include "lib/executor.h"
 
-#define REF_OPCODE_HANDLER_PTR(name, opcode) \
-  Interpreter::do##name,
-
+#define REF_OPCODE_HANDLER_PTR_VALID(NAME) \
+  Interpreter::do##NAME,
+#define REF_OPCODE_HANDLER_PTR_INVALID(NAME) \
+  nullptr,
+#define REF_OPCODE_HANDLER_PTR(NAME, OP, VALIDITY) \
+  REF_OPCODE_HANDLER_PTR_##VALIDITY(NAME)
+  
 namespace TWVM {
   std::array<Interpreter::opHandlerProto, sizeof(uint8_t) * 1 << 8> Interpreter::opTokenHandlers = {
     ITERATE_ALL_OPCODE(REF_OPCODE_HANDLER_PTR)
@@ -44,6 +52,7 @@ namespace TWVM {
   }
   void Interpreter::doCall(Executor& executor, shared_module_instance_t rtIns) {
     
+    std::cout << 1;
   }
   void Interpreter::doCallIndirect(Executor& executor, shared_module_instance_t rtIns) {
     
@@ -70,16 +79,16 @@ namespace TWVM {
     
   }
   void Interpreter::doI32Const(Executor& executor, shared_module_instance_t rtIns) {
-    
+    rtIns->rtValueStack.emplace_back(Decoder::decodeVarint<RTI32>(executor.pc));
   }
   void Interpreter::doI64Const(Executor& executor, shared_module_instance_t rtIns) {
-    
+    rtIns->rtValueStack.emplace_back(Decoder::decodeVarint<RTI64>(executor.pc));
   }
   void Interpreter::doF32Const(Executor& executor, shared_module_instance_t rtIns) {
-    
+
   }
   void Interpreter::doF64Const(Executor& executor, shared_module_instance_t rtIns) {
-    
+
   }
   void Interpreter::doI32LoadMem(Executor& executor, shared_module_instance_t rtIns) {
     

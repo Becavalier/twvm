@@ -6,9 +6,12 @@
 #include "lib/opcodes.h"
 #include "lib/structs.h"
 
-#define DECLARE_OPCODE_HANDLER(name, opcode) \
-  static void do##name(Executor&, shared_module_instance_t);
-
+#define DECLARE_OPCODE_HANDLER_VALID(NAME) \
+  static void do##NAME(Executor&, shared_module_instance_t);
+#define DECLARE_OPCODE_HANDLER_INVALID(NAME)
+#define DECLARE_OPCODE_HANDLER(NAME, OP, VALDITI) \
+  DECLARE_OPCODE_HANDLER_##VALDITI(NAME)
+  
 namespace TWVM {
   class Executor;  // forward declaration.
   struct Interpreter {

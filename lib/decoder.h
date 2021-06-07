@@ -26,6 +26,17 @@ namespace TWVM {
       return v;
     };
    public:
+    template<typename T>
+    static std::vector<uint8_t> encodeVaruint(T in) {
+      std::vector<uint8_t> v;
+      do {
+        uint8_t byte = in & 0x7f;
+        in >>= 7;
+        if (in != 0) byte |= 0x80;
+        v.push_back(byte);
+      } while (in != 0);
+      return v;
+    }
     template<typename T, typename U>
     static T decodeVaruint(U&& in) {
       const auto v = retrievePackedLEB128Bytes(

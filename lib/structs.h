@@ -141,10 +141,10 @@ namespace TWVM {
   using RTF64 = double;
   using runtime_value_t = std::variant<RTI32, RTI64, RTF32, RTF64>;
   class Instance {
-    class ValueFrame {
-      SET_STRUCT_MOVE_ONLY(ValueFrame)
-      runtime_value_t v;
-    };
+    // class ValueFrame {
+    //   SET_STRUCT_MOVE_ONLY(ValueFrame)
+    //   runtime_value_t v;
+    // };
     class LabelFrame {
       SET_STRUCT_MOVE_ONLY(LabelFrame)
       
@@ -163,7 +163,7 @@ namespace TWVM {
     std::vector<RTMemDescriptor> rtMems;
     std::vector<std::vector<std::optional<uint32_t>>> rtTables;  // Func idx inside.
     std::vector<runtime_value_t> rtGlobals;
-    std::vector<ValueFrame> rtValueStack;
+    std::vector<runtime_value_t> rtValueStack;
     std::vector<LabelFrame> rtLabelStack;
     std::vector<CallFrame> rtCallStack;
     std::optional<uint32_t> rtEntryIdx;

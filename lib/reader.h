@@ -44,6 +44,7 @@ namespace TWVM {
     }
     // Member functions.
     std::vector<uint8_t> retrieveBytes(size_t);
+    std::vector<uint8_t> getBytesTillDelim(uint8_t);
     size_t pos() {
       return in.tellg();
     }
@@ -58,7 +59,6 @@ namespace TWVM {
     void skipBytes(size_t n) {
       in.seekg(n, std::ios_base::cur);
     }
-    std::vector<uint8_t> getBytesTillDelim(uint8_t);
     DEFINE_WALK_FUNCS(WALK_FUNC_DEF)
   };
 }
