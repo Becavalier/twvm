@@ -10,7 +10,7 @@
       "request": "launch",
       // Resolved by CMake Tools:
       "program": "${command:cmake.launchTargetPath}",
-      "args": ["${workspaceFolder}/tests/modules/export.wasm", "-g", "-O0"],
+      "args": ["${workspaceFolder}/tests/modules/fib10.wasm", "-g", "-O0"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [

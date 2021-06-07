@@ -6,7 +6,9 @@
 
 namespace TWVM {
   class Executor {
+    uint8_t* pc;
    public:
+    Executor(uint8_t* pc) : pc(pc) {}
     static void execute(shared_module_instance_t);
   };
 }
