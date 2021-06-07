@@ -33,19 +33,21 @@ namespace TWVM {
   shared_module_instance_t Instantiator::instantiate(shared_module_t mod) {
     auto executableIns = std::make_shared<Instance>(mod);
     /* imports - type / num */
+    // TODO: after MVP.
+    
     /* globals - init */
     for (auto &i : mod->globals) {
-      executableIns->runtimeGlobals.push_back(
+      executableIns->rtGlobals.push_back(
         evalInitExpr(i.globalType.valType, i.initOpCodes));
     }
 
     /* mem */
-    // TODO: add current memory size, bound check in data section init.
     for (auto &i : mod->mems) {
       if (i.memType.maximum == 0 ||
         (i.memType.maximum > 0 && i.memType.initial <= i.memType.maximum)) {
-        executableIns->runtimeMemRefs.push_back(
-          static_cast<uint8_t*>(std::calloc(i.memType.initial * WASM_PAGE_SIZE, sizeof(uint8_t)))
+        const auto size = i.memType.initial * WASM_PAGE_SIZE;
+        executableIns->rtMems.emplace_back( 
+          size, static_cast<uint8_t*>(std::calloc(size, sizeof(uint8_t)))
         );
       } else {
         Exception::terminate(Exception::ErrorType::MEM_EXCEED_MAX);
@@ -55,21 +57,25 @@ namespace TWVM {
     /* data */
     for (auto &i : mod->data) {
       const auto offset = evalInitExpr(Util::asInteger(ValueTypes::I32), i.initOpCodes);
-      if (i.memIdx >= executableIns->runtimeMemRefs.size()) {
+      if (i.memIdx >= executableIns->rtMems.size()) {
         Exception::terminate(Exception::ErrorType::MEM_ACCESS_OOB);
       }
-      const auto memStart = executableIns->runtimeMemRefs.at(i.memIdx);
-      std::memcpy(
-        memStart + std::get<int32_t>(offset), 
-        i.dataBytes.data(), 
-        i.dataBytes.size());
+      const auto& memStart = executableIns->rtMems.at(i.memIdx);
+      if (std::get<int32_t>(offset) + i.dataBytes.size() < memStart.size) {
+        std::memcpy(
+          memStart.ptr + std::get<int32_t>(offset), 
+          i.dataBytes.data(), 
+          i.dataBytes.size());
+      } else {
+        Exception::terminate(Exception::ErrorType::MEM_DATA_EXCEED_MAX);
+      }
     }
 
     /* table */
     for (auto &i : mod->tables) {
       if (i.tableType.maximum == 0 ||
         (i.tableType.maximum > 0 && i.tableType.initial <= i.tableType.maximum)) {
-        executableIns->runtimeTables.emplace_back(
+        executableIns->rtTables.emplace_back(
           std::vector<std::optional<uint32_t>>(i.tableType.initial, std::nullopt));
       } else {
         Exception::terminate(Exception::ErrorType::TBL_EXCEED_MAX);
@@ -79,17 +85,16 @@ namespace TWVM {
     /* element */
     for (auto &i : mod->elements) {
       const auto offset = evalInitExpr(Util::asInteger(ValueTypes::I32), i.initOpCodes);
-      if (i.tblIdx >= executableIns->runtimeTables.size()) {
+      if (i.tblIdx >= executableIns->rtTables.size()) {
         Exception::terminate(Exception::ErrorType::TBL_ACCESS_OOB);
       }
-      auto tblStart = executableIns->runtimeTables.at(i.tblIdx);
+      auto& tblStart = executableIns->rtTables.at(i.tblIdx);
       int32_t offsetIdx = std::get<int32_t>(offset);
       if (i.funcIndices.size() + offsetIdx < tblStart.size()) {
         std::for_each(
           i.funcIndices.begin(), 
           i.funcIndices.end(), 
           [&](uint32_t funcIdx) {
-            std::cout << +offsetIdx << std::endl;
             tblStart.at(offsetIdx++) = funcIdx;
           });
       } else {
@@ -97,8 +102,20 @@ namespace TWVM {
       }
     }
 
-    /* start function */
-    // 
+    /* start section */
+    // TODO: after exectuion engine.
+
+    /* entry point */
+    const auto entryFunc = std::find_if(
+      mod->exports.begin(), 
+      mod->exports.end(), 
+      [](auto& item) -> bool {
+        return item.name == "main" && item.extKind == EXT_KIND_FUNC;
+      });
+    if (entryFunc != mod->exports.end()) {
+      executableIns->rtEntryIdx = entryFunc->extIdx;
+    }
+
     return executableIns;
   }
 }

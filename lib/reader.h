@@ -34,6 +34,7 @@ namespace TWVM {
       if (mod->hasValidHeader) {
         // Check next section id.
         const auto parsedSectionId = static_cast<int8_t>(in.get());
+        // To make sure the sections are organized in ASC sequence.
         if (parsedSectionId > 0 && parsedSectionId <= mod->lastParsedSectionId) {
           Exception::terminate(Exception::ErrorType::INVALID_SECTION_ID, in.tellg());
         }

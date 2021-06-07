@@ -122,7 +122,7 @@ namespace TWVM {
     uint32_t version = 1;
     std::optional<uint32_t> startFuncIdx;
     std::vector<std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> funcTypes;
-    std::vector<std::pair<std::vector<uint8_t>, std::vector<uint8_t>>*> funcTypesIndices;
+    std::vector<uint32_t> funcTypesIndices;
     std::vector<TableSeg> tables;
     std::vector<MemSeg> mems;
     std::vector<GlobalSeg> globals;
@@ -152,19 +152,26 @@ namespace TWVM {
     class CallFrame {
       SET_STRUCT_MOVE_ONLY(CallFrame)
     };
+    struct RTMemDescriptor {
+      SET_STRUCT_MOVE_ONLY(RTMemDescriptor)
+      size_t size;
+      uint8_t* ptr;
+      RTMemDescriptor(size_t size, uint8_t* ptr) : size(size), ptr(ptr) {}
+    };
    public:
-    shared_module_t mod;
-    std::vector<uint8_t*> runtimeMemRefs;
-    std::vector<std::vector<std::optional<uint32_t>>> runtimeTables;  // Func idx inside.
-    std::vector<runtime_value_t> runtimeGlobals;
-    std::vector<ValueFrame> valueStack;
-    std::vector<LabelFrame> labelStack;
-    std::vector<CallFrame> callStack;
-    Instance(shared_module_t mod) : mod(mod) {};
+    shared_module_t module;
+    std::vector<RTMemDescriptor> rtMems;
+    std::vector<std::vector<std::optional<uint32_t>>> rtTables;  // Func idx inside.
+    std::vector<runtime_value_t> rtGlobals;
+    std::vector<ValueFrame> rtValueStack;
+    std::vector<LabelFrame> rtLabelStack;
+    std::vector<CallFrame> rtCallStack;
+    std::optional<uint32_t> rtEntryIdx;
+    Instance(shared_module_t module) : module(module) {};
     ~Instance() {
       // Free allocated mem.
-      std::for_each(runtimeMemRefs.begin(), runtimeMemRefs.end(), [](uint8_t* ptr) {
-        std::free(ptr);
+      std::for_each(rtMems.begin(), rtMems.end(), [](RTMemDescriptor& mem) {
+        std::free(mem.ptr);
       });
     }
   };

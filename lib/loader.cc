@@ -175,9 +175,7 @@ namespace TWVM {
     [[maybe_unused]] const auto sectionSize = reader.walkU32();
     const auto funcIndexCount = reader.walkU32();
     for (uint32_t i = 0; i < funcIndexCount; ++i) {
-      mod->funcTypesIndices.push_back(
-        &mod->funcTypes.at(reader.walkU32())
-      );
+      mod->funcTypesIndices.push_back(reader.walkU32());
     }
   }
 
