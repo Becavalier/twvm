@@ -14,4 +14,6 @@ std::unordered_map<Exception::ErrorType, std::string> Exception::errorMsg = {
   { ErrorType::TBL_ELEM_EXCEED_MAX, "The initialized elements exceed the table entries. " },  
   { ErrorType::MEM_ACCESS_OOB, "Memory access out of bound. " },  
   { ErrorType::TBL_ACCESS_OOB, "Table access out of bound. " },  
+  { ErrorType::MISSING_FUNC_PARAMS, "Insufficient values on stack for calling a function. " },
+  { ErrorType::STACK_VAL_TYPE_MISMATCH, "Stack value type mismatch. " },
 };

@@ -24,6 +24,8 @@ class Exception {
     TBL_EXCEED_MAX,
     TBL_ELEM_EXCEED_MAX,
     TBL_ACCESS_OOB,
+    MISSING_FUNC_PARAMS,
+    STACK_VAL_TYPE_MISMATCH,
   };
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {

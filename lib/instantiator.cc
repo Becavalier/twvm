@@ -2,6 +2,7 @@
 #include <cstring>
 #include <variant>
 #include <optional>
+#include <algorithm>
 #include "lib/instantiator.h"
 #include "lib/opcodes.h"
 #include "lib/util.h"
@@ -20,18 +21,18 @@ namespace TWVM {
       (valType + initExprOps.front()) == CONST_OP_PLUS_TYPE
     ) {
       switch (valTypeT) {
-        case ValueTypes::I32: return Decoder::decodeVarint<RTI32>(initExprOps.data() + 1);  // varint32.
-        case ValueTypes::I64: return Decoder::decodeVarint<RTI64>(initExprOps.data() + 1);  // varint64.
-        case ValueTypes::F32: return *reinterpret_cast<RTF32*>(initExprOps.data() + 1);
-        case ValueTypes::F64: return *reinterpret_cast<RTF64*>(initExprOps.data() + 1);
-        default: return RTI32();
+        case ValueTypes::I32: return Decoder::decodeVarint<rt_i32_t>(initExprOps.data() + 1);  // varint32.
+        case ValueTypes::I64: return Decoder::decodeVarint<rt_i64_t>(initExprOps.data() + 1);  // varint64.
+        case ValueTypes::F32: return *reinterpret_cast<rt_f32_t*>(initExprOps.data() + 1);
+        case ValueTypes::F64: return *reinterpret_cast<rt_f64_t*>(initExprOps.data() + 1);
+        default: return rt_i32_t();
       }
     } else {
       Exception::terminate(Exception::ErrorType::INVALID_GLOBAL_SIG);
     }
   }
-  shared_module_instance_t Instantiator::instantiate(shared_module_t mod) {
-    auto executableIns = std::make_shared<Instance>(mod);
+  shared_module_runtime_t Instantiator::instantiate(shared_module_t mod) {
+    auto executableIns = std::make_shared<Runtime>(mod);
     /* imports - type / num */
     // TODO: after MVP.
     
@@ -39,6 +40,20 @@ namespace TWVM {
     for (auto &i : mod->globals) {
       executableIns->rtGlobals.push_back(
         evalInitExpr(i.globalType.valType, i.initOpCodes));
+    }
+
+    /* func */
+    for (auto i = 0; i < mod->funcDefs.size(); ++i) {
+      const auto idx = mod->funcTypesIndices.at(i);
+      const auto& funcType = mod->funcTypes.at(idx);
+      const auto codeEntry = mod->funcDefs.at(idx).body.data();
+      // Wasm types -> RT types (value).
+      executableIns->rtFuncDescriptor.emplace_back(&funcType, codeEntry);
+      expandWasmTypesToRTValues(
+        executableIns->rtFuncDescriptor.back().localsDefault,
+        mod->funcDefs.at(i).locals,
+        funcType.first
+      );
     }
 
     /* mem */

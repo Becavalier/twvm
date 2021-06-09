@@ -55,7 +55,9 @@ namespace TWVM {
       uint8_t valType;
       bool mutability;
     };
-    using ext_meta_t = std::variant<uint32_t, TableType, MemType, GlobalType>;
+    using type_seq_t = std::vector<uint8_t>;
+    using external_kind_t = std::variant<uint32_t, TableType, MemType, GlobalType>;  // the first one is func idx.
+    using func_type_t = std::pair<type_seq_t, type_seq_t>;
    private:
     struct TableSeg {
       SET_STRUCT_MOVE_ONLY(TableSeg)
@@ -73,7 +75,7 @@ namespace TWVM {
       SET_STRUCT_MOVE_ONLY(GlobalSeg)
       GlobalType globalType;
       std::vector<uint8_t> initOpCodes;  // Used in instantiation stage.
-      GlobalSeg(uint8_t valType, bool mutability, std::vector<uint8_t>&& initOpCodes) 
+      GlobalSeg(uint8_t valType, bool mutability, std::vector<uint8_t>& initOpCodes) 
         : globalType({ valType, mutability }), initOpCodes(initOpCodes) {}
     };
     struct ExportSeg {
@@ -88,7 +90,7 @@ namespace TWVM {
       SET_STRUCT_MOVE_ONLY(FuncDefSeg)
       std::vector<uint8_t> locals;
       std::vector<uint8_t> body;
-      FuncDefSeg(std::vector<uint8_t> &&locals, std::vector<uint8_t> &&body)
+      FuncDefSeg(std::vector<uint8_t>& locals, std::vector<uint8_t>& body)
         : locals(locals), body(body) {}
     };
     struct ImportSeg {
@@ -96,7 +98,7 @@ namespace TWVM {
       std::string modName;
       std::string name;
       uint8_t extKind;
-      ext_meta_t extMeta;
+      external_kind_t extMeta;
       ImportSeg(std::string modName, std::string name, uint8_t extKind) 
         : modName(modName), name(name), extKind(extKind) {}
     };
@@ -105,7 +107,7 @@ namespace TWVM {
       uint32_t tblIdx;
       std::vector<uint8_t> initOpCodes;
       std::vector<uint32_t> funcIndices;
-      ElemSeg(uint32_t tblIdx, std::vector<uint8_t>&& initOpCodes, std::vector<uint32_t>&& funcIndices) 
+      ElemSeg(uint32_t tblIdx, std::vector<uint8_t>& initOpCodes, std::vector<uint32_t>& funcIndices) 
         : tblIdx(tblIdx), initOpCodes(initOpCodes), funcIndices(funcIndices) {}
     };
     struct DataSeg {
@@ -113,7 +115,7 @@ namespace TWVM {
       uint32_t memIdx;
       std::vector<uint8_t> initOpCodes;
       std::vector<uint8_t> dataBytes;
-      DataSeg(uint32_t memIdx, std::vector<uint8_t>&& initOpCodes, std::vector<uint8_t>&& dataBytes) 
+      DataSeg(uint32_t memIdx, std::vector<uint8_t>& initOpCodes, std::vector<uint8_t>& dataBytes) 
         : memIdx(memIdx), initOpCodes(initOpCodes), dataBytes(dataBytes) {}
     };
    public:
@@ -121,7 +123,7 @@ namespace TWVM {
     size_t lastParsedSectionId = 0;
     uint32_t version = 1;
     std::optional<uint32_t> startFuncIdx;
-    std::vector<std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> funcTypes;
+    std::vector<func_type_t> funcTypes;
     std::vector<uint32_t> funcTypesIndices;
     std::vector<TableSeg> tables;
     std::vector<MemSeg> mems;
@@ -135,47 +137,66 @@ namespace TWVM {
   using shared_module_t = std::shared_ptr<Module>;
   
   /* Runtime Types */
-  using RTI32 = int32_t;
-  using RTI64 = int64_t;
-  using RTF32 = float;
-  using RTF64 = double;
-  using runtime_value_t = std::variant<RTI32, RTI64, RTF32, RTF64>;
-  class Instance {
-    // class ValueFrame {
-    //   SET_STRUCT_MOVE_ONLY(ValueFrame)
-    //   runtime_value_t v;
-    // };
-    class LabelFrame {
-      SET_STRUCT_MOVE_ONLY(LabelFrame)
-      
-    };
-    class CallFrame {
-      SET_STRUCT_MOVE_ONLY(CallFrame)
-    };
-    struct RTMemDescriptor {
-      SET_STRUCT_MOVE_ONLY(RTMemDescriptor)
-      size_t size;
-      uint8_t* ptr;
-      RTMemDescriptor(size_t size, uint8_t* ptr) : size(size), ptr(ptr) {}
+  using rt_i32_t = int32_t;
+  using rt_i64_t = int64_t;
+  using rt_f32_t = float;
+  using rt_f64_t = double;
+  using runtime_value_t = std::variant<rt_i32_t, rt_i64_t, rt_f32_t, rt_f64_t>;
+  using func_index_t = uint32_t;
+  class Runtime {
+    struct RTFuncDescriptor {
+      SET_STRUCT_MOVE_ONLY(RTFuncDescriptor)
+      const Module::func_type_t* funcType;
+      uint8_t* codeEntry;
+      std::vector<runtime_value_t> localsDefault;
+      RTFuncDescriptor(const Module::func_type_t* funcType, uint8_t* codeEntry)
+        : funcType(funcType), codeEntry(codeEntry) {}
     };
    public:
+   struct RTLabelFrame {
+      SET_STRUCT_MOVE_ONLY(RTLabelFrame)
+      uint8_t* cont;
+      Module::type_seq_t* returnArity;
+      RTLabelFrame(uint8_t* cont, Module::type_seq_t* returnArity)
+        : cont(cont), returnArity(returnArity) {}
+    };
+    struct RTCallFrame {
+      SET_STRUCT_MOVE_ONLY(RTCallFrame)
+      std::vector<runtime_value_t> locals;
+      uint8_t* cont;
+      const Module::type_seq_t* returnArity;
+      RTCallFrame(std::vector<runtime_value_t>& locals, uint8_t* cont, const Module::type_seq_t* returnArity) 
+        : locals(locals), cont(cont), returnArity(returnArity) {}
+    };
+    struct RTMemHolder {
+      SET_STRUCT_MOVE_ONLY(RTMemHolder)
+      size_t size;
+      uint8_t* ptr;
+      RTMemHolder(size_t size, uint8_t* ptr) : size(size), ptr(ptr) {}
+    };
     shared_module_t module;
-    std::vector<RTMemDescriptor> rtMems;
+    std::vector<RTMemHolder> rtMems;
     std::vector<std::vector<std::optional<uint32_t>>> rtTables;  // Func idx inside.
     std::vector<runtime_value_t> rtGlobals;
-    std::vector<runtime_value_t> rtValueStack;
-    std::vector<LabelFrame> rtLabelStack;
-    std::vector<CallFrame> rtCallStack;
+    enum class StackTypes : int8_t {
+      // The order of types here should be consistent with the below stack definition, -
+      // and this will be used to test the type of the stack frame.
+      VALUE = 0,
+      LABEL, 
+      ACTIVATION,  
+    };
+    std::vector<std::variant<runtime_value_t, RTLabelFrame, RTCallFrame>> stack;
     std::optional<uint32_t> rtEntryIdx;
-    Instance(shared_module_t module) : module(module) {};
-    ~Instance() {
+    std::vector<RTFuncDescriptor> rtFuncDescriptor;
+    Runtime(shared_module_t module) : module(module) {};
+    ~Runtime() {
       // Free allocated mem.
-      std::for_each(rtMems.begin(), rtMems.end(), [](RTMemDescriptor& mem) {
+      std::for_each(rtMems.begin(), rtMems.end(), [](RTMemHolder& mem) {
         std::free(mem.ptr);
-      });
+      }); 
     }
   };
-  using shared_module_instance_t = std::shared_ptr<Instance>;
+  using shared_module_runtime_t = std::shared_ptr<Runtime>;
 }
 
 #endif  // LIB_STRUCT_H_

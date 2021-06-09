@@ -26,10 +26,11 @@ namespace TWVM {
     Loader::parseDataSection,
   };
 
-  void Loader::walkExtMeta(Reader& reader, Module::ext_meta_t& extMetaRef, uint8_t extKind) {
+  void Loader::walkExtMeta(Reader& reader, Module::external_kind_t& extMetaRef, uint8_t extKind) {
     switch (extKind) {
       case EXT_KIND_FUNC: {  // Function.
         extMetaRef = reader.walkU32();
+        break;
       }
       case EXT_KIND_TAB: {  // Table.
         const auto elemType = reader.walkByte();
@@ -40,6 +41,7 @@ namespace TWVM {
           tableType.maximum = reader.walkU32();
         }
         extMetaRef = tableType;
+        break;
       }
       case EXT_KIND_MEM: {  // Memory.
         const auto limitFlags = reader.walkByte();
@@ -49,12 +51,14 @@ namespace TWVM {
           memType.maximum = reader.walkU32();
         }
         extMetaRef = memType;
+        break;
       }
       case EXT_KIND_GLB: {  // Global.
         const auto valType = reader.walkByte();
         const auto valMut = reader.walkByte() == 1;
         Module::GlobalType globalType { valType, valMut };
         extMetaRef = globalType;
+        break;
       }
     }
   };
@@ -217,7 +221,7 @@ namespace TWVM {
       const auto valType = reader.walkByte();
       const auto valMut = reader.walkByte() == 1;
       auto initExprOps = reader.getBytesTillDelim(Util::asInteger(OpCodes::End));
-      mod->globals.emplace_back(valType, valMut, std::move(initExprOps));
+      mod->globals.emplace_back(valType, valMut, initExprOps);
     }
   }
 
@@ -235,7 +239,7 @@ namespace TWVM {
         locVarTypeVec.insert(locVarTypeVec.end(), locVarCount, locVarType);
       }
       auto body = reader.retrieveBytes(bodySize - (reader.pos() - startPos));
-      mod->funcDefs.emplace_back(std::move(locVarTypeVec), std::move(body));
+      mod->funcDefs.emplace_back(locVarTypeVec, body);
     }
   }
 
@@ -250,7 +254,7 @@ namespace TWVM {
       for (uint32_t j = 0; j < funcIndicesCount; ++j) {
         funcIndices.push_back(reader.walkU32());
       }
-      mod->elements.emplace_back(tblIdx, std::move(initExprOps), std::move(funcIndices));
+      mod->elements.emplace_back(tblIdx, initExprOps, funcIndices);
     }
   }
 
@@ -262,7 +266,7 @@ namespace TWVM {
       auto initExprOps = reader.getBytesTillDelim(Util::asInteger(OpCodes::End));
       const auto size = reader.walkU32();
       auto data = reader.retrieveBytes(size);
-      mod->data.emplace_back(memIdx, std::move(initExprOps), std::move(data));
+      mod->data.emplace_back(memIdx, initExprOps, data);
     } 
   }
 }
