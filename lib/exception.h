@@ -26,6 +26,8 @@ class Exception {
     TBL_ACCESS_OOB,
     MISSING_FUNC_PARAMS,
     STACK_VAL_TYPE_MISMATCH,
+    UNREACHABLE,
+    ILLEGAL_LOCAL_IDX,
   };
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {

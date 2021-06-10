@@ -137,13 +137,22 @@ namespace TWVM {
   using shared_module_t = std::shared_ptr<Module>;
   
   /* Runtime Types */
-  using rt_i32_t = int32_t;
-  using rt_i64_t = int64_t;
-  using rt_f32_t = float;
-  using rt_f64_t = double;
-  using runtime_value_t = std::variant<rt_i32_t, rt_i64_t, rt_f32_t, rt_f64_t>;
-  using func_index_t = uint32_t;
-  class Runtime {
+  struct Runtime {
+    enum class StackTypeVariantIndex : int8_t {
+      // The order of types here should be consistent with the below stack definition, -
+      // and this will be used to test the type of the stack frame.
+      VALUE = 0,
+      LABEL, 
+      ACTIVATION,  
+    };
+    using rt_i32_t = int32_t;
+    using rt_i64_t = int64_t;
+    using rt_f32_t = float;
+    using rt_f64_t = double;
+    using relative_depth_t = uint32_t;
+    using block_type_t = uint8_t;
+    using runtime_value_t = std::variant<rt_i32_t, rt_i64_t, rt_f32_t, rt_f64_t>;
+    using index_t = uint32_t;
     struct RTFuncDescriptor {
       SET_STRUCT_MOVE_ONLY(RTFuncDescriptor)
       const Module::func_type_t* funcType;
@@ -152,21 +161,29 @@ namespace TWVM {
       RTFuncDescriptor(const Module::func_type_t* funcType, uint8_t* codeEntry)
         : funcType(funcType), codeEntry(codeEntry) {}
     };
-   public:
-   struct RTLabelFrame {
-      SET_STRUCT_MOVE_ONLY(RTLabelFrame)
-      uint8_t* cont;
-      Module::type_seq_t* returnArity;
-      RTLabelFrame(uint8_t* cont, Module::type_seq_t* returnArity)
-        : cont(cont), returnArity(returnArity) {}
+    struct RTValueFrame {
+      SET_STRUCT_MOVE_ONLY(RTValueFrame)
+      int32_t prev;  // for constructing a linked list to quickly reference the top frame.
+      runtime_value_t value;
+      RTValueFrame(const runtime_value_t& value, int32_t prev = -1) 
+        : prev(prev), value(value) {}
     };
-    struct RTCallFrame {
-      SET_STRUCT_MOVE_ONLY(RTCallFrame)
+    struct RTLabelFrame {
+      SET_STRUCT_MOVE_ONLY(RTLabelFrame)
+      int32_t prev;
+      uint8_t* cont;
+      Module::type_seq_t returnArity;
+      RTLabelFrame(uint8_t* cont, const Module::type_seq_t& returnArity, int32_t prev = -1)
+        : prev(prev), cont(cont), returnArity(returnArity) {}
+    };
+    struct RTActivFrame {
+      SET_STRUCT_MOVE_ONLY(RTActivFrame)
+      int32_t prev;
       std::vector<runtime_value_t> locals;
       uint8_t* cont;
       const Module::type_seq_t* returnArity;
-      RTCallFrame(std::vector<runtime_value_t>& locals, uint8_t* cont, const Module::type_seq_t* returnArity) 
-        : locals(locals), cont(cont), returnArity(returnArity) {}
+      RTActivFrame(std::vector<runtime_value_t>& locals, uint8_t* cont, const Module::type_seq_t* returnArity, int32_t prev = -1) 
+        : prev(prev), locals(locals), cont(cont), returnArity(returnArity) {}
     };
     struct RTMemHolder {
       SET_STRUCT_MOVE_ONLY(RTMemHolder)
@@ -178,14 +195,8 @@ namespace TWVM {
     std::vector<RTMemHolder> rtMems;
     std::vector<std::vector<std::optional<uint32_t>>> rtTables;  // Func idx inside.
     std::vector<runtime_value_t> rtGlobals;
-    enum class StackTypes : int8_t {
-      // The order of types here should be consistent with the below stack definition, -
-      // and this will be used to test the type of the stack frame.
-      VALUE = 0,
-      LABEL, 
-      ACTIVATION,  
-    };
-    std::vector<std::variant<runtime_value_t, RTLabelFrame, RTCallFrame>> stack;
+    using stack_frame_t = std::variant<RTValueFrame, RTLabelFrame, RTActivFrame>;
+    std::vector<stack_frame_t> stack;
     std::optional<uint32_t> rtEntryIdx;
     std::vector<RTFuncDescriptor> rtFuncDescriptor;
     Runtime(shared_module_t module) : module(module) {};

@@ -19,13 +19,20 @@ namespace TWVM {
   };
 
   void Interpreter::doUnreachable(Executor& executor) {
-    
+    Exception::terminate(Exception::ErrorType::UNREACHABLE);
   }
   void Interpreter::doNop(Executor& executor) {
-    
+    executor.movPC();
   }
   void Interpreter::doBlock(Executor& executor) {
-    std::cout << 3;
+    const auto& returnArityType = std::vector<uint8_t>{ executor.decodeByteFromPC() };
+    auto cont = executor.lookupLabelContFromPC();
+    executor.pushToStack(
+      Runtime::RTLabelFrame(
+        cont, 
+        returnArityType,
+        executor.getTopFrameIdx(Runtime::StackTypeVariantIndex::LABEL)));
+    executor.updateTopFrameIdx(Runtime::StackTypeVariantIndex::LABEL);
   }
   void Interpreter::doLoop(Executor& executor) {
     
@@ -53,18 +60,17 @@ namespace TWVM {
   }
   void Interpreter::doCall(Executor& executor) {
     // Retrieve func idx.
-    auto engineData = executor.refEngineData();
-    const auto funcIdx = executor.decodeVaruintFromPC<func_index_t>();
-    const auto& rtFuncDesc = engineData->rtFuncDescriptor.at(funcIdx);
+    const auto& funcIdx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    const auto& rtFuncDesc = executor.refDynData()->rtFuncDescriptor.at(funcIdx);
     // Retrieve func related info.
     auto paramCount = rtFuncDesc.funcType->first.size();
     auto rtFuncLocals = rtFuncDesc.localsDefault;  // Copied.
     // Set up func parameters.
     if (paramCount > 0) {
       for (auto i = 0; i < paramCount; ++i) {
-        const auto& v = executor.retrieveFromStack<runtime_value_t>();
-        if (v.index() == rtFuncLocals.at(i).index()) {
-          rtFuncLocals.at(i) = v;
+        const auto& vf = executor.retrieveFromStack<Runtime::RTValueFrame>();
+        if (vf.value.index() == rtFuncLocals.at(i).index()) {
+          rtFuncLocals.at(i) = vf.value;
           executor.popFromStack();
         } else {
           Exception::terminate(Exception::ErrorType::MISSING_FUNC_PARAMS);
@@ -72,11 +78,15 @@ namespace TWVM {
       }
     }
     // Construct frame (locals + artiy).
-    engineData->stack.emplace_back(
-      Runtime::RTCallFrame(rtFuncLocals, executor.movPC(), &rtFuncDesc.funcType->second));
+    executor.pushToStack(
+      Runtime::RTActivFrame(
+        rtFuncLocals, 
+        executor.movPC(), 
+        &rtFuncDesc.funcType->second,
+        executor.getTopFrameIdx(Runtime::StackTypeVariantIndex::ACTIVATION)));
+    executor.updateTopFrameIdx(Runtime::StackTypeVariantIndex::ACTIVATION);
     // Redirection.
     executor.setPC(rtFuncDesc.codeEntry);
-    std::cout << 1;
   }
   void Interpreter::doCallIndirect(Executor& executor) {
     
@@ -88,7 +98,14 @@ namespace TWVM {
     
   }
   void Interpreter::doLocalGet(Executor& executor) {
-    
+    const auto& idx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    auto& topActivFrame = executor.refTopFrame(Runtime::StackTypeVariantIndex::ACTIVATION);
+    const auto& locals = std::get<Runtime::RTActivFrame>(topActivFrame).locals;
+    if (locals.size() >= idx + 1) {
+      executor.pushToStack(locals.at(idx));
+    } else {
+      Exception::terminate(Exception::ErrorType::ILLEGAL_LOCAL_IDX);
+    }
   }
   void Interpreter::doLocalSet(Executor& executor) {
     
@@ -103,19 +120,16 @@ namespace TWVM {
     
   }
   void Interpreter::doI32Const(Executor& executor) {
-    auto engineData = executor.refEngineData();
-    engineData->stack.emplace_back(executor.decodeVaruintFromPC<rt_i32_t>());
-    std::cout << 2;
+    executor.pushToStack(Runtime::RTValueFrame(executor.decodeVaruintFromPC<Runtime::rt_i32_t>()));
   }
   void Interpreter::doI64Const(Executor& executor) {
-    auto engineData = executor.refEngineData();
-    engineData->stack.emplace_back(executor.decodeVaruintFromPC<rt_i64_t>());
+    executor.pushToStack(Runtime::RTValueFrame(executor.decodeVaruintFromPC<Runtime::rt_i64_t>()));
   }
   void Interpreter::doF32Const(Executor& executor) {
-
+    executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<float>()));
   }
   void Interpreter::doF64Const(Executor& executor) {
-
+    executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<double>()));
   }
   void Interpreter::doI32LoadMem(Executor& executor) {
     
@@ -221,6 +235,7 @@ namespace TWVM {
   }
   void Interpreter::doI32GeS(Executor& executor) {
     
+    std::cout << 1;
   }
   void Interpreter::doI32GeU(Executor& executor) {
     

@@ -11,7 +11,7 @@
 #include "lib/decoder.h"
 
 namespace TWVM {
-  runtime_value_t Instantiator::evalInitExpr(uint8_t valType, std::vector<uint8_t> &initExprOps) {
+  Runtime::runtime_value_t Instantiator::evalInitExpr(uint8_t valType, std::vector<uint8_t> &initExprOps) {
     // In the MVP, to keep things simple, only four constant operators and `get_local` available, -
     // and `get_local` can only refer to an imported global.
     const auto valTypeT = static_cast<ValueTypes>(valType);
@@ -20,12 +20,13 @@ namespace TWVM {
       valTypeT <= ValueTypes::I32 && 
       (valType + initExprOps.front()) == CONST_OP_PLUS_TYPE
     ) {
+      auto* startByte = initExprOps.data() + 1;
       switch (valTypeT) {
-        case ValueTypes::I32: return Decoder::decodeVarint<rt_i32_t>(initExprOps.data() + 1);  // varint32.
-        case ValueTypes::I64: return Decoder::decodeVarint<rt_i64_t>(initExprOps.data() + 1);  // varint64.
-        case ValueTypes::F32: return *reinterpret_cast<rt_f32_t*>(initExprOps.data() + 1);
-        case ValueTypes::F64: return *reinterpret_cast<rt_f64_t*>(initExprOps.data() + 1);
-        default: return rt_i32_t();
+        case ValueTypes::I32: return Decoder::decodeVarint<Runtime::rt_i32_t>(startByte);  // varint32.
+        case ValueTypes::I64: return Decoder::decodeVarint<Runtime::rt_i64_t>(startByte);  // varint64.
+        case ValueTypes::F32: return *reinterpret_cast<Runtime::rt_f32_t*>(startByte);
+        case ValueTypes::F64: return *reinterpret_cast<Runtime::rt_f64_t*>(startByte);
+        default: return Runtime::rt_i32_t();
       }
     } else {
       Exception::terminate(Exception::ErrorType::INVALID_GLOBAL_SIG);

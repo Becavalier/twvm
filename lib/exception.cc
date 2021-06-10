@@ -16,4 +16,6 @@ std::unordered_map<Exception::ErrorType, std::string> Exception::errorMsg = {
   { ErrorType::TBL_ACCESS_OOB, "Table access out of bound. " },  
   { ErrorType::MISSING_FUNC_PARAMS, "Insufficient values on stack for calling a function. " },
   { ErrorType::STACK_VAL_TYPE_MISMATCH, "Stack value type mismatch. " },
+  { ErrorType::UNREACHABLE, "Unreachable. " },
+  { ErrorType::ILLEGAL_LOCAL_IDX, "Illegal local index. " },  
 };
