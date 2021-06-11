@@ -6,7 +6,32 @@
 #include "lib/util.h"
 
 namespace TWVM {
-  void Executor::fastCrawling(size_t pairingCount) {
+  std::optional<uint32_t> Executor::getTopFrameIdx(Runtime::STVariantIndex type, uint32_t n) {
+    const auto& v = frameBitmap.at(Util::asInteger(type));
+    return v.size() > n ? 
+      std::make_optional(*(v.rbegin() + n)) : 
+      std::nullopt;
+  }
+  std::optional<Executor::FrameOffset> Executor::refTopFrameByType(Runtime::STVariantIndex type, uint32_t n) {
+    const auto topIdx = getTopFrameIdx(type, n);
+    return topIdx.has_value() ? 
+      std::make_optional(
+        FrameOffset {
+          &rtIns->stack.at(*topIdx), *topIdx,
+        }) : std::nullopt;
+  }
+  uint8_t* Executor::lookupLabelContFromPC() {  // don't mess this process with interpreter.
+    status = EngineStatus::CRAWLING;
+    storedPC = pc;
+    size_t pairingCount = 0;
+    while (status == EngineStatus::CRAWLING) {
+      Executor::crawlOpCodes(pairingCount);
+    }
+    const auto cont = pc;
+    pc = storedPC;
+    return cont;
+  }
+  void Executor::crawlOpCodes(size_t pairingCount) {
     switch (static_cast<OpCodes>(*pc++)) {
       case OpCodes::Block:
       case OpCodes::Loop:
@@ -113,7 +138,7 @@ namespace TWVM {
       driver.insert(driver.end(), bytes.begin(), bytes.end());
       driver.push_back(Util::asInteger(OpCodes::End));
       Executor executor(driver.data(), rtIns);
-      while (executor.currentStatus() == Executor::EngineStatus::EXECUTING) {
+      while (executor.getCurrentStatus() == Executor::EngineStatus::EXECUTING) {
         Interpreter::opTokenHandlers[*executor.pc++](executor);
       }
     }

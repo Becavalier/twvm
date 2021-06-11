@@ -2,10 +2,63 @@
 #include <iostream>
 #include <algorithm>
 #include "lib/interpreter.h"
-#include "lib/decoder.h"
 #include "lib/structs.h"
 #include "lib/executor.h"
 #include "lib/exception.h"
+
+#define ITERATE_SIMPLE_BINOP(V) \
+  V(I32Mul, rt_i32_t, rt_i32_t, rt_i32_t, *) \
+  V(I32Add, rt_i32_t, rt_i32_t, rt_i32_t, +) \
+  V(I32Sub, rt_i32_t, rt_i32_t, rt_i32_t, -) \
+  V(I32And, rt_i32_t, rt_i32_t, rt_i32_t, &) \
+  V(I32Or, rt_i32_t, rt_i32_t, rt_i32_t, |) \
+  V(I32Xor, rt_i32_t, rt_i32_t, rt_i32_t, ^) \
+  V(I32Eq, rt_i32_t, rt_i32_t, rt_i32_t, ==) \
+  V(I32Ne, rt_i32_t, rt_i32_t, rt_i32_t, !=) \
+  V(I32LtU, rt_i32_t, rt_i32_t, rt_u32_t, <) \
+  V(I32LeU, rt_i32_t, rt_i32_t, rt_u32_t, <=) \
+  V(I32GtU, rt_i32_t, rt_i32_t, rt_u32_t, >) \
+  V(I32GeU, rt_i32_t, rt_i32_t, rt_u32_t, >=) \
+  V(I32LtS, rt_i32_t, rt_i32_t, rt_i32_t, <) \
+  V(I32LeS, rt_i32_t, rt_i32_t, rt_i32_t, <=) \
+  V(I32GtS, rt_i32_t, rt_i32_t, rt_i32_t, >) \
+  V(I32GeS, rt_i32_t, rt_i32_t, rt_i32_t, >=) \
+  V(I64Mul, rt_i64_t, rt_i64_t, rt_i64_t, *) \
+  V(I64Add, rt_i64_t, rt_i64_t, rt_i64_t, +) \
+  V(I64Sub, rt_i64_t, rt_i64_t, rt_i64_t, -) \
+  V(I64And, rt_i64_t, rt_i64_t, rt_i64_t, &) \
+  V(I64Or, rt_i64_t, rt_i64_t, rt_i64_t, |) \
+  V(I64Xor, rt_i64_t, rt_i64_t, rt_i64_t, ^) \
+  V(I64Eq, rt_i64_t, rt_i32_t, rt_i64_t, ==) \
+  V(I64Ne, rt_i64_t, rt_i32_t, rt_i64_t, !=) \
+  V(I64LtU, rt_i64_t, rt_i32_t, rt_u64_t, <) \
+  V(I64LeU, rt_i64_t, rt_i32_t, rt_u64_t, <=) \
+  V(I64GtU, rt_i64_t, rt_i32_t, rt_u64_t, >) \
+  V(I64GeU, rt_i64_t, rt_i32_t, rt_u64_t, >=) \
+  V(I64LtS, rt_i64_t, rt_i32_t, rt_i64_t, <) \
+  V(I64LeS, rt_i64_t, rt_i32_t, rt_i64_t, <=) \
+  V(I64GtS, rt_i64_t, rt_i32_t, rt_i64_t, >) \
+  V(I64GeS, rt_i64_t, rt_i32_t, rt_i64_t, >=) \
+  V(F32Mul, rt_f32_t, rt_f32_t, rt_f32_t, *) \
+  V(F32Add, rt_f32_t, rt_f32_t, rt_f32_t, +) \
+  V(F32Sub, rt_f32_t, rt_f32_t, rt_f32_t, -) \
+  V(F32Div, rt_f32_t, rt_f32_t, rt_f32_t, /) \
+  V(F32Eq, rt_f32_t, rt_i32_t, rt_f32_t, ==) \
+  V(F32Ne, rt_f32_t, rt_i32_t, rt_f32_t, !=) \
+  V(F32Lt, rt_f32_t, rt_i32_t, rt_f32_t, <) \
+  V(F32Le, rt_f32_t, rt_i32_t, rt_f32_t, <=) \
+  V(F32Gt, rt_f32_t, rt_i32_t, rt_f32_t, >) \
+  V(F32Ge, rt_f32_t, rt_i32_t, rt_f32_t, >=) \
+  V(F64Mul, rt_f64_t, rt_f64_t, rt_f64_t, *) \
+  V(F64Add, rt_f64_t, rt_f64_t, rt_f64_t, +) \
+  V(F64Sub, rt_f64_t, rt_f64_t, rt_f64_t, -) \
+  V(F64Div, rt_f64_t, rt_f64_t, rt_f64_t, /) \
+  V(F64Eq, rt_f64_t, rt_i32_t, rt_f64_t, ==) \
+  V(F64Ne, rt_f64_t, rt_i32_t, rt_f64_t, !=) \
+  V(F64Lt, rt_f64_t, rt_i32_t, rt_f64_t, <) \
+  V(F64Le, rt_f64_t, rt_i32_t, rt_f64_t, <=) \
+  V(F64Gt, rt_f64_t, rt_i32_t, rt_f64_t, >) \
+  V(F64Ge, rt_f64_t, rt_i32_t, rt_f64_t, >=)
 
 #define REF_OPCODE_HANDLER_PTR_VALID(NAME) \
   Interpreter::do##NAME,
@@ -13,6 +66,13 @@
   nullptr,
 #define REF_OPCODE_HANDLER_PTR(NAME, OP, VALIDITY) \
   REF_OPCODE_HANDLER_PTR_##VALIDITY(NAME)
+#define CONCATENATE_PREFIX(X) Runtime:: X
+#define DECLARE_BASIC_BINOP_METHOD(NAME, VAL_TYPE, RET_TYPE, OP_CAST, OP) \
+  void Interpreter::do##NAME(Executor& executor) { \
+    executor.opHelperFTTO<CONCATENATE_PREFIX(VAL_TYPE), CONCATENATE_PREFIX(RET_TYPE)>([](auto x, auto y) { \
+      return static_cast<CONCATENATE_PREFIX(OP_CAST)>(x) OP static_cast<CONCATENATE_PREFIX(OP_CAST)>(y); \
+    }); \
+  }
   
 namespace TWVM {
   std::array<Interpreter::opHandlerProto, sizeof(uint8_t) * 1 << 8> Interpreter::opTokenHandlers = {
@@ -44,7 +104,7 @@ namespace TWVM {
     
   }
   void Interpreter::doEnd(Executor& executor) {
-    
+    std::cout << 11;
   }
   void Interpreter::doBr(Executor& executor) {
     const auto depth = executor.getBrIfDepthCacheOr(executor.decodeVaruintFromPC<Runtime::relative_depth_t>());
@@ -55,9 +115,9 @@ namespace TWVM {
       const auto& labelFrame = std::get<Runtime::RTLabelFrame>(*((*frameOffset).ptr));
       const auto& returnArity = labelFrame.returnArity;
       if (returnArity.size() > 0) {
-        executor.validateArity(returnArity);
+        executor.validateArity(returnArity);  // May throw.
       }
-      executor.eraseStack(frameOffset->offset, returnArity.size());
+      executor.eraseFromStack(frameOffset->offset, returnArity.size());
       executor.eraseFromFrameBitmap(Runtime::STVariantIndex::LABEL, depth + 1);
       executor.setPC(labelFrame.cont);
     } else if (labelsCount == depth) {  
@@ -68,7 +128,7 @@ namespace TWVM {
       if (returnArity.size() > 0) {
         executor.validateArity(returnArity);
       }
-      executor.eraseStack(frameOffset->offset, returnArity.size());
+      executor.eraseFromStack(frameOffset->offset, returnArity.size());
       executor.eraseFromFrameBitmap(Runtime::STVariantIndex::LABEL, depth);
       executor.eraseFromFrameBitmap(Runtime::STVariantIndex::ACTIVATION, 1);
       executor.setPC(labelActiv.cont);
@@ -79,8 +139,9 @@ namespace TWVM {
   }
   void Interpreter::doBrIf(Executor& executor) {
     const auto v = executor.popValFromStack<Runtime::rt_i32_t>();
+    const auto depth = executor.decodeVaruintFromPC<Runtime::relative_depth_t>();
     if (v != 0) {
-      executor.setBrIfDepthCache(executor.decodeVaruintFromPC<Runtime::relative_depth_t>());
+      executor.setBrIfDepthCache(depth);
       doBr(executor);
     }
   }
@@ -88,12 +149,12 @@ namespace TWVM {
     
   }
   void Interpreter::doReturn(Executor& executor) {
-    
+    std::cout << 11;
   }
   void Interpreter::doCall(Executor& executor) {
     // Retrieve func idx.
     const auto& funcIdx = executor.decodeVaruintFromPC<Runtime::index_t>();
-    const auto& rtFuncDesc = executor.refDynData()->rtFuncDescriptor.at(funcIdx);
+    const auto& rtFuncDesc = executor.getEngineData()->rtFuncDescriptor.at(funcIdx);
     // Retrieve func related info.
     auto paramCount = rtFuncDesc.funcType->first.size();
     auto rtFuncLocals = rtFuncDesc.localsDefault;  // Copied.
@@ -155,10 +216,10 @@ namespace TWVM {
     
   }
   void Interpreter::doI32Const(Executor& executor) {
-    executor.pushToStack(Runtime::RTValueFrame(executor.decodeVaruintFromPC<Runtime::rt_i32_t>()));
+    executor.pushToStack(Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i32_t>()));
   }
   void Interpreter::doI64Const(Executor& executor) {
-    executor.pushToStack(Runtime::RTValueFrame(executor.decodeVaruintFromPC<Runtime::rt_i64_t>()));
+    executor.pushToStack(Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i64_t>()));
   }
   void Interpreter::doF32Const(Executor& executor) {
     executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<float>()));
@@ -241,114 +302,13 @@ namespace TWVM {
   void Interpreter::doMemoryGrow(Executor& executor) {
     
   }
+  
+  ITERATE_SIMPLE_BINOP(DECLARE_BASIC_BINOP_METHOD)
+
   void Interpreter::doI32Eqz(Executor& executor) {
     
   }
-  void Interpreter::doI32Eq(Executor& executor) {
-    
-  }
-  void Interpreter::doI32Ne(Executor& executor) {
-    
-  }
-  void Interpreter::doI32LtS(Executor& executor) {
-    
-  }
-  void Interpreter::doI32LtU(Executor& executor) {
-    
-  }
-  void Interpreter::doI32GtS(Executor& executor) {
-    
-  }
-  void Interpreter::doI32GtU(Executor& executor) {
-    
-  }
-  void Interpreter::doI32LeS(Executor& executor) {
-    
-  }
-  void Interpreter::doI32LeU(Executor& executor) {
-    
-  }
-  void Interpreter::doI32GeS(Executor& executor) {
-    executor.instHelperFTTO<Runtime::rt_i32_t>([](auto x, auto y) {
-      return static_cast<int32_t>(y) >= static_cast<int32_t>(x) ? 1 : 0;
-    });
-  }
-  void Interpreter::doI32GeU(Executor& executor) {
-    executor.instHelperFTTO<Runtime::rt_i32_t>([](auto x, auto y) {
-      return static_cast<uint32_t>(y) >= static_cast<uint32_t>(x) ? 1 : 0;
-    });
-  }
   void Interpreter::doI64Eqz(Executor& executor) {
-    
-  }
-  void Interpreter::doI64Eq(Executor& executor) {
-    
-  }
-  void Interpreter::doI64Ne(Executor& executor) {
-    
-  }
-  void Interpreter::doI64LtS(Executor& executor) {
-    
-  }
-  void Interpreter::doI64LtU(Executor& executor) {
-    
-  }
-  void Interpreter::doI64GtS(Executor& executor) {
-    
-  }
-  void Interpreter::doI64GtU(Executor& executor) {
-    
-  }
-  void Interpreter::doI64LeS(Executor& executor) {
-    
-  }
-  void Interpreter::doI64LeU(Executor& executor) {
-    
-  }
-  void Interpreter::doI64GeS(Executor& executor) {
-    executor.instHelperFTTO<Runtime::rt_i64_t>([](auto x, auto y) {
-      return static_cast<int64_t>(y) >= static_cast<int64_t>(x) ? 1 : 0;
-    });
-  }
-  void Interpreter::doI64GeU(Executor& executor) {
-    executor.instHelperFTTO<Runtime::rt_i32_t>([](auto x, auto y) {
-      return static_cast<uint64_t>(y) >= static_cast<uint64_t>(x) ? 1 : 0;
-    });
-  }
-  void Interpreter::doF32Eq(Executor& executor) {
-    
-  }
-  void Interpreter::doF32Ne(Executor& executor) {
-    
-  }
-  void Interpreter::doF32Lt(Executor& executor) {
-    
-  }
-  void Interpreter::doF32Gt(Executor& executor) {
-    
-  }
-  void Interpreter::doF32Le(Executor& executor) {
-    
-  }
-  void Interpreter::doF32Ge(Executor& executor) {
-    
-  }
-  void Interpreter::doF64Eq(Executor& executor) {
-    
-  }
-  void Interpreter::doF64Ne(Executor& executor) {
-    
-  }
-  void Interpreter::doF64Lt(Executor& executor) {
-    
-  }
-  void Interpreter::doF64Gt(Executor& executor) {
-    
-  }
-  void Interpreter::doF64Le(Executor& executor) {
-    
-  }
-  void Interpreter::doF64Ge(Executor& executor) {
     
   }
   void Interpreter::doI32Clz(Executor& executor) {
@@ -358,15 +318,6 @@ namespace TWVM {
     
   }
   void Interpreter::doI32Popcnt(Executor& executor) {
-    
-  }
-  void Interpreter::doI32Add(Executor& executor) {
-    std::cout << 11;
-  }
-  void Interpreter::doI32Sub(Executor& executor) {
-    
-  }
-  void Interpreter::doI32Mul(Executor& executor) {
     
   }
   void Interpreter::doI32DivS(Executor& executor) {
@@ -379,15 +330,6 @@ namespace TWVM {
     
   }
   void Interpreter::doI32RemU(Executor& executor) {
-    
-  }
-  void Interpreter::doI32And(Executor& executor) {
-    
-  }
-  void Interpreter::doI32Or(Executor& executor) {
-    
-  }
-  void Interpreter::doI32Xor(Executor& executor) {
     
   }
   void Interpreter::doI32Shl(Executor& executor) {
@@ -414,15 +356,6 @@ namespace TWVM {
   void Interpreter::doI64Popcnt(Executor& executor) {
     
   }
-  void Interpreter::doI64Add(Executor& executor) {
-    
-  }
-  void Interpreter::doI64Sub(Executor& executor) {
-    
-  }
-  void Interpreter::doI64Mul(Executor& executor) {
-    
-  }
   void Interpreter::doI64DivS(Executor& executor) {
     
   }
@@ -433,15 +366,6 @@ namespace TWVM {
     
   }
   void Interpreter::doI64RemU(Executor& executor) {
-    
-  }
-  void Interpreter::doI64And(Executor& executor) {
-    
-  }
-  void Interpreter::doI64Or(Executor& executor) {
-    
-  }
-  void Interpreter::doI64Xor(Executor& executor) {
     
   }
   void Interpreter::doI64Shl(Executor& executor) {
@@ -480,18 +404,6 @@ namespace TWVM {
   void Interpreter::doF32Sqrt(Executor& executor) {
     
   }
-  void Interpreter::doF32Add(Executor& executor) {
-    
-  }
-  void Interpreter::doF32Sub(Executor& executor) {
-    
-  }
-  void Interpreter::doF32Mul(Executor& executor) {
-    
-  }
-  void Interpreter::doF32Div(Executor& executor) {
-    
-  }
   void Interpreter::doF32Min(Executor& executor) {
     
   }
@@ -520,18 +432,6 @@ namespace TWVM {
     
   }
   void Interpreter::doF64Sqrt(Executor& executor) {
-    
-  }
-  void Interpreter::doF64Add(Executor& executor) {
-    
-  }
-  void Interpreter::doF64Sub(Executor& executor) {
-    
-  }
-  void Interpreter::doF64Mul(Executor& executor) {
-    
-  }
-  void Interpreter::doF64Div(Executor& executor) {
     
   }
   void Interpreter::doF64Min(Executor& executor) {

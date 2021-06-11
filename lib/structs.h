@@ -147,6 +147,8 @@ namespace TWVM {
     };
     using rt_i32_t = int32_t;
     using rt_i64_t = int64_t;
+    using rt_u32_t = uint32_t;
+    using rt_u64_t = uint64_t;
     using rt_f32_t = float;
     using rt_f64_t = double;
     using relative_depth_t = uint32_t;
