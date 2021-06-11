@@ -18,4 +18,6 @@ std::unordered_map<Exception::ErrorType, std::string> Exception::errorMsg = {
   { ErrorType::STACK_VAL_TYPE_MISMATCH, "Stack value type mismatch. " },
   { ErrorType::UNREACHABLE, "Unreachable. " },
   { ErrorType::ILLEGAL_LOCAL_IDX, "Illegal local index. " },  
+  { ErrorType::EXHAUSTED_STACK_ACCESS, "No such available data on stack. " },  
+  { ErrorType::BREAK_LEVEL_EXCEEDED, "Break level exceeded. " },  
 };

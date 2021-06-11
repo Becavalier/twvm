@@ -1,5 +1,6 @@
 #include <array>
 #include <iostream>
+#include <algorithm>
 #include "lib/interpreter.h"
 #include "lib/decoder.h"
 #include "lib/structs.h"
@@ -25,14 +26,13 @@ namespace TWVM {
     executor.movPC();
   }
   void Interpreter::doBlock(Executor& executor) {
-    const auto& returnArityType = std::vector<uint8_t>{ executor.decodeByteFromPC() };
+    auto&& returnArityTypes = std::vector<uint8_t>{}; // at most one.
+    const auto returnTypeByte = executor.decodeByteFromPC();
+    if (static_cast<LangTypes>(returnTypeByte) != LangTypes::Void) {
+      returnArityTypes.push_back(returnTypeByte);
+    }
     auto cont = executor.lookupLabelContFromPC();
-    executor.pushToStack(
-      Runtime::RTLabelFrame(
-        cont, 
-        returnArityType,
-        executor.getTopFrameIdx(Runtime::StackTypeVariantIndex::LABEL)));
-    executor.updateTopFrameIdx(Runtime::StackTypeVariantIndex::LABEL);
+    executor.pushToStack(Runtime::RTLabelFrame(cont, returnArityTypes));
   }
   void Interpreter::doLoop(Executor& executor) {
     
@@ -47,10 +47,42 @@ namespace TWVM {
     
   }
   void Interpreter::doBr(Executor& executor) {
-    
+    const auto depth = executor.getBrIfDepthCacheOr(executor.decodeVaruintFromPC<Runtime::relative_depth_t>());
+    const auto labelsCount = executor.getLabelAboveActivFrameCount();
+    if (labelsCount > depth) {  
+      // Consume Label frames.
+      const auto& frameOffset = executor.refTopFrameByType(Runtime::STVariantIndex::LABEL, depth);
+      const auto& labelFrame = std::get<Runtime::RTLabelFrame>(*((*frameOffset).ptr));
+      const auto& returnArity = labelFrame.returnArity;
+      if (returnArity.size() > 0) {
+        executor.validateArity(returnArity);
+      }
+      executor.eraseStack(frameOffset->offset, returnArity.size());
+      executor.eraseFromFrameBitmap(Runtime::STVariantIndex::LABEL, depth + 1);
+      executor.setPC(labelFrame.cont);
+    } else if (labelsCount == depth) {  
+      // Consuem Activ frame.
+      const auto& frameOffset = executor.refTopFrameByType(Runtime::STVariantIndex::ACTIVATION, depth);
+      const auto& labelActiv = std::get<Runtime::RTLabelFrame>(*((*frameOffset).ptr));
+      const auto& returnArity = labelActiv.returnArity;
+      if (returnArity.size() > 0) {
+        executor.validateArity(returnArity);
+      }
+      executor.eraseStack(frameOffset->offset, returnArity.size());
+      executor.eraseFromFrameBitmap(Runtime::STVariantIndex::LABEL, depth);
+      executor.eraseFromFrameBitmap(Runtime::STVariantIndex::ACTIVATION, 1);
+      executor.setPC(labelActiv.cont);
+    } else {
+      Exception::terminate(Exception::ErrorType::BREAK_LEVEL_EXCEEDED);
+    }
+    executor.delBrIfDepthCache();
   }
   void Interpreter::doBrIf(Executor& executor) {
-    
+    const auto v = executor.popValFromStack<Runtime::rt_i32_t>();
+    if (v != 0) {
+      executor.setBrIfDepthCache(executor.decodeVaruintFromPC<Runtime::relative_depth_t>());
+      doBr(executor);
+    }
   }
   void Interpreter::doBrTable(Executor& executor) {
     
@@ -82,9 +114,7 @@ namespace TWVM {
       Runtime::RTActivFrame(
         rtFuncLocals, 
         executor.movPC(), 
-        &rtFuncDesc.funcType->second,
-        executor.getTopFrameIdx(Runtime::StackTypeVariantIndex::ACTIVATION)));
-    executor.updateTopFrameIdx(Runtime::StackTypeVariantIndex::ACTIVATION);
+        &rtFuncDesc.funcType->second));
     // Redirection.
     executor.setPC(rtFuncDesc.codeEntry);
   }
@@ -99,12 +129,17 @@ namespace TWVM {
   }
   void Interpreter::doLocalGet(Executor& executor) {
     const auto& idx = executor.decodeVaruintFromPC<Runtime::index_t>();
-    auto& topActivFrame = executor.refTopFrame(Runtime::StackTypeVariantIndex::ACTIVATION);
-    const auto& locals = std::get<Runtime::RTActivFrame>(topActivFrame).locals;
-    if (locals.size() >= idx + 1) {
-      executor.pushToStack(locals.at(idx));
+    const auto frameOffset = executor.refTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
+    if (!frameOffset.has_value()) {
+      Exception::terminate(Exception::ErrorType::EXHAUSTED_STACK_ACCESS);
     } else {
-      Exception::terminate(Exception::ErrorType::ILLEGAL_LOCAL_IDX);
+      auto& topActivFrame = *((*frameOffset).ptr);
+      const auto& locals = std::get<Runtime::RTActivFrame>(topActivFrame).locals;
+      if (locals.size() >= idx + 1) {
+        executor.pushToStack(locals.at(idx));
+      } else {
+        Exception::terminate(Exception::ErrorType::ILLEGAL_LOCAL_IDX);
+      }
     }
   }
   void Interpreter::doLocalSet(Executor& executor) {
@@ -234,11 +269,14 @@ namespace TWVM {
     
   }
   void Interpreter::doI32GeS(Executor& executor) {
-    
-    std::cout << 1;
+    executor.instHelperFTTO<Runtime::rt_i32_t>([](auto x, auto y) {
+      return static_cast<int32_t>(y) >= static_cast<int32_t>(x) ? 1 : 0;
+    });
   }
   void Interpreter::doI32GeU(Executor& executor) {
-    
+    executor.instHelperFTTO<Runtime::rt_i32_t>([](auto x, auto y) {
+      return static_cast<uint32_t>(y) >= static_cast<uint32_t>(x) ? 1 : 0;
+    });
   }
   void Interpreter::doI64Eqz(Executor& executor) {
     
@@ -268,10 +306,14 @@ namespace TWVM {
     
   }
   void Interpreter::doI64GeS(Executor& executor) {
-    
+    executor.instHelperFTTO<Runtime::rt_i64_t>([](auto x, auto y) {
+      return static_cast<int64_t>(y) >= static_cast<int64_t>(x) ? 1 : 0;
+    });
   }
   void Interpreter::doI64GeU(Executor& executor) {
-    
+    executor.instHelperFTTO<Runtime::rt_i32_t>([](auto x, auto y) {
+      return static_cast<uint64_t>(y) >= static_cast<uint64_t>(x) ? 1 : 0;
+    });
   }
   void Interpreter::doF32Eq(Executor& executor) {
     
@@ -319,7 +361,7 @@ namespace TWVM {
     
   }
   void Interpreter::doI32Add(Executor& executor) {
-    
+    std::cout << 11;
   }
   void Interpreter::doI32Sub(Executor& executor) {
     

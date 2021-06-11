@@ -138,12 +138,12 @@ namespace TWVM {
   
   /* Runtime Types */
   struct Runtime {
-    enum class StackTypeVariantIndex : int8_t {
+    enum class STVariantIndex : int8_t {
       // The order of types here should be consistent with the below stack definition, -
       // and this will be used to test the type of the stack frame.
       VALUE = 0,
       LABEL, 
-      ACTIVATION,  
+      ACTIVATION,
     };
     using rt_i32_t = int32_t;
     using rt_i64_t = int64_t;
@@ -163,27 +163,24 @@ namespace TWVM {
     };
     struct RTValueFrame {
       SET_STRUCT_MOVE_ONLY(RTValueFrame)
-      int32_t prev;  // for constructing a linked list to quickly reference the top frame.
       runtime_value_t value;
-      RTValueFrame(const runtime_value_t& value, int32_t prev = -1) 
-        : prev(prev), value(value) {}
+      RTValueFrame(const runtime_value_t& value) 
+        : value(value) {}
     };
     struct RTLabelFrame {
       SET_STRUCT_MOVE_ONLY(RTLabelFrame)
-      int32_t prev;
       uint8_t* cont;
       Module::type_seq_t returnArity;
-      RTLabelFrame(uint8_t* cont, const Module::type_seq_t& returnArity, int32_t prev = -1)
-        : prev(prev), cont(cont), returnArity(returnArity) {}
+      RTLabelFrame(uint8_t* cont, const Module::type_seq_t& returnArity)
+        : cont(cont), returnArity(returnArity) {}
     };
     struct RTActivFrame {
       SET_STRUCT_MOVE_ONLY(RTActivFrame)
-      int32_t prev;
       std::vector<runtime_value_t> locals;
       uint8_t* cont;
       const Module::type_seq_t* returnArity;
-      RTActivFrame(std::vector<runtime_value_t>& locals, uint8_t* cont, const Module::type_seq_t* returnArity, int32_t prev = -1) 
-        : prev(prev), locals(locals), cont(cont), returnArity(returnArity) {}
+      RTActivFrame(std::vector<runtime_value_t>& locals, uint8_t* cont, const Module::type_seq_t* returnArity) 
+        : locals(locals), cont(cont), returnArity(returnArity) {}
     };
     struct RTMemHolder {
       SET_STRUCT_MOVE_ONLY(RTMemHolder)

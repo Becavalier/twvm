@@ -28,6 +28,8 @@ class Exception {
     STACK_VAL_TYPE_MISMATCH,
     UNREACHABLE,
     ILLEGAL_LOCAL_IDX,
+    EXHAUSTED_STACK_ACCESS,
+    BREAK_LEVEL_EXCEEDED,
   };
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {
