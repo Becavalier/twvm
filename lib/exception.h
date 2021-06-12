@@ -30,6 +30,8 @@ class Exception {
     ILLEGAL_LOCAL_IDX,
     EXHAUSTED_STACK_ACCESS,
     BREAK_LEVEL_EXCEEDED,
+    ARITY_TYPE_MISMATCH,
+    NO_ACTIV_ON_STACK,
   };
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {

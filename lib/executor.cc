@@ -139,7 +139,7 @@ namespace TWVM {
       driver.push_back(Util::asInteger(OpCodes::End));
       Executor executor(driver.data(), rtIns);
       while (executor.getCurrentStatus() == Executor::EngineStatus::EXECUTING) {
-        Interpreter::opTokenHandlers[*executor.pc++](executor);
+        Interpreter::opTokenHandlers[*executor.pc++](executor, std::nullopt);
       }
     }
   }

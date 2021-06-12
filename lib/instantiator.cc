@@ -18,7 +18,7 @@ namespace TWVM {
     if (
       valTypeT >= ValueTypes::F64 && 
       valTypeT <= ValueTypes::I32 && 
-      (valType + initExprOps.front()) == CONST_OP_PLUS_TYPE
+      (valType + initExprOps.front()) == MAGIC_OPCODE_PLUS_TYPE
     ) {
       auto* startByte = initExprOps.data() + 1;
       switch (valTypeT) {

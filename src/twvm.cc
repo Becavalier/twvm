@@ -11,7 +11,5 @@ int main(int argc, const char **argv) {
   const auto wasmInstance = TWVM::Instantiator::instantiate(wasmModule);
   TWVM::Executor::execute(wasmInstance);
 
-  std::cout << 1;
-  std::cout << 1;
   return 0;
 }

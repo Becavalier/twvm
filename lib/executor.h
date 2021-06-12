@@ -35,12 +35,18 @@ namespace TWVM {
    public:
     Executor(uint8_t* pc, shared_module_runtime_t rtIns) : pc(pc), rtIns(rtIns) {}
     const auto getCurrentStatus() const { return status; }
-    auto getEngineData() { return rtIns; }
-    void setBrIfDepthCache(Runtime::relative_depth_t v) { brIfDepth = v; }
-    void delBrIfDepthCache() { brIfDepth.reset(); }
-    auto getBrIfDepthCacheOr(Runtime::relative_depth_t v) {
-      return brIfDepth.value_or(v);
+    const auto stopEngine() { 
+      status = EngineStatus::STOPPED;
+      // Check return arity.
+      const auto& entryFrameOffset = refTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
+      const auto& entryFrame = std::get<Runtime::RTActivFrame>(*((*entryFrameOffset).ptr));
+      const auto& returnArity = entryFrame.returnArity;
+      if (returnArity->size() > 0) {
+        const auto v = std::get<Runtime::RTValueFrame>(rtIns->stack.back()).value;
+        std::visit([](auto&& arg){ std::cout << arg; }, v);
+      }
     }
+    auto getEngineData() { return rtIns; }
     std::optional<uint32_t> getTopFrameIdx(Runtime::STVariantIndex, uint32_t = 0);
     void setInFrameBitmap(Runtime::STVariantIndex type, uint32_t idx) {
       frameBitmap.at(Util::asInteger(type)).push_back(idx);
@@ -52,8 +58,9 @@ namespace TWVM {
     std::optional<FrameOffset> refTopFrameByType(Runtime::STVariantIndex, uint32_t = 0);
     auto getLabelAboveActivFrameCount() { return labelAboveActivFrameCount; }
     // PC-related methods.
-    auto movPC(size_t steps = 1) { pc += steps; return pc; }
+    auto getPC() { return pc; }
     void setPC(uint8_t* addr) { pc = addr; }
+    auto movPC(size_t steps = 1) { pc += steps; return pc; }
     uint8_t* lookupLabelContFromPC();
     auto decodeByteFromPC() {
       return *reinterpret_cast<uint8_t*>(pc++);
@@ -77,8 +84,8 @@ namespace TWVM {
     template<typename T>
     auto& retrieveFromStack(size_t pos = 0) {
       try {
-        auto& item = *(rtIns->stack.rbegin() + pos);
-        return std::get<T>(item);
+        return std::get<T>(
+          rtIns->stack.at(rtIns->stack.size() - 1 - pos));
       } catch(const std::exception& e) {
         Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
       }
@@ -113,8 +120,8 @@ namespace TWVM {
     }
     void validateArity(const Module::type_seq_t& arity) {
       for (auto i = 0; i < arity.size(); ++i) {
-        if (((rtIns->stack.rbegin() + i)->index() + arity.at(i)) != CONST_OP_PLUS_TYPE) {
-          Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
+        if (((rtIns->stack.rbegin() + i)->index() + arity.at(i)) != MAGIC_VAR_INDEX_PLUS_TYPE) {
+          Exception::terminate(Exception::ErrorType::ARITY_TYPE_MISMATCH);
         }
       }
     }
@@ -123,7 +130,7 @@ namespace TWVM {
     void opHelperFTTO(std::function<U(T, T)> handler) {
         try {
           auto& x = std::get<Runtime::RTValueFrame>(rtIns->stack.back());  // "c2".
-          auto& y = std::get<Runtime::RTValueFrame>(*(rtIns->stack.rbegin() + 1));  // "c1".
+          auto& y = std::get<Runtime::RTValueFrame>(rtIns->stack.at(rtIns->stack.size() - 2));  // "c1".
           auto ret = handler(std::get<T>(y.value), std::get<T>(x.value));
           rtIns->stack.pop_back();  // Keep "c1" on the stage.
           y.value = ret;
