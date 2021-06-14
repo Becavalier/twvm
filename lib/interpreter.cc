@@ -5,6 +5,7 @@
 #include "lib/structs.h"
 #include "lib/executor.h"
 #include "lib/exception.h"
+#include "lib/opcodes.h"
 
 #define ITERATE_SIMPLE_BINOP(V) \
   V(I32Mul, rt_i32_t, rt_i32_t, rt_i32_t, *) \
@@ -68,7 +69,7 @@
   REF_OPCODE_HANDLER_PTR_##VALIDITY(NAME)
 #define CONCAT_PREFIX(X) Runtime:: X
 #define DECLARE_BASIC_BINOP_METHOD(NAME, VAL_TYPE, RET_TYPE, OP_CAST_TYPE, OP) \
-  void Interpreter::do##NAME(Executor& executor, std::optional<uint32_t> _) { \
+  void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
     executor.opHelperFTTO<CONCAT_PREFIX(VAL_TYPE), CONCAT_PREFIX(RET_TYPE)>([](auto x, auto y) { \
       return static_cast<CONCAT_PREFIX(OP_CAST_TYPE)>(x) OP static_cast<CONCAT_PREFIX(OP_CAST_TYPE)>(y); \
     }); \
@@ -81,62 +82,52 @@ namespace TWVM {
 
   ITERATE_SIMPLE_BINOP(DECLARE_BASIC_BINOP_METHOD)
 
-  void Interpreter::doUnreachable(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doUnreachable(Executor& executor, opHandlerInfoType _) {
     Exception::terminate(Exception::ErrorType::UNREACHABLE);
   }
-  void Interpreter::doNop(Executor& executor, std::optional<uint32_t> _) {}
-  void Interpreter::doBlock(Executor& executor, std::optional<uint32_t> _) {
-    auto&& returnArityTypes = std::vector<uint8_t>{};
-    const auto returnTypeByte = executor.decodeByteFromPC();  // at most one.
-    if (static_cast<LangTypes>(returnTypeByte) != LangTypes::Void) {
-      returnArityTypes.push_back(returnTypeByte);
-    }
+  void Interpreter::doNop(Executor& executor, opHandlerInfoType _) {}
+  void Interpreter::doBlock(Executor& executor, opHandlerInfoType _) {
+    const auto returnArityTypes = executor.collectArities();
     const auto cont = executor.lookupLabelContFromPC();
-    executor.pushToStack(Runtime::RTLabelFrame(cont, returnArityTypes));
-  }
-  void Interpreter::doLoop(Executor& executor, std::optional<uint32_t> _) {
-    
-  }
-  void Interpreter::doIf(Executor& executor, std::optional<uint32_t> _) {
-    
-  }
-  void Interpreter::doElse(Executor& executor, std::optional<uint32_t> _) {
-    
-  }
-  void Interpreter::doEnd(Executor& executor, std::optional<uint32_t> _) {
-    // Return if no labels on the latest call.
-    const auto activIdx = executor.getTopFrameIdx(Runtime::STVariantIndex::ACTIVATION);
-    const auto labelIdx = executor.getTopFrameIdx(Runtime::STVariantIndex::LABEL);
-    if (!activIdx.has_value()) {
-      Exception::terminate(Exception::ErrorType::NO_ACTIV_ON_STACK);
-    } else {
-      if (labelIdx.has_value() && (*labelIdx > *activIdx)) {
-        // Label end.
-      } else {
-          // Exit if only one call left.
-        if (activIdx.has_value() && *activIdx == 0) {
-          executor.stopEngine();
-        } else {
-          // Call end.
-          doReturn(executor, 0);
-        }
-      }
+    if (cont.size() > 0) {
+      executor.pushToStack(Runtime::RTLabelFrame(cont.back(), returnArityTypes));
+    } else  {
+      Exception::terminate(Exception::ErrorType::ILLFORMED_STRUCTURE);
     }
   }
-  void Interpreter::doBr(Executor& executor, std::optional<uint32_t> passedDepth) {
-    const auto depth = passedDepth.value_or(executor.decodeVaruintFromPC<Runtime::relative_depth_t>());
+  void Interpreter::doLoop(Executor& executor, opHandlerInfoType _) {
+    auto* cont = executor.getPC() - 1;
+    const auto returnArityTypes = executor.collectArities();
+    executor.pushToStack(Runtime::RTLabelFrame(cont));  // No arities in MVP.
+  }
+  void Interpreter::doIf(Executor& executor, opHandlerInfoType _) {
+    const auto returnArityTypes = executor.collectArities();
+    const auto conts = executor.lookupLabelContFromPC();
+    if (conts.size() > 1) {
+      const auto v = executor.popValFromStack<Runtime::rt_i32_t>();
+      executor.pushToStack(Runtime::RTLabelFrame(conts.back(), returnArityTypes));
+      if (v == 0) {
+        executor.setPC(conts.front());
+      }
+    } else  {
+      Exception::terminate(Exception::ErrorType::ILLFORMED_STRUCTURE);
+    }
+  }
+  void Interpreter::doElse(Executor& executor, opHandlerInfoType _) {
+    doBr(executor, 0);
+  }
+  void Interpreter::doEnd(Executor& executor, opHandlerInfoType _) {
+    doBr(executor, 0);  // No forwarding PC.
+  }
+  void Interpreter::doBr(Executor& executor, opHandlerInfoType passedDepth) {
+    const auto depth = passedDepth.has_value() ? *passedDepth : executor.decodeVaruintFromPC<Runtime::relative_depth_t>();
     const auto labelsCount = executor.getLabelAboveActivFrameCount();
     if (labelsCount > depth) {  
       // Consume Label frames.
-      const auto& frameOffset = executor.refTopFrameByType(Runtime::STVariantIndex::LABEL, depth);
-      const auto& labelFrame = std::get<Runtime::RTLabelFrame>(*((*frameOffset).ptr));
-      const auto& returnArity = labelFrame.returnArity;
-      if (returnArity.size() > 0) {
-        executor.validateArity(returnArity);  // May throw.
+      auto* cont = executor.retFromFrameWithCont<Runtime::RTLabelFrame>(depth);
+      if (static_cast<OpCodes>(*(executor.getPC() - 1)) != OpCodes::End) {
+        executor.setPC(cont);
       }
-      executor.eraseFromStack(frameOffset->offset, returnArity.size());
-      executor.eraseFromFrameBitmap(Runtime::STVariantIndex::LABEL, depth + 1);
-      executor.setPC(labelFrame.cont);
     } else if (labelsCount == depth) {  
       // Consuem Activ frame.
       doReturn(executor, std::make_optional(depth));
@@ -144,30 +135,27 @@ namespace TWVM {
       Exception::terminate(Exception::ErrorType::BREAK_LEVEL_EXCEEDED);
     }
   }
-  void Interpreter::doBrIf(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doBrIf(Executor& executor, opHandlerInfoType _) {
     const auto v = executor.popValFromStack<Runtime::rt_i32_t>();
     const auto depth = executor.decodeVaruintFromPC<Runtime::relative_depth_t>();
     if (v != 0) {
       doBr(executor, std::make_optional(depth));
     }
   }
-  void Interpreter::doBrTable(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doBrTable(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doReturn(Executor& executor, std::optional<uint32_t> passedDepth) {
-    const auto depth = passedDepth.value_or(executor.getLabelAboveActivFrameCount());
-    const auto& frameOffset = executor.refTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
-    const auto& activFrame = std::get<Runtime::RTActivFrame>(*((*frameOffset).ptr));
-    const auto& returnArity = activFrame.returnArity;
-    if (returnArity->size() > 0) {
-      executor.validateArity(*returnArity);
+  void Interpreter::doReturn(Executor& executor, opHandlerInfoType labelDepth) {
+    const auto activIdx = executor.getTopFrameIdx(Runtime::STVariantIndex::ACTIVATION);
+    if (activIdx.has_value() && *activIdx == 0) {
+      executor.stopEngine();
+    } else {
+      const auto depth = labelDepth.value_or(executor.getLabelAboveActivFrameCount());
+      executor.setPC(
+        executor.retFromFrameWithCont<Runtime::RTActivFrame>(depth));
     }
-    executor.eraseFromStack(frameOffset->offset, returnArity->size());
-    executor.eraseFromFrameBitmap(Runtime::STVariantIndex::LABEL, depth);
-    executor.eraseFromFrameBitmap(Runtime::STVariantIndex::ACTIVATION, 1);
-    executor.setPC(activFrame.cont);
   }
-  void Interpreter::doCall(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doCall(Executor& executor, opHandlerInfoType _) {
     const auto idx = executor.decodeVaruintFromPC<Runtime::index_t>();
     const auto& descriptor = executor.getEngineData()->rtFuncDescriptor.at(idx);
     auto paramCount = descriptor.funcType->first.size();
@@ -193,340 +181,344 @@ namespace TWVM {
     // Redirection.
     executor.setPC(descriptor.codeEntry);
   }
-  void Interpreter::doCallIndirect(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doCallIndirect(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doDrop(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doDrop(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doSelect(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doSelect(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doLocalGet(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doLocalGet(Executor& executor, opHandlerInfoType _) {
     const auto idx = executor.decodeVaruintFromPC<Runtime::index_t>();
-    const auto& frameOffset = executor.refTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
-    if (!frameOffset.has_value()) {
-      Exception::terminate(Exception::ErrorType::EXHAUSTED_STACK_ACCESS);
+    const auto& frameOffset = executor.refTrackedTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
+    const auto& locals = std::get<Runtime::RTActivFrame>(*frameOffset.ptr).locals;
+    if (locals.size() >= idx + 1) {
+      executor.pushToStack(locals.at(idx));
     } else {
-      const auto& topActivFrame = *((*frameOffset).ptr);
-      const auto& locals = std::get<Runtime::RTActivFrame>(topActivFrame).locals;
-      if (locals.size() >= idx + 1) {
-        executor.pushToStack(locals.at(idx));
-      } else {
-        Exception::terminate(Exception::ErrorType::ILLEGAL_LOCAL_IDX);
-      }
+      Exception::terminate(Exception::ErrorType::ILLEGAL_LOCAL_IDX);
     }
   }
-  void Interpreter::doLocalSet(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doLocalSet(Executor& executor, opHandlerInfoType fromTee) {
+    const auto localIdx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    const auto& activFrameOffset = executor.refTrackedTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
+    const auto& valueFrame = executor.refTopValFrame();
+    auto& locals = std::get<Runtime::RTActivFrame>(*activFrameOffset.ptr).locals;
+    if (locals.at(localIdx).index() == valueFrame.value.index()) {
+      locals.at(localIdx) = valueFrame.value;
+    }
+    if (!fromTee.has_value()) {
+      executor.popFromStack();
+    }
+  }
+  void Interpreter::doLocalTee(Executor& executor, opHandlerInfoType _) {
+    doLocalSet(executor, INFO_BOOL_TRUE);
+  }
+  void Interpreter::doGlobalGet(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doLocalTee(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doGlobalSet(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doGlobalGet(Executor& executor, std::optional<uint32_t> _) {
-    
-  }
-  void Interpreter::doGlobalSet(Executor& executor, std::optional<uint32_t> _) {
-    
-  }
-  void Interpreter::doI32Const(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32Const(Executor& executor, opHandlerInfoType _) {
     executor.pushToStack(Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i32_t>()));
   }
-  void Interpreter::doI64Const(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64Const(Executor& executor, opHandlerInfoType _) {
     executor.pushToStack(Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i64_t>()));
   }
-  void Interpreter::doF32Const(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32Const(Executor& executor, opHandlerInfoType _) {
     executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<float>()));
   }
-  void Interpreter::doF64Const(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64Const(Executor& executor, opHandlerInfoType _) {
     executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<double>()));
   }
-  void Interpreter::doI32LoadMem(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32LoadMem(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64LoadMem(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64LoadMem(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32LoadMem(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32LoadMem(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64LoadMem(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64LoadMem(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32LoadMem8S(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32LoadMem8S(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32LoadMem8U(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32LoadMem8U(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32LoadMem16S(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32LoadMem16S(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32LoadMem16U(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32LoadMem16U(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64LoadMem8S(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64LoadMem8S(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64LoadMem8U(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64LoadMem8U(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64LoadMem16S(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64LoadMem16S(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64LoadMem16U(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64LoadMem16U(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64LoadMem32S(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64LoadMem32S(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64LoadMem32U(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64LoadMem32U(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32StoreMem(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32StoreMem(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64StoreMem(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64StoreMem(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32StoreMem(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32StoreMem(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64StoreMem(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64StoreMem(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32StoreMem8(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32StoreMem8(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32StoreMem16(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32StoreMem16(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64StoreMem8(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64StoreMem8(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64StoreMem16(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64StoreMem16(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64StoreMem32(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64StoreMem32(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doMemorySize(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doMemorySize(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doMemoryGrow(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doMemoryGrow(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32Eqz(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32Eqz(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64Eqz(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64Eqz(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32Clz(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32Clz(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32Ctz(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32Ctz(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32Popcnt(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32Popcnt(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32DivS(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32DivS(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32DivU(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32DivU(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32RemS(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32RemS(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32RemU(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32RemU(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32Shl(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32Shl(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32ShrS(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32ShrS(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32ShrU(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32ShrU(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32Rotl(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32Rotl(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32Rotr(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32Rotr(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64Clz(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64Clz(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64Ctz(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64Ctz(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64Popcnt(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64Popcnt(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64DivS(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64DivS(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64DivU(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64DivU(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64RemS(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64RemS(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64RemU(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64RemU(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64Shl(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64Shl(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64ShrS(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64ShrS(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64ShrU(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64ShrU(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64Rotl(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64Rotl(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64Rotr(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64Rotr(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32Abs(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32Abs(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32Neg(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32Neg(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32Ceil(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32Ceil(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32Floor(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32Floor(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32Trunc(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32Trunc(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32NearestInt(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32NearestInt(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32Sqrt(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32Sqrt(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32Min(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32Min(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32Max(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32Max(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32CopySign(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32CopySign(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64Abs(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64Abs(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64Neg(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64Neg(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64Ceil(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64Ceil(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64Floor(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64Floor(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64Trunc(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64Trunc(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64NearestInt(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64NearestInt(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64Sqrt(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64Sqrt(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64Min(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64Min(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64Max(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64Max(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64CopySign(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64CopySign(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32WrapI64(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32WrapI64(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32TruncF32S(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32TruncF32S(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32TruncF32U(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32TruncF32U(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32TruncF64S(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32TruncF64S(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32TruncF64U(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32TruncF64U(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64ExtendI32S(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64ExtendI32S(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64ExtendI32U(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64ExtendI32U(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64TruncF32S(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64TruncF32S(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64TruncF32U(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64TruncF32U(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64TruncF64S(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64TruncF64S(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64TruncF64U(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64TruncF64U(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32SConvertI32(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32SConvertI32(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32UConvertI32(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32UConvertI32(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32SConvertI64(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32SConvertI64(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32UConvertI64(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32UConvertI64(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32DemoteF64(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32DemoteF64(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64SConvertI32(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64SConvertI32(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64UConvertI32(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64UConvertI32(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64SConvertI64(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64SConvertI64(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64UConvertI64(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64UConvertI64(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64PromoteF32(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64PromoteF32(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI32ReinterpretF32(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI32ReinterpretF32(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doI64ReinterpretF64(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doI64ReinterpretF64(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF32ReinterpretI32(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF32ReinterpretI32(Executor& executor, opHandlerInfoType _) {
     
   }
-  void Interpreter::doF64ReinterpretI64(Executor& executor, std::optional<uint32_t> _) {
+  void Interpreter::doF64ReinterpretI64(Executor& executor, opHandlerInfoType _) {
     
   }
 }

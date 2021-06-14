@@ -31,21 +31,10 @@ namespace TWVM {
     std::optional<Runtime::relative_depth_t> brIfDepth;
     std::vector<std::vector<uint32_t>> frameBitmap = { {}, {}, {} };
     size_t labelAboveActivFrameCount = 0;
-    void crawlOpCodes(size_t);
    public:
     Executor(uint8_t* pc, shared_module_runtime_t rtIns) : pc(pc), rtIns(rtIns) {}
     const auto getCurrentStatus() const { return status; }
-    const auto stopEngine() { 
-      status = EngineStatus::STOPPED;
-      // Check return arity.
-      const auto& entryFrameOffset = refTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
-      const auto& entryFrame = std::get<Runtime::RTActivFrame>(*((*entryFrameOffset).ptr));
-      const auto& returnArity = entryFrame.returnArity;
-      if (returnArity->size() > 0) {
-        const auto v = std::get<Runtime::RTValueFrame>(rtIns->stack.back()).value;
-        std::visit([](auto&& arg){ std::cout << arg; }, v);
-      }
-    }
+    const void stopEngine();
     auto getEngineData() { return rtIns; }
     std::optional<uint32_t> getTopFrameIdx(Runtime::STVariantIndex, uint32_t = 0);
     void setInFrameBitmap(Runtime::STVariantIndex type, uint32_t idx) {
@@ -55,13 +44,21 @@ namespace TWVM {
       auto& v = frameBitmap.at(Util::asInteger(type));
       v.erase(v.end() - n, v.end());
     }
-    std::optional<FrameOffset> refTopFrameByType(Runtime::STVariantIndex, uint32_t = 0);
+    Executor::FrameOffset refTrackedTopFrameByType(Runtime::STVariantIndex, uint32_t = 0);
+    auto& refTopValFrame() {
+      // Only getting from top.
+      if (rtIns->stack.size() > 0 && static_cast<Runtime::STVariantIndex>(rtIns->stack.back().index()) == Runtime::STVariantIndex::VALUE) {
+        return std::get<Runtime::RTValueFrame>(rtIns->stack.back());
+      } else {
+        Exception::terminate(Exception::ErrorType::EXHAUSTED_STACK_ACCESS);
+      }
+    }
     auto getLabelAboveActivFrameCount() { return labelAboveActivFrameCount; }
     // PC-related methods.
     auto getPC() { return pc; }
     void setPC(uint8_t* addr) { pc = addr; }
     auto movPC(size_t steps = 1) { pc += steps; return pc; }
-    uint8_t* lookupLabelContFromPC();
+    std::vector<uint8_t*> lookupLabelContFromPC();
     auto decodeByteFromPC() {
       return *reinterpret_cast<uint8_t*>(pc++);
     }
@@ -86,7 +83,7 @@ namespace TWVM {
       try {
         return std::get<T>(
           rtIns->stack.at(rtIns->stack.size() - 1 - pos));
-      } catch(const std::exception& e) {
+      } catch (const std::exception& e) {
         Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
       }
     }
@@ -114,15 +111,52 @@ namespace TWVM {
           std::get<Runtime::RTValueFrame>(rtIns->stack.back()).value);
         rtIns->stack.pop_back();
         return v;
-      } catch(const std::exception& e) {
+      } catch (const std::exception& e) {
         Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
       }
     }
     void validateArity(const Module::type_seq_t& arity) {
-      for (auto i = 0; i < arity.size(); ++i) {
-        if (((rtIns->stack.rbegin() + i)->index() + arity.at(i)) != MAGIC_VAR_INDEX_PLUS_TYPE) {
-          Exception::terminate(Exception::ErrorType::ARITY_TYPE_MISMATCH);
+      if (arity.size() > 0) {
+        for (auto i = 0; i < arity.size(); ++i) {
+          if (((rtIns->stack.rbegin() + i)->index() + arity.at(i)) != MAGIC_VAR_INDEX_PLUS_TYPE) {
+            Exception::terminate(Exception::ErrorType::ARITY_TYPE_MISMATCH);
+          }
         }
+      }
+    }
+    auto collectArities() {
+      /* Using `std::vector` here for future use. */
+      auto returnArityTypes = std::vector<uint8_t>{};
+      const auto returnTypeByte = decodeByteFromPC();  // at most one.
+      if (static_cast<LangTypes>(returnTypeByte) != LangTypes::Void) {
+        returnArityTypes.push_back(returnTypeByte);
+      }
+      return returnArityTypes;
+    }
+    template<typename T>
+    uint8_t* retFromFrameWithCont(uint32_t depth = 0) {
+      if constexpr (std::is_same_v<T, Runtime::RTActivFrame>) {
+        const auto& frameOffset = refTrackedTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
+        const auto& frame = std::get<T>(*frameOffset.ptr);
+        const auto& returnArity = frame.returnArity;
+        const auto cont = frame.cont;
+        validateArity(*returnArity);
+        eraseFromStack(frameOffset.offset, returnArity->size());
+        eraseFromFrameBitmap(Runtime::STVariantIndex::LABEL, depth);
+        eraseFromFrameBitmap(Runtime::STVariantIndex::ACTIVATION, 1);
+        labelAboveActivFrameCount -= depth;
+        return cont;
+      }
+      if constexpr (std::is_same_v<T, Runtime::RTLabelFrame>) {
+        const auto& frameOffset = refTrackedTopFrameByType(Runtime::STVariantIndex::LABEL, depth);  // Idx starts from zero.
+        const auto& frame = std::get<T>(*frameOffset.ptr);
+        const auto& returnArity = frame.returnArity;
+        const auto cont = frame.cont;
+        validateArity(returnArity);  // May throw.
+        eraseFromStack(frameOffset.offset, returnArity.size());
+        eraseFromFrameBitmap(Runtime::STVariantIndex::LABEL, depth + 1);  // Erase count.
+        labelAboveActivFrameCount -= (depth + 1);
+        return cont;
       }
     }
     // "Feed two, throw up one".

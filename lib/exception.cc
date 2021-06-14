@@ -22,4 +22,5 @@ std::unordered_map<Exception::ErrorType, std::string> Exception::errorMsg = {
   { ErrorType::BREAK_LEVEL_EXCEEDED, "Break level exceeded. " },  
   { ErrorType::ARITY_TYPE_MISMATCH, "Arity type(s) mismatch. " },  
   { ErrorType::NO_ACTIV_ON_STACK, "No call frame on the stack. " },  
+  { ErrorType::ILLFORMED_STRUCTURE, "Ill-formed control structure. " },  
 };

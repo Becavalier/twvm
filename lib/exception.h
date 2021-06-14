@@ -32,6 +32,7 @@ class Exception {
     BREAK_LEVEL_EXCEEDED,
     ARITY_TYPE_MISMATCH,
     NO_ACTIV_ON_STACK,
+    ILLFORMED_STRUCTURE,
   };
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {

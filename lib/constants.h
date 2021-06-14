@@ -11,6 +11,8 @@ constexpr uint8_t EXT_KIND_FUNC = 0x0;
 constexpr uint8_t EXT_KIND_TAB = 0x1;
 constexpr uint8_t EXT_KIND_MEM = 0x2;
 constexpr uint8_t EXT_KIND_GLB = 0x3;
+constexpr uint32_t INFO_BOOL_TRUE = 1;
+constexpr uint32_t INFO_BOOL_FALSE = 0;
 
 /* Magic Num */
 constexpr uint8_t MAGIC_OPCODE_PLUS_TYPE = 0xc0;

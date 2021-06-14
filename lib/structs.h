@@ -173,7 +173,7 @@ namespace TWVM {
       SET_STRUCT_MOVE_ONLY(RTLabelFrame)
       uint8_t* cont;
       Module::type_seq_t returnArity;
-      RTLabelFrame(uint8_t* cont, const Module::type_seq_t& returnArity)
+      RTLabelFrame(uint8_t* cont, const Module::type_seq_t& returnArity = {})
         : cont(cont), returnArity(returnArity) {}
     };
     struct RTActivFrame {
