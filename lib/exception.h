@@ -33,6 +33,12 @@ class Exception {
     ARITY_TYPE_MISMATCH,
     NO_ACTIV_ON_STACK,
     ILLFORMED_STRUCTURE,
+    NO_AVAILABLE_TABLES_EXIST,
+    FUNC_TYPE_ACCESS_OOB,
+    GLOBAL_ACCESS_OOB,
+    FUNC_TYPE_MISMATCH,
+    IMMUTABLE_GLOBAL_CHANGED,
+    NO_AVAILABLE_MEM,
   };
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {

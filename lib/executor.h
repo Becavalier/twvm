@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <variant>
 #include <functional>
+#include <cstdlib>
 #include "lib/structs.h"
 #include "lib/exception.h"
 #include "lib/decoder.h"
@@ -22,6 +23,10 @@ namespace TWVM {
     };
     struct FrameOffset {
       Runtime::stack_frame_t* ptr;
+      uint32_t offset;
+    };
+    struct MemImme {
+      uint32_t flags;
       uint32_t offset;
     };
     uint8_t* pc;
@@ -45,14 +50,6 @@ namespace TWVM {
       v.erase(v.end() - n, v.end());
     }
     Executor::FrameOffset refTrackedTopFrameByType(Runtime::STVariantIndex, uint32_t = 0);
-    auto& refTopValFrame() {
-      // Only getting from top.
-      if (rtIns->stack.size() > 0 && static_cast<Runtime::STVariantIndex>(rtIns->stack.back().index()) == Runtime::STVariantIndex::VALUE) {
-        return std::get<Runtime::RTValueFrame>(rtIns->stack.back());
-      } else {
-        Exception::terminate(Exception::ErrorType::EXHAUSTED_STACK_ACCESS);
-      }
-    }
     auto getLabelAboveActivFrameCount() { return labelAboveActivFrameCount; }
     // PC-related methods.
     auto getPC() { return pc; }
@@ -79,7 +76,7 @@ namespace TWVM {
     }
     // Stack-related methods.
     template<typename T>
-    auto& retrieveFromStack(size_t pos = 0) {
+    auto& refFrameFromStack(size_t pos = 0) {
       try {
         return std::get<T>(
           rtIns->stack.at(rtIns->stack.size() - 1 - pos));
@@ -100,12 +97,15 @@ namespace TWVM {
         setInFrameBitmap(Runtime::STVariantIndex::LABEL, updateIdx);
       }
     }
-    void eraseFromStack(uint32_t startIdx, uint32_t posToEnd) {
-      rtIns->stack.erase(rtIns->stack.begin() + startIdx, rtIns->stack.end() - posToEnd);
+    void eraseRangeFromStack(uint32_t startIdx, uint32_t posToTop) {
+      rtIns->stack.erase(rtIns->stack.begin() + startIdx, rtIns->stack.end() - posToTop);
+    }
+    void eraseFrameFromStack(uint32_t IdxFromTop) {
+      rtIns->stack.erase(rtIns->stack.end() - IdxFromTop - 1, rtIns->stack.end() - IdxFromTop);
     }
     void popFromStack() { rtIns->stack.pop_back(); }
     template<typename T>
-    auto popValFromStack() {
+    auto popAndRetValOfRTType() {
       try {
         const T v = std::get<T>(
           std::get<Runtime::RTValueFrame>(rtIns->stack.back()).value);
@@ -122,6 +122,13 @@ namespace TWVM {
             Exception::terminate(Exception::ErrorType::ARITY_TYPE_MISMATCH);
           }
         }
+      }
+    }
+    void validateTypeWithFuncIdx(const Module::func_type_t& type, Runtime::index_t funcIdx) {
+      const auto& modFuncTypes = rtIns->module->funcTypes;
+      const auto& funcType = modFuncTypes.at(rtIns->module->funcTypesIndices.at(funcIdx));
+      if (funcType != type) {
+        Exception::terminate(Exception::ErrorType::FUNC_TYPE_MISMATCH);
       }
     }
     auto collectArities() {
@@ -141,7 +148,7 @@ namespace TWVM {
         const auto& returnArity = frame.returnArity;
         const auto cont = frame.cont;
         validateArity(*returnArity);
-        eraseFromStack(frameOffset.offset, returnArity->size());
+        eraseRangeFromStack(frameOffset.offset, returnArity->size());
         eraseFromFrameBitmap(Runtime::STVariantIndex::LABEL, depth);
         eraseFromFrameBitmap(Runtime::STVariantIndex::ACTIVATION, 1);
         labelAboveActivFrameCount -= depth;
@@ -153,25 +160,62 @@ namespace TWVM {
         const auto& returnArity = frame.returnArity;
         const auto cont = frame.cont;
         validateArity(returnArity);  // May throw.
-        eraseFromStack(frameOffset.offset, returnArity.size());
+        eraseRangeFromStack(frameOffset.offset, returnArity.size());
         eraseFromFrameBitmap(Runtime::STVariantIndex::LABEL, depth + 1);  // Erase count.
         labelAboveActivFrameCount -= (depth + 1);
         return cont;
       }
     }
+    auto parseBrTableInfo() {
+      std::vector<uint32_t> brTableEntries = {};
+      const auto targetCount = decodeVaruintFromPC<Runtime::rt_u32_t>();
+      for (auto i = 0; i <= targetCount; ++i) {
+        brTableEntries.push_back(decodeVaruintFromPC<Runtime::rt_u32_t>());  // entries.
+      }
+      return brTableEntries;
+    }
+    MemImme parseMemImmeInfo() {
+      const auto flags = decodeVaruintFromPC<Runtime::rt_u32_t>();
+      const auto offset = decodeVaruintFromPC<Runtime::rt_u32_t>();
+      return { flags, offset };
+    }
+    size_t resizeMem(int32_t pages, uint32_t memIdx = 0) {
+      if (rtIns->rtMems.size() > 0) {
+        auto& rtMem = rtIns->rtMems.at(memIdx);
+        const auto totalPages = rtMem.size + pages;
+        if (totalPages <= WASM_MAX_PAGES && (rtMem.maximumPages == 0 || totalPages <= rtMem.maximumPages)) {
+          const size_t totalBytes = totalPages * WASM_PAGE_SIZE;
+          const auto ptr = static_cast<uint8_t*>(std::realloc(rtMem.ptr, totalBytes));
+          if (ptr) {
+            const auto prevPages = rtMem.size;
+            const auto prevBytes = prevPages * WASM_PAGE_SIZE;
+            std::memset(ptr + prevBytes, 0, totalBytes - prevBytes);
+            rtMem.ptr = ptr;
+            rtMem.size = totalPages;
+            return prevPages;
+          } else {
+            return -1;
+          }
+        } else {
+          return -1;
+        }
+      } else {
+        return -1;
+      }
+    }
     // "Feed two, throw up one".
     template<typename T, typename U>
     void opHelperFTTO(std::function<U(T, T)> handler) {
-        try {
-          auto& x = std::get<Runtime::RTValueFrame>(rtIns->stack.back());  // "c2".
-          auto& y = std::get<Runtime::RTValueFrame>(rtIns->stack.at(rtIns->stack.size() - 2));  // "c1".
-          auto ret = handler(std::get<T>(y.value), std::get<T>(x.value));
-          rtIns->stack.pop_back();  // Keep "c1" on the stage.
-          y.value = ret;
-        } catch (const std::exception& e) {
-          Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
-        }
+      try {
+        auto& x = std::get<Runtime::RTValueFrame>(rtIns->stack.back());  // "c2".
+        auto& y = std::get<Runtime::RTValueFrame>(rtIns->stack.at(rtIns->stack.size() - 2));  // "c1".
+        auto ret = handler(std::get<T>(y.value), std::get<T>(x.value));
+        rtIns->stack.pop_back();  // Keep "c1" on the stage.
+        y.value = ret;
+      } catch (const std::exception& e) {
+        Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
       }
+    }
     static void execute(shared_module_runtime_t, std::optional<uint32_t> = {});
   };
 }

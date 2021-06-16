@@ -12,8 +12,7 @@
 
 namespace TWVM {
   Runtime::runtime_value_t Instantiator::evalInitExpr(uint8_t valType, std::vector<uint8_t> &initExprOps) {
-    // In the MVP, to keep things simple, only four constant operators and `get_local` available, -
-    // and `get_local` can only refer to an imported global.
+    // In the MVP, to keep things simple, only four constant operators and `get_local` available.
     const auto valTypeT = static_cast<ValueTypes>(valType);
     if (
       valTypeT >= ValueTypes::F64 && 
@@ -45,9 +44,9 @@ namespace TWVM {
 
     /* func */
     for (auto i = 0; i < mod->funcDefs.size(); ++i) {
-      const auto idx = mod->funcTypesIndices.at(i);
-      const auto& funcType = mod->funcTypes.at(idx);
-      const auto codeEntry = mod->funcDefs.at(idx).body.data();
+      const auto typeIdx = mod->funcTypesIndices.at(i);
+      const auto& funcType = mod->funcTypes.at(typeIdx);
+      const auto codeEntry = mod->funcDefs.at(i).body.data();
       // Wasm types -> RT types (value).
       executableIns->rtFuncDescriptor.emplace_back(&funcType, codeEntry);
       expandWasmTypesToRTValues(
@@ -59,12 +58,12 @@ namespace TWVM {
 
     /* mem */
     for (auto &i : mod->mems) {
-      if (i.memType.maximum == 0 ||
-        (i.memType.maximum > 0 && i.memType.initial <= i.memType.maximum)) {
-        const auto size = i.memType.initial * WASM_PAGE_SIZE;
+      const auto memType = i.memType;
+      if (memType.maximum == 0 ||
+        (memType.maximum > 0 && memType.initial <= memType.maximum)) {
+        const auto size = memType.initial * WASM_PAGE_SIZE;
         executableIns->rtMems.emplace_back( 
-          size, static_cast<uint8_t*>(std::calloc(size, sizeof(uint8_t)))
-        );
+          memType.initial, static_cast<uint8_t*>(std::calloc(size, sizeof(uint8_t))), memType.maximum);
       } else {
         Exception::terminate(Exception::ErrorType::MEM_EXCEED_MAX);
       }
@@ -77,7 +76,7 @@ namespace TWVM {
         Exception::terminate(Exception::ErrorType::MEM_ACCESS_OOB);
       }
       const auto& memStart = executableIns->rtMems.at(i.memIdx);
-      if (std::get<int32_t>(offset) + i.dataBytes.size() < memStart.size) {
+      if (std::get<int32_t>(offset) + i.dataBytes.size() < memStart.size * WASM_PAGE_SIZE) {
         std::memcpy(
           memStart.ptr + std::get<int32_t>(offset), 
           i.dataBytes.data(), 
@@ -106,7 +105,7 @@ namespace TWVM {
       }
       auto& tblStart = executableIns->rtTables.at(i.tblIdx);
       int32_t offsetIdx = std::get<int32_t>(offset);
-      if (i.funcIndices.size() + offsetIdx < tblStart.size()) {
+      if (i.funcIndices.size() + offsetIdx <= tblStart.size()) {
         std::for_each(
           i.funcIndices.begin(), 
           i.funcIndices.end(), 

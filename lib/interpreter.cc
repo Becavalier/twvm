@@ -7,6 +7,33 @@
 #include "lib/exception.h"
 #include "lib/opcodes.h"
 
+#define ITERATE_LOAD_MEMOP(V) \
+  V(I32LoadMem, rt_i32_t, Runtime::rt_i32_t) \
+  V(I64LoadMem, rt_i64_t, Runtime::rt_i64_t) \
+  V(F32LoadMem, rt_f32_t, Runtime::rt_f32_t) \
+  V(F64LoadMem, rt_f64_t, Runtime::rt_f64_t) \
+  V(I32LoadMem8S, rt_i32_t, int8_t) \
+  V(I32LoadMem8U, rt_i32_t, uint8_t) \
+  V(I32LoadMem16S, rt_i32_t, int16_t) \
+  V(I32LoadMem16U, rt_i32_t, uint16_t) \
+  V(I64LoadMem8S, rt_i64_t, int8_t) \
+  V(I64LoadMem8U, rt_i64_t, uint8_t) \
+  V(I64LoadMem16S, rt_i64_t, int16_t) \
+  V(I64LoadMem16U, rt_i64_t, uint16_t) \
+  V(I64LoadMem32S, rt_i64_t, int32_t) \
+  V(I64LoadMem32U, rt_i64_t, uint32_t)
+
+#define ITERATE_STORE_MEMOP(V) \
+  V(I32StoreMem, rt_i32_t, Runtime::rt_i32_t) \
+  V(I64StoreMem, rt_i64_t, Runtime::rt_i64_t) \
+  V(F32StoreMem, rt_f32_t, Runtime::rt_f32_t) \
+  V(F64StoreMem, rt_f64_t, Runtime::rt_f64_t) \
+  V(I32StoreMem8, rt_i32_t, uint8_t) \
+  V(I32StoreMem16, rt_i32_t, uint16_t) \
+  V(I64StoreMem8, rt_i64_t, uint8_t) \
+  V(I64StoreMem16, rt_i64_t, uint16_t) \
+  V(I64StoreMem32, rt_i64_t, uint32_t)
+
 #define ITERATE_SIMPLE_BINOP(V) \
   V(I32Mul, rt_i32_t, rt_i32_t, rt_i32_t, *) \
   V(I32Add, rt_i32_t, rt_i32_t, rt_i32_t, +) \
@@ -74,6 +101,32 @@
       return static_cast<CONCAT_PREFIX(OP_CAST_TYPE)>(x) OP static_cast<CONCAT_PREFIX(OP_CAST_TYPE)>(y); \
     }); \
   }
+#define DECLARE_MEM_LOAD_OP_METHOD(NAME, T, C) \
+  void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
+    const auto& defaultMem = executor.getEngineData()->rtMems.front(); \
+    const auto [flags, offset] = executor.parseMemImmeInfo(); \
+    const auto ea = executor.popAndRetValOfRTType<Runtime::rt_i32_t>() + offset; \
+    const auto n = sizeof(CONCAT_PREFIX(T)); \
+    if (ea + n / 8 <= defaultMem.size) { \
+      executor.pushToStack( \
+        Runtime::RTValueFrame(static_cast<CONCAT_PREFIX(T)>(*reinterpret_cast<C*>(defaultMem.ptr + ea)))); \
+    } else { \
+      Exception::terminate(Exception::ErrorType::MEM_ACCESS_OOB); \
+    } \
+  }
+#define DECLARE_MEM_STORE_OP_METHOD(NAME, T, C) \
+  void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
+    const auto& defaultMem = executor.getEngineData()->rtMems.front(); \
+    const auto [flags, offset] = executor.parseMemImmeInfo(); \
+    const auto c = executor.popAndRetValOfRTType<Runtime::rt_i32_t>(); \
+    const auto ea = executor.popAndRetValOfRTType<Runtime::rt_i32_t>() + offset; \
+    const auto n = sizeof(CONCAT_PREFIX(T)); \
+    if (ea + n / 8 <= defaultMem.size) { \
+      *reinterpret_cast<C*>(defaultMem.ptr + ea) = static_cast<C>(c); \
+    } else { \
+      Exception::terminate(Exception::ErrorType::MEM_ACCESS_OOB); \
+    } \
+  }
   
 namespace TWVM {
   std::array<Interpreter::opHandlerProto, sizeof(uint8_t) * 1 << 8> Interpreter::opTokenHandlers = {
@@ -81,6 +134,8 @@ namespace TWVM {
   };
 
   ITERATE_SIMPLE_BINOP(DECLARE_BASIC_BINOP_METHOD)
+  ITERATE_LOAD_MEMOP(DECLARE_MEM_LOAD_OP_METHOD)
+  ITERATE_STORE_MEMOP(DECLARE_MEM_STORE_OP_METHOD)
 
   void Interpreter::doUnreachable(Executor& executor, opHandlerInfoType _) {
     Exception::terminate(Exception::ErrorType::UNREACHABLE);
@@ -104,7 +159,7 @@ namespace TWVM {
     const auto returnArityTypes = executor.collectArities();
     const auto conts = executor.lookupLabelContFromPC();
     if (conts.size() > 1) {
-      const auto v = executor.popValFromStack<Runtime::rt_i32_t>();
+      const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
       executor.pushToStack(Runtime::RTLabelFrame(conts.back(), returnArityTypes));
       if (v == 0) {
         executor.setPC(conts.front());
@@ -130,20 +185,26 @@ namespace TWVM {
       }
     } else if (labelsCount == depth) {  
       // Consuem Activ frame.
-      doReturn(executor, std::make_optional(depth));
+      doReturn(executor, depth);
     } else {
       Exception::terminate(Exception::ErrorType::BREAK_LEVEL_EXCEEDED);
     }
   }
   void Interpreter::doBrIf(Executor& executor, opHandlerInfoType _) {
-    const auto v = executor.popValFromStack<Runtime::rt_i32_t>();
+    const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
     const auto depth = executor.decodeVaruintFromPC<Runtime::relative_depth_t>();
     if (v != 0) {
-      doBr(executor, std::make_optional(depth));
+      doBr(executor, depth);
     }
   }
   void Interpreter::doBrTable(Executor& executor, opHandlerInfoType _) {
-    
+    const auto entries = executor.parseBrTableInfo();
+    const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+    if (v < entries.size()) {
+      doBr(executor, entries.at(v));
+    } else {
+      doBr(executor, entries.back());
+    }
   }
   void Interpreter::doReturn(Executor& executor, opHandlerInfoType labelDepth) {
     const auto activIdx = executor.getTopFrameIdx(Runtime::STVariantIndex::ACTIVATION);
@@ -155,15 +216,15 @@ namespace TWVM {
         executor.retFromFrameWithCont<Runtime::RTActivFrame>(depth));
     }
   }
-  void Interpreter::doCall(Executor& executor, opHandlerInfoType _) {
-    const auto idx = executor.decodeVaruintFromPC<Runtime::index_t>();
+  void Interpreter::doCall(Executor& executor, opHandlerInfoType passedFuncIdx) {
+    const auto idx = passedFuncIdx.has_value() ? *passedFuncIdx : executor.decodeVaruintFromPC<Runtime::index_t>();
     const auto& descriptor = executor.getEngineData()->rtFuncDescriptor.at(idx);
     auto paramCount = descriptor.funcType->first.size();
     auto rtLocals = descriptor.localsDefault;  // Copied.
     // Set up func parameters.
     if (paramCount > 0) {
       for (auto i = 0; i < paramCount; ++i) {
-        const auto& vf = executor.retrieveFromStack<Runtime::RTValueFrame>();
+        const auto& vf = executor.refFrameFromStack<Runtime::RTValueFrame>();
         if (vf.value.index() == rtLocals.at(i).index()) {
           rtLocals.at(i) = vf.value;
           executor.popFromStack();
@@ -182,13 +243,37 @@ namespace TWVM {
     executor.setPC(descriptor.codeEntry);
   }
   void Interpreter::doCallIndirect(Executor& executor, opHandlerInfoType _) {
-    
+    const auto& engineData = executor.getEngineData(); 
+    const auto& defaultTable = engineData->rtTables.front();  // Restricted to only 1 table in MVP. 
+    const auto sigIdx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    [[maybe_unused]] const auto tblIdx = executor.decodeByteFromPC();  // reserved.
+    const auto& funcTypesRef = engineData->module->funcTypes;
+    if (funcTypesRef.size() > sigIdx) {
+      const auto& expectedType = funcTypesRef.at(sigIdx);
+      const auto funcIdx = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+      if (defaultTable.size() > funcIdx) {
+        executor.validateTypeWithFuncIdx(expectedType, funcIdx);  // May throw.
+        doCall(executor, funcIdx);
+      } else {
+        Exception::terminate(Exception::ErrorType::NO_AVAILABLE_TABLES_EXIST);
+      }
+    } else {
+      Exception::terminate(Exception::ErrorType::FUNC_TYPE_ACCESS_OOB);
+    }
   }
   void Interpreter::doDrop(Executor& executor, opHandlerInfoType _) {
-    
+    executor.refFrameFromStack<Runtime::RTValueFrame>();
+    executor.popFromStack();
   }
   void Interpreter::doSelect(Executor& executor, opHandlerInfoType _) {
-    
+    const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+    const auto& vy = executor.refFrameFromStack<Runtime::RTValueFrame>();  // Top.
+    const auto& vx = executor.refFrameFromStack<Runtime::RTValueFrame>(1);
+    if (vy.value.index() == vx.value.index()) {
+      executor.eraseFrameFromStack(v == 0 ? 1 : 0);
+    } else {
+      Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
+    }
   }
   void Interpreter::doLocalGet(Executor& executor, opHandlerInfoType _) {
     const auto idx = executor.decodeVaruintFromPC<Runtime::index_t>();
@@ -203,7 +288,7 @@ namespace TWVM {
   void Interpreter::doLocalSet(Executor& executor, opHandlerInfoType fromTee) {
     const auto localIdx = executor.decodeVaruintFromPC<Runtime::index_t>();
     const auto& activFrameOffset = executor.refTrackedTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
-    const auto& valueFrame = executor.refTopValFrame();
+    const auto& valueFrame = executor.refFrameFromStack<Runtime::RTValueFrame>();
     auto& locals = std::get<Runtime::RTActivFrame>(*activFrameOffset.ptr).locals;
     if (locals.at(localIdx).index() == valueFrame.value.index()) {
       locals.at(localIdx) = valueFrame.value;
@@ -216,10 +301,30 @@ namespace TWVM {
     doLocalSet(executor, INFO_BOOL_TRUE);
   }
   void Interpreter::doGlobalGet(Executor& executor, opHandlerInfoType _) {
-    
+    const auto idx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    auto& rtGlobals = executor.getEngineData()->rtGlobals;
+    if (rtGlobals.size() > idx) {
+      executor.pushToStack(Runtime::RTValueFrame(rtGlobals.at(idx)));
+    } else {
+      Exception::terminate(Exception::ErrorType::GLOBAL_ACCESS_OOB);
+    }
   }
   void Interpreter::doGlobalSet(Executor& executor, opHandlerInfoType _) {
-    
+    const auto idx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    const auto& engineData = executor.getEngineData(); 
+    auto& rtGlobals = engineData->rtGlobals;
+    if (rtGlobals.size() > idx) {
+      const auto mutability = engineData->module->globals.at(idx).globalType.mutability;
+      const auto& v = executor.refFrameFromStack<Runtime::RTValueFrame>();
+      if (mutability && v.value.index() == rtGlobals.at(idx).index()) {
+        rtGlobals.at(idx) = v.value;
+        executor.popFromStack();
+      } else {
+        Exception::terminate(Exception::ErrorType::IMMUTABLE_GLOBAL_CHANGED);
+      }
+    } else {
+      Exception::terminate(Exception::ErrorType::GLOBAL_ACCESS_OOB);
+    }
   }
   void Interpreter::doI32Const(Executor& executor, opHandlerInfoType _) {
     executor.pushToStack(Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i32_t>()));
@@ -233,80 +338,31 @@ namespace TWVM {
   void Interpreter::doF64Const(Executor& executor, opHandlerInfoType _) {
     executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<double>()));
   }
-  void Interpreter::doI32LoadMem(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64LoadMem(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doF32LoadMem(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doF64LoadMem(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI32LoadMem8S(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI32LoadMem8U(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI32LoadMem16S(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI32LoadMem16U(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64LoadMem8S(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64LoadMem8U(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64LoadMem16S(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64LoadMem16U(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64LoadMem32S(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64LoadMem32U(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI32StoreMem(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64StoreMem(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doF32StoreMem(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doF64StoreMem(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI32StoreMem8(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI32StoreMem16(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64StoreMem8(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64StoreMem16(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64StoreMem32(Executor& executor, opHandlerInfoType _) {
-    
-  }
   void Interpreter::doMemorySize(Executor& executor, opHandlerInfoType _) {
-    
+    const auto& rtMems = executor.getEngineData()->rtMems;
+    [[maybe_unused]] const auto reserved = executor.decodeByteFromPC();
+    if (rtMems.size() > 0) {
+      const auto& defaultMem = rtMems.front();
+      executor.pushToStack(
+        Runtime::RTValueFrame(
+          static_cast<Runtime::rt_i32_t>(defaultMem.size)));
+    } else {
+      Exception::terminate(Exception::ErrorType::NO_AVAILABLE_MEM);
+    }
   }
   void Interpreter::doMemoryGrow(Executor& executor, opHandlerInfoType _) {
-    
+    const auto& rtMems = executor.getEngineData()->rtMems;
+    [[maybe_unused]] const auto reserved = executor.decodeByteFromPC();
+    if (rtMems.size() > 0) {
+      const auto& defaultMem = rtMems.front();
+      const auto sz = defaultMem.size / WASM_PAGE_SIZE;
+      const auto n = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+      const auto size = n + sz;
+      executor.pushToStack(
+        Runtime::RTValueFrame(static_cast<Runtime::rt_i32_t>(executor.resizeMem(size))));
+    } else {
+      Exception::terminate(Exception::ErrorType::NO_AVAILABLE_MEM);
+    }
   }
   void Interpreter::doI32Eqz(Executor& executor, opHandlerInfoType _) {
     

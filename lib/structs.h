@@ -186,9 +186,11 @@ namespace TWVM {
     };
     struct RTMemHolder {
       SET_STRUCT_MOVE_ONLY(RTMemHolder)
-      size_t size;
+      size_t size;  // Pages.
       uint8_t* ptr;
-      RTMemHolder(size_t size, uint8_t* ptr) : size(size), ptr(ptr) {}
+      uint32_t maximumPages;
+      RTMemHolder(size_t size, uint8_t* ptr, uint32_t maximumPages) 
+        : size(size), ptr(ptr), maximumPages(maximumPages) {}
     };
     shared_module_t module;
     std::vector<RTMemHolder> rtMems;
