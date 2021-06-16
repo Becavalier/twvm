@@ -29,4 +29,7 @@ std::unordered_map<Exception::ErrorType, std::string> Exception::errorMsg = {
   { ErrorType::GLOBAL_ACCESS_OOB, "Accessed global out of bound. " },  
   { ErrorType::IMMUTABLE_GLOBAL_CHANGED, "Immutable global cannot be changed. " },  
   { ErrorType::NO_AVAILABLE_MEM, "No available memory instance exists. " },  
+  { ErrorType::DIVISION_BY_ZERO, "Division by zero. " },  
+  { ErrorType::VAL_NOT_REPRESENTABLE, "Result is not representable. " },  
+  { ErrorType::FLOAT_UNREPRESENTABLE, "Floating point number unrepresentable in integer range. " },  
 };

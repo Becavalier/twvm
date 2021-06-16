@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <stdexcept>
+#include <cstdlib>
 
 class Exception {
  public:
@@ -39,6 +40,9 @@ class Exception {
     FUNC_TYPE_MISMATCH,
     IMMUTABLE_GLOBAL_CHANGED,
     NO_AVAILABLE_MEM,
+    DIVISION_BY_ZERO,
+    VAL_NOT_REPRESENTABLE,
+    FLOAT_UNREPRESENTABLE,
   };
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {
@@ -50,7 +54,8 @@ class Exception {
       ss << "Before byte index: " << pos  << '.';
     }  
     ss << std::endl;
-    throw std::runtime_error(ss.str());
+    std::cerr << ss.str() << std::endl;
+    std::exit(EXIT_FAILURE);
   }
  private:
   static std::unordered_map<ErrorType, std::string> errorMsg;

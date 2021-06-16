@@ -203,15 +203,26 @@ namespace TWVM {
         return -1;
       }
     }
-    // "Feed two, throw up one".
+    // (T, T) -> U.
     template<typename T, typename U>
-    void opHelperFTTO(std::function<U(T, T)> handler) {
+    void opHandlerFTRO(std::function<U(T, T)> handler) {
       try {
         auto& x = std::get<Runtime::RTValueFrame>(rtIns->stack.back());  // "c2".
         auto& y = std::get<Runtime::RTValueFrame>(rtIns->stack.at(rtIns->stack.size() - 2));  // "c1".
         auto ret = handler(std::get<T>(y.value), std::get<T>(x.value));
         rtIns->stack.pop_back();  // Keep "c1" on the stage.
         y.value = ret;
+      } catch (const std::exception& e) {
+        Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
+      }
+    }
+    // (T) -> U.
+    template<typename T, typename U>
+    void opHandlerFORO(std::function<U(T)> handler) {
+      try {
+        auto& v = std::get<Runtime::RTValueFrame>(rtIns->stack.back());
+        auto ret = handler(std::get<T>(v.value));
+        v.value = ret;
       } catch (const std::exception& e) {
         Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
       }

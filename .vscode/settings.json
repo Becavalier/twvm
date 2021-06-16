@@ -79,7 +79,8 @@
     "unordered_set": "cpp",
     "__memory": "cpp",
     "any": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "cfenv": "cpp"
   },
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
 }
