@@ -3,7 +3,7 @@
 #define LIB_INSTANTIATOR_H_
 
 #include <type_traits>
-#include "lib/structs.h"
+#include "lib/include/structs.hh"
 
 namespace TWVM {
   class Instantiator {

@@ -10,7 +10,7 @@
       "request": "launch",
       // Resolved by CMake Tools:
       "program": "${command:cmake.launchTargetPath}",
-      "args": ["${workspaceFolder}/tests/modules/i32.reinterpret_f32.wasm"],
+      "args": ["${workspaceFolder}/tests/modules/i32.reinterpret_f32.wasm", "-h"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [

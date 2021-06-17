@@ -3,12 +3,12 @@
 #include <iostream>
 #include <thread>
 #include <utility>
-#include "lib/constants.h"
-#include "lib/loader.h"
-#include "lib/decoder.h"
-#include "lib/util.h"
-#include "lib/exception.h"
-#include "lib/opcodes.h"
+#include "lib/include/constants.hh"
+#include "lib/include/loader.hh"
+#include "lib/include/decoder.hh"
+#include "lib/include/util.hh"
+#include "lib/include/exception.hh"
+#include "lib/include/opcodes.hh"
 
 namespace TWVM {
   std::vector<Loader::handler_t> Loader::handlers = {

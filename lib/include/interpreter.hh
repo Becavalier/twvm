@@ -3,8 +3,8 @@
 #define LIB_INTERPRETER_H_
 
 #include <array>
-#include "lib/opcodes.h"
-#include "lib/structs.h"
+#include "lib/include/opcodes.hh"
+#include "lib/include/structs.hh"
 
 #define DECLARE_OPCODE_HANDLER_VALID(NAME) \
   static void do##NAME(Executor&, opHandlerInfoType = std::nullopt);

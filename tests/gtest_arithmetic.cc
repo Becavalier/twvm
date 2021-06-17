@@ -4,9 +4,9 @@
 #include <limits>
 #include "gtest/gtest.h"
 #include "tests/macros.h"
-#include "lib/loader.h"
-#include "lib/executor.h"
-#include "lib/instantiator.h"
+#include "lib/include/loader.hh"
+#include "lib/include/executor.hh"
+#include "lib/include/instantiator.hh"
 
 using std::make_unique;
 using std::cout;

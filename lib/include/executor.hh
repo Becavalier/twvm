@@ -8,11 +8,11 @@
 #include <variant>
 #include <functional>
 #include <cstdlib>
-#include "lib/structs.h"
-#include "lib/exception.h"
-#include "lib/decoder.h"
-#include "lib/util.h"
-#include "lib/constants.h"
+#include "lib/include/structs.hh"
+#include "lib/include/exception.hh"
+#include "lib/include/decoder.hh"
+#include "lib/include/util.hh"
+#include "lib/include/constants.hh"
 
 namespace TWVM {
   class Executor {
@@ -80,7 +80,7 @@ namespace TWVM {
       try {
         return std::get<T>(
           rtIns->stack.at(rtIns->stack.size() - 1 - pos));
-      } catch (const std::exception& e) {
+      } catch (...) {
         Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
       }
     }
@@ -111,7 +111,7 @@ namespace TWVM {
           std::get<Runtime::RTValueFrame>(rtIns->stack.back()).value);
         rtIns->stack.pop_back();
         return v;
-      } catch (const std::exception& e) {
+      } catch (...) {
         Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
       }
     }
@@ -212,7 +212,7 @@ namespace TWVM {
         auto ret = handler(std::get<T>(y.value), std::get<T>(x.value));
         rtIns->stack.pop_back();  // Keep "c1" on the stage.
         y.value = ret;
-      } catch (const std::exception& e) {
+      } catch (...) {
         Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
       }
     }
@@ -223,7 +223,7 @@ namespace TWVM {
         auto& v = std::get<Runtime::RTValueFrame>(rtIns->stack.back());
         auto ret = handler(std::get<T>(v.value));
         v.value = ret;
-      } catch (const std::exception& e) {
+      } catch (...) {
         Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
       }
     }

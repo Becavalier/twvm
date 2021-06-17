@@ -8,6 +8,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <cstdlib>
+#include "lib/include/constants.hh"
 
 class Exception {
  public:
@@ -43,17 +44,21 @@ class Exception {
     DIVISION_BY_ZERO,
     VAL_NOT_REPRESENTABLE,
     FLOAT_UNREPRESENTABLE,
+    INVALID_CONVERSION_STOI,
+    INVALID_INPUT_PATH,
   };
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {
     std::stringstream ss;
     ss << std::hex << std::showbase
-      << "\n[twvm] " 
-      << errorMsg.find(type)->second;
+      << COLOR_ERR
+      << STYLE_BOLD
+      << "[twvm] " 
+      << COLOR_NORMAL
+      << errorMsg.at(type);
     if (pos) {
-      ss << "Before byte index: " << pos  << '.';
+      ss << "Byte index before: " << pos  << '.';
     }  
-    ss << std::endl;
     std::cerr << ss.str() << std::endl;
     std::exit(EXIT_FAILURE);
   }

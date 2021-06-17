@@ -7,10 +7,10 @@
 #include <iostream>
 #include <iterator>
 #include <string>
-#include "lib/structs.h"
-#include "lib/decoder.h"
-#include "lib/constants.h"
-#include "lib/exception.h"
+#include "lib/include/structs.hh"
+#include "lib/include/decoder.hh"
+#include "lib/include/constants.hh"
+#include "lib/include/exception.hh"
 
 #define WALK_FUNC_DEF(name, type, suffix) \
     type walk##name() { \

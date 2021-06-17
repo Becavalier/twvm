@@ -1,9 +1,9 @@
 #include <optional>
-#include "lib/executor.h"
-#include "lib/decoder.h"
-#include "lib/interpreter.h"
-#include "lib/opcodes.h"
-#include "lib/util.h"
+#include "lib/include/executor.hh"
+#include "lib/include/decoder.hh"
+#include "lib/include/interpreter.hh"
+#include "lib/include/opcodes.hh"
+#include "lib/include/util.hh"
 
 namespace TWVM {
   std::optional<uint32_t> Executor::getTopFrameIdx(Runtime::STVariantIndex type, uint32_t n) {

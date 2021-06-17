@@ -17,7 +17,7 @@ namespace TWVM {
       -> typename std::underlying_type<Enumeration>::type {
         return static_cast<typename std::underlying_type<Enumeration>::type>(value);
       }
-    void printAssistantInfo(bool);
+    static void printAssistantInfo(bool = true);
     static int getNprocs() {
 #if defined(LINUX)
       return get_nprocs();

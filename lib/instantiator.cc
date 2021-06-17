@@ -3,12 +3,12 @@
 #include <variant>
 #include <optional>
 #include <algorithm>
-#include "lib/instantiator.h"
-#include "lib/opcodes.h"
-#include "lib/util.h"
-#include "lib/exception.h"
-#include "lib/constants.h"
-#include "lib/decoder.h"
+#include "lib/include/instantiator.hh"
+#include "lib/include/opcodes.hh"
+#include "lib/include/util.hh"
+#include "lib/include/exception.hh"
+#include "lib/include/constants.hh"
+#include "lib/include/decoder.hh"
 
 namespace TWVM {
   Runtime::runtime_value_t Instantiator::evalInitExpr(uint8_t valType, std::vector<uint8_t> &initExprOps) {

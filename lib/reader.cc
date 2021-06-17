@@ -1,4 +1,4 @@
-#include "lib/reader.h"
+#include "lib/include/reader.hh"
 
 namespace TWVM {
   std::vector<uint8_t> Reader::retrieveBytes(size_t n) {

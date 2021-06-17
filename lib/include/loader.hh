@@ -5,9 +5,9 @@
 #include <vector>
 #include <functional>
 #include <fstream>
-#include "lib/structs.h"
-#include "lib/reader.h"
-#include "lib/constants.h"
+#include "lib/include/structs.hh"
+#include "lib/include/reader.hh"
+#include "lib/include/constants.hh"
 
 namespace TWVM {
   struct Loader {

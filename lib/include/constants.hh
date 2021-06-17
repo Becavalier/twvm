@@ -2,6 +2,12 @@
 #ifndef LIB_CONSTANTS_H_
 #define LIB_CONSTANTS_H_
 
+// ANSI escape code (Colors).
+#define COLOR_NORMAL "\x1b[37;40m"
+#define COLOR_ERR "\x1b[91;40m"
+#define STYLE_BOLD "\e[1m"
+#define STYLE_REGULAR "\e[0m"
+
 constexpr uint8_t MAGIC_BYTES_COUNT = 4;
 constexpr uint8_t VER_BYTES_COUNT = 4;
 constexpr uint32_t VALID_MAGIC = 0x6D736100;
@@ -18,5 +24,8 @@ constexpr uint32_t INFO_BOOL_FALSE = 0;
 /* Magic Num */
 constexpr uint8_t MAGIC_OPCODE_PLUS_TYPE = 0xc0;
 constexpr uint8_t MAGIC_VAR_INDEX_PLUS_TYPE = 0x7f;
+
+/* Others */
+constexpr auto OPTS_ARG_SETW = 10;
 
 #endif  // LIB_CONSTANTS_H_

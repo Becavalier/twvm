@@ -1,4 +1,4 @@
-#include "lib/exception.h"
+#include "lib/include/exception.hh"
 
 std::unordered_map<Exception::ErrorType, std::string> Exception::errorMsg = {
   { ErrorType::INVALID_MAGIC, "Invalid binary magic code found. " },
@@ -32,4 +32,6 @@ std::unordered_map<Exception::ErrorType, std::string> Exception::errorMsg = {
   { ErrorType::DIVISION_BY_ZERO, "Division by zero. " },  
   { ErrorType::VAL_NOT_REPRESENTABLE, "Result is not representable. " },  
   { ErrorType::FLOAT_UNREPRESENTABLE, "Floating point number unrepresentable in integer range. " },  
+  { ErrorType::INVALID_CONVERSION_STOI, "Invalid conversion from string to integer. " },  
+  { ErrorType::INVALID_INPUT_PATH, "Invalid path of the input file. " },  
 };

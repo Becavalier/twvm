@@ -7,11 +7,11 @@
 #include <cfenv>
 #include <algorithm>
 #include <limits>
-#include "lib/interpreter.h"
-#include "lib/structs.h"
-#include "lib/executor.h"
-#include "lib/exception.h"
-#include "lib/opcodes.h"
+#include "lib/include/interpreter.hh"
+#include "lib/include/structs.hh"
+#include "lib/include/executor.hh"
+#include "lib/include/exception.hh"
+#include "lib/include/opcodes.hh"
 
 #define ITERATE_LOAD_MEMOP(V) \
   V(I32LoadMem, rt_i32_t, Runtime::rt_i32_t) \
