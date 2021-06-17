@@ -62,6 +62,12 @@
   V(F64SConvertI64, rt_i64_t, rt_f64_t, SIGNED) \
   V(F64UConvertI64, rt_i64_t, rt_f64_t, UNSIGNED)
 
+#define ITERATE_REINTERPRETOP(V) \
+  V(I32ReinterpretF32, rt_f32_t, rt_i32_t) \
+  V(I64ReinterpretF64, rt_f64_t, rt_i64_t) \
+  V(F32ReinterpretI32, rt_i32_t, rt_f32_t) \
+  V(F64ReinterpretI64, rt_i64_t, rt_f64_t) \
+
 #define ITERATE_SIMPLE_BINOP(V) \
   V(I32Mul, rt_i32_t, rt_i32_t, rt_i32_t, *) \
   V(I32Add, rt_i32_t, rt_i32_t, rt_i32_t, +) \
@@ -161,7 +167,7 @@
   void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
     executor.opHandlerFORO<CONCAT_PREFIX(PARAM_TYPE), CONCAT_PREFIX(RET_TYPE)>([](auto v) { \
       v = std::trunc(v); \
-      if (!std::isnan(v) && \ 
+      if (!std::isnan(v) && \
           !std::isinf(v) && \
           v <= std::numeric_limits<CAST>::max() && \
           v >= std::numeric_limits<CAST>::min()) { \
@@ -177,6 +183,12 @@
       return static_cast<MAKE_##SIGNESS_METHOD()<decltype(v)>>(v); \
     }); \
   }
+#define DECLARE_REINTERPRET_OP_METHOD(NAME, PARAM_TYPE, RET_TYPE) \
+  void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
+    executor.opHandlerFORO<CONCAT_PREFIX(PARAM_TYPE), CONCAT_PREFIX(RET_TYPE)>([](auto v) { \
+      return *reinterpret_cast<CONCAT_PREFIX(RET_TYPE)*>(static_cast<CONCAT_PREFIX(PARAM_TYPE)*>(&v)); \
+    }); \
+  }
   
 namespace TWVM {
   std::array<Interpreter::opHandlerProto, sizeof(uint8_t) * 1 << 8> Interpreter::opTokenHandlers = {
@@ -188,6 +200,7 @@ namespace TWVM {
   ITERATE_STORE_MEMOP(DECLARE_MEM_STORE_OP_METHOD)
   ITERATE_TRUNCOP(DECLARE_TRUNC_OP_METHOD)
   ITERATE_CONVERTOP(DECLARE_CONVERT_OP_METHOD)
+  ITERATE_REINTERPRETOP(DECLARE_REINTERPRET_OP_METHOD)
 
   void Interpreter::doUnreachable(Executor& executor, opHandlerInfoType _) {
     Exception::terminate(Exception::ErrorType::UNREACHABLE);
@@ -722,21 +735,13 @@ namespace TWVM {
     });
   }
   void Interpreter::doF32DemoteF64(Executor& executor, opHandlerInfoType _) {
-    
+    executor.opHandlerFORO<Runtime::rt_f64_t, Runtime::rt_f32_t>([](auto v) {
+      return v;
+    });
   }
   void Interpreter::doF64PromoteF32(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI32ReinterpretF32(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doI64ReinterpretF64(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doF32ReinterpretI32(Executor& executor, opHandlerInfoType _) {
-    
-  }
-  void Interpreter::doF64ReinterpretI64(Executor& executor, opHandlerInfoType _) {
-    
+    executor.opHandlerFORO<Runtime::rt_f32_t, Runtime::rt_f64_t>([](auto v) {
+      return v;
+    });
   }
 }
