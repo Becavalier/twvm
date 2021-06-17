@@ -10,16 +10,16 @@
 
 ### Status
 
-Not production-ready yet! feel free to keep tracking the project status by clicking "Watch".
+Not production-ready yet!
 
 ### Compile
 
-If you want to compile and use this project, please install the following softwares in advance:
+Please install the following softwares before compilation:
 
 * [cmake v3.11 (or above)](https://cmake.org/install/)
 * [nodejs v12.13.0 LTS (or above)](https://nodejs.org/en/download/)
 
-then, run the following command to compile:
+Then, run the following command to compile:
 
 ```
 npm run build
@@ -46,23 +46,17 @@ Install "*valgrind*" on MacOS according to the following articles first:
 *[Valgrind on macOs 10.14/10.15](https://github.com/sowson/valgrind)*
 
 
-Then run the following command to detect the memory leak of the binary version program:
+And then, run the below command to check the memory leak of the program:
 
 `npm run memcheck`
 
 ## Roadmap
 
-- [x] Basic Wasm interpreter on fibonacci;
-- [x] Basic optimizations:
-  - [x] Cache based opcode&immediates;
-  - [x] Constant pool;
-  - [x] Module stream loading;
-  - [x] Simple DCT/TTC implementation;
-- [ ] Full Wasm spec version 1.0 support;
-- [ ] JIT compiler based optimization;
-- [ ] Stage based full-path type validation;
-- [ ] Experimental SIMD instructions;
-- [ ] Basic WASI interfaces support;
+- [x] Architecture refactoring.
+- [x] Run simple fibonacci function successfully.
+- [x] Full Wasm spec version 1.0 support.
+- [ ] Pass all testsuites.
+- [ ] Simple DCT optimization.
 
 
 ## Copyright and License

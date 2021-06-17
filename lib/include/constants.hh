@@ -3,10 +3,8 @@
 #define LIB_CONSTANTS_H_
 
 // ANSI escape code (Colors).
-#define COLOR_NORMAL "\x1b[37;40m"
-#define COLOR_ERR "\x1b[91;40m"
-#define STYLE_BOLD "\e[1m"
-#define STYLE_REGULAR "\e[0m"
+#define RESET_NORMAL "\e[0m"
+#define COLOR_ERR "\e[0;31m"
 
 constexpr uint8_t MAGIC_BYTES_COUNT = 4;
 constexpr uint8_t VER_BYTES_COUNT = 4;

@@ -97,7 +97,9 @@ else()
   target_link_libraries (${OUTPUT} 
     twvm-core
     pthread)
-
-  # installing;
-  install(TARGETS ${OUTPUT} RUNTIME DESTINATION bin)
+  
+  if (STATE STREQUAL BUILD_RELEASE) 
+    # installing;
+    install(TARGETS ${OUTPUT} RUNTIME DESTINATION bin)
+  endif()
 endif()  

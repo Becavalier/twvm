@@ -52,9 +52,8 @@ class Exception {
     std::stringstream ss;
     ss << std::hex << std::showbase
       << COLOR_ERR
-      << STYLE_BOLD
       << "[twvm] " 
-      << COLOR_NORMAL
+      << RESET_NORMAL
       << errorMsg.at(type);
     if (pos) {
       ss << "Byte index before: " << pos  << '.';
