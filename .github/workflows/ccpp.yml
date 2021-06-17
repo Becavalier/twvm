@@ -12,9 +12,9 @@ jobs:
         with:
           fetch-depth: 1
       - name: Setup Node.js environment
-        uses: actions/setup-node@v1.1.0
+        uses: actions/setup-node@v2.1.5
         with:
-          node-version: '10.x'
+          node-version: '12.x'
       - name: Setup C++ environment
         uses: kurocha/setup-cpp@v1
       - name: Install Dependencies
