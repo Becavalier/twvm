@@ -1,1690 +1,747 @@
-// Copyright 2019 YHSPY. All rights reserved.
-#include <cstdint>
+#include <array>
 #include <iostream>
-#include <memory>
-#include <utility>
+#include <algorithm>
+#include <type_traits>
+#include <cstdlib>
 #include <cmath>
-#include <string>
+#include <cfenv>
+#include <algorithm>
 #include <limits>
-#include "lib/type.h"
-#include "lib/decoder.h"
-#include "lib/utility.h"
-#include "lib/interpreter.h"
-#include "lib/common/bits.h"
-#include "lib/common/errors.h"
-#include "lib/common/macros.h"
-#include "lib/structures/struct-stack.h"
+#include "lib/include/interpreter.hh"
+#include "lib/include/structs.hh"
+#include "lib/include/executor.hh"
+#include "lib/include/exception.hh"
+#include "lib/include/opcodes.hh"
 
-#define DECLARE_BASIC_BINOP_METHOD(name, action, operandType, resultType, op, label) \
-  void Interpreter::do##name##action(shared_wasm_t &wasmIns, Executor *executor) { \
-    retrieveDoubleRTVals<operandType>(wasmIns, executor, \
-      [&executor]( \
-        const shared_ptr<Stack::ValueFrameStack> &valueStack, \
-        const operandType x, \
-        const operandType y) -> void { \
-        valueStack->pop(); \
-        valueStack->top() = executor->checkUpConstant( \
-          static_cast<resultType>(x op y)); \
-      }); \
-    INSPECT_STACK(#label, wasmIns, executor); \
-}
+#define ITERATE_LOAD_MEMOP(V) \
+  V(I32LoadMem, rt_i32_t, Runtime::rt_i32_t) \
+  V(I64LoadMem, rt_i64_t, Runtime::rt_i64_t) \
+  V(F32LoadMem, rt_f32_t, Runtime::rt_f32_t) \
+  V(F64LoadMem, rt_f64_t, Runtime::rt_f64_t) \
+  V(I32LoadMem8S, rt_i32_t, int8_t) \
+  V(I32LoadMem8U, rt_i32_t, uint8_t) \
+  V(I32LoadMem16S, rt_i32_t, int16_t) \
+  V(I32LoadMem16U, rt_i32_t, uint16_t) \
+  V(I64LoadMem8S, rt_i64_t, int8_t) \
+  V(I64LoadMem8U, rt_i64_t, uint8_t) \
+  V(I64LoadMem16S, rt_i64_t, int16_t) \
+  V(I64LoadMem16U, rt_i64_t, uint16_t) \
+  V(I64LoadMem32S, rt_i64_t, int32_t) \
+  V(I64LoadMem32U, rt_i64_t, uint32_t)
+
+#define ITERATE_STORE_MEMOP(V) \
+  V(I32StoreMem, rt_i32_t, Runtime::rt_i32_t) \
+  V(I64StoreMem, rt_i64_t, Runtime::rt_i64_t) \
+  V(F32StoreMem, rt_f32_t, Runtime::rt_f32_t) \
+  V(F64StoreMem, rt_f64_t, Runtime::rt_f64_t) \
+  V(I32StoreMem8, rt_i32_t, uint8_t) \
+  V(I32StoreMem16, rt_i32_t, uint16_t) \
+  V(I64StoreMem8, rt_i64_t, uint8_t) \
+  V(I64StoreMem16, rt_i64_t, uint16_t) \
+  V(I64StoreMem32, rt_i64_t, uint32_t)
+
+#define ITERATE_TRUNCOP(V) \
+  V(I32TruncF32S, rt_f32_t, rt_i32_t, int32_t) \
+  V(I32TruncF32U, rt_f32_t, rt_i32_t, uint32_t) \
+  V(I32TruncF64S, rt_f64_t, rt_i32_t, int32_t) \
+  V(I32TruncF64U, rt_f64_t, rt_i32_t, uint32_t) \
+  V(I64TruncF32S, rt_f32_t, rt_i64_t, int64_t) \
+  V(I64TruncF32U, rt_f32_t, rt_i64_t, uint64_t) \
+  V(I64TruncF64S, rt_f64_t, rt_i64_t, int64_t) \
+  V(I64TruncF64U, rt_f64_t, rt_i64_t, uint64_t)
+
+#define ITERATE_CONVERTOP(V) \
+  V(I64ExtendI32S, rt_i32_t, rt_i64_t, SIGNED) \
+  V(I64ExtendI32U, rt_i32_t, rt_i64_t, UNSIGNED) \
+  V(F32SConvertI32, rt_i32_t, rt_f32_t, SIGNED) \
+  V(F32UConvertI32, rt_i32_t, rt_f32_t, UNSIGNED) \
+  V(F32SConvertI64, rt_i64_t, rt_f32_t, SIGNED) \
+  V(F32UConvertI64, rt_i64_t, rt_f32_t, UNSIGNED) \
+  V(F64SConvertI32, rt_i32_t, rt_f64_t, SIGNED) \
+  V(F64UConvertI32, rt_i32_t, rt_f64_t, UNSIGNED) \
+  V(F64SConvertI64, rt_i64_t, rt_f64_t, SIGNED) \
+  V(F64UConvertI64, rt_i64_t, rt_f64_t, UNSIGNED)
+
+#define ITERATE_REINTERPRETOP(V) \
+  V(I32ReinterpretF32, rt_f32_t, rt_i32_t) \
+  V(I64ReinterpretF64, rt_f64_t, rt_i64_t) \
+  V(F32ReinterpretI32, rt_i32_t, rt_f32_t) \
+  V(F64ReinterpretI64, rt_i64_t, rt_f64_t) \
 
 #define ITERATE_SIMPLE_BINOP(V) \
-  V(I32, Mul, int32_t, int32_t, *, i32.mul) \
-  V(I32, Add, int32_t, int32_t, +, i32.add) \
-  V(I32, Sub, int32_t, int32_t, -, i32.sub) \
-  V(I32, And, int32_t, int32_t, &, i32.and) \
-  V(I32, Or, int32_t, int32_t, |, i32.or) \
-  V(I32, Xor, int32_t, int32_t, ^, i32.xor) \
-  V(I32, Eq, int32_t, int32_t, ==, i32.eq) \
-  V(I32, Ne, int32_t, int32_t, !=, i32.ne) \
-  V(I32, LtU, uint32_t, uint32_t, <, i32.ltu) \
-  V(I32, LeU, uint32_t, uint32_t, <=, i32.leu) \
-  V(I32, GtU, uint32_t, uint32_t, >, i32.gtu) \
-  V(I32, GeU, uint32_t, uint32_t, >=, i32.geu) \
-  V(I32, LtS, int32_t, int32_t, <, i32.lts) \
-  V(I32, LeS, int32_t, int32_t, <=, i32.les) \
-  V(I32, GtS, int32_t, int32_t, >, i32.gts) \
-  V(I32, GeS, int32_t, int32_t, >=, i32.ges) \
-  V(I64, Mul, int64_t, int64_t, *, i64.mul) \
-  V(I64, Add, int64_t, int64_t, +, i64.add) \
-  V(I64, Sub, int64_t, int64_t, -, i64.sub) \
-  V(I64, And, int64_t, int64_t, &, i64.and) \
-  V(I64, Or, int64_t, int64_t, |, i64.or) \
-  V(I64, Xor, int64_t, int64_t, ^, i64.xor) \
-  V(I64, Eq, int64_t, int32_t, ==, i64.eq) \
-  V(I64, Ne, int64_t, int32_t, !=, i64.ne) \
-  V(I64, LtU, uint64_t, uint32_t, <, i64.ltu) \
-  V(I64, LeU, uint64_t, uint32_t, <=, i64.leu) \
-  V(I64, GtU, uint64_t, uint32_t, >, i64.gtu) \
-  V(I64, GeU, uint64_t, uint32_t, >=, i64.geu) \
-  V(I64, LtS, int64_t, int32_t, <, i64.lts) \
-  V(I64, LeS, int64_t, int32_t, <=, i64.les) \
-  V(I64, GtS, int64_t, int32_t, >, i64.gts) \
-  V(I64, GeS, int64_t, int32_t, >=, i64.ges) \
-  V(F32, Mul, float, float, *, f32.mul) \
-  V(F32, Add, float, float, +, f32.add) \
-  V(F32, Sub, float, float, -, f32.sub) \
-  V(F32, Div, float, float, /, f32.div) \
-  V(F32, Eq, float, int32_t, ==, f32.eq) \
-  V(F32, Ne, float, int32_t, !=, f32.ne) \
-  V(F32, Lt, float, int32_t, <, f32.lt) \
-  V(F32, Le, float, int32_t, <=, f32.le) \
-  V(F32, Gt, float, int32_t, >, f32.gt) \
-  V(F32, Ge, float, int32_t, >=, f32.ge) \
-  V(F64, Mul, double, double, *, f64.mul) \
-  V(F64, Add, double, double, +, f64.add) \
-  V(F64, Sub, double, double, -, f64.sub) \
-  V(F64, Div, double, double, /, f64.div) \
-  V(F64, Eq, double, int32_t, ==, f64.eq) \
-  V(F64, Ne, double, int32_t, !=, f64.ne) \
-  V(F64, Lt, double, int32_t, <, f64.lt) \
-  V(F64, Le, double, int32_t, <=, f64.le) \
-  V(F64, Gt, double, int32_t, >, f64.gt) \
-  V(F64, Ge, double, int32_t, >=, f64.ge)
+  V(I32Mul, rt_i32_t, rt_i32_t, rt_i32_t, *) \
+  V(I32Add, rt_i32_t, rt_i32_t, rt_i32_t, +) \
+  V(I32Sub, rt_i32_t, rt_i32_t, rt_i32_t, -) \
+  V(I32And, rt_i32_t, rt_i32_t, rt_i32_t, &) \
+  V(I32Or, rt_i32_t, rt_i32_t, rt_i32_t, |) \
+  V(I32Xor, rt_i32_t, rt_i32_t, rt_i32_t, ^) \
+  V(I32Eq, rt_i32_t, rt_i32_t, rt_i32_t, ==) \
+  V(I32Ne, rt_i32_t, rt_i32_t, rt_i32_t, !=) \
+  V(I32LtU, rt_i32_t, rt_i32_t, rt_u32_t, <) \
+  V(I32LeU, rt_i32_t, rt_i32_t, rt_u32_t, <=) \
+  V(I32GtU, rt_i32_t, rt_i32_t, rt_u32_t, >) \
+  V(I32GeU, rt_i32_t, rt_i32_t, rt_u32_t, >=) \
+  V(I32LtS, rt_i32_t, rt_i32_t, rt_i32_t, <) \
+  V(I32LeS, rt_i32_t, rt_i32_t, rt_i32_t, <=) \
+  V(I32GtS, rt_i32_t, rt_i32_t, rt_i32_t, >) \
+  V(I32GeS, rt_i32_t, rt_i32_t, rt_i32_t, >=) \
+  V(I64Mul, rt_i64_t, rt_i64_t, rt_i64_t, *) \
+  V(I64Add, rt_i64_t, rt_i64_t, rt_i64_t, +) \
+  V(I64Sub, rt_i64_t, rt_i64_t, rt_i64_t, -) \
+  V(I64And, rt_i64_t, rt_i64_t, rt_i64_t, &) \
+  V(I64Or, rt_i64_t, rt_i64_t, rt_i64_t, |) \
+  V(I64Xor, rt_i64_t, rt_i64_t, rt_i64_t, ^) \
+  V(I64Eq, rt_i64_t, rt_i32_t, rt_i64_t, ==) \
+  V(I64Ne, rt_i64_t, rt_i32_t, rt_i64_t, !=) \
+  V(I64LtU, rt_i64_t, rt_i32_t, rt_u64_t, <) \
+  V(I64LeU, rt_i64_t, rt_i32_t, rt_u64_t, <=) \
+  V(I64GtU, rt_i64_t, rt_i32_t, rt_u64_t, >) \
+  V(I64GeU, rt_i64_t, rt_i32_t, rt_u64_t, >=) \
+  V(I64LtS, rt_i64_t, rt_i32_t, rt_i64_t, <) \
+  V(I64LeS, rt_i64_t, rt_i32_t, rt_i64_t, <=) \
+  V(I64GtS, rt_i64_t, rt_i32_t, rt_i64_t, >) \
+  V(I64GeS, rt_i64_t, rt_i32_t, rt_i64_t, >=) \
+  V(F32Mul, rt_f32_t, rt_f32_t, rt_f32_t, *) \
+  V(F32Add, rt_f32_t, rt_f32_t, rt_f32_t, +) \
+  V(F32Sub, rt_f32_t, rt_f32_t, rt_f32_t, -) \
+  V(F32Div, rt_f32_t, rt_f32_t, rt_f32_t, /) \
+  V(F32Eq, rt_f32_t, rt_i32_t, rt_f32_t, ==) \
+  V(F32Ne, rt_f32_t, rt_i32_t, rt_f32_t, !=) \
+  V(F32Lt, rt_f32_t, rt_i32_t, rt_f32_t, <) \
+  V(F32Le, rt_f32_t, rt_i32_t, rt_f32_t, <=) \
+  V(F32Gt, rt_f32_t, rt_i32_t, rt_f32_t, >) \
+  V(F32Ge, rt_f32_t, rt_i32_t, rt_f32_t, >=) \
+  V(F64Mul, rt_f64_t, rt_f64_t, rt_f64_t, *) \
+  V(F64Add, rt_f64_t, rt_f64_t, rt_f64_t, +) \
+  V(F64Sub, rt_f64_t, rt_f64_t, rt_f64_t, -) \
+  V(F64Div, rt_f64_t, rt_f64_t, rt_f64_t, /) \
+  V(F64Eq, rt_f64_t, rt_i32_t, rt_f64_t, ==) \
+  V(F64Ne, rt_f64_t, rt_i32_t, rt_f64_t, !=) \
+  V(F64Lt, rt_f64_t, rt_i32_t, rt_f64_t, <) \
+  V(F64Le, rt_f64_t, rt_i32_t, rt_f64_t, <=) \
+  V(F64Gt, rt_f64_t, rt_i32_t, rt_f64_t, >) \
+  V(F64Ge, rt_f64_t, rt_i32_t, rt_f64_t, >=)
 
-using std::forward;
-using std::floor;
-using ::ceilf;
-using ::ceill;
-using ::sqrtf;
-using std::sqrt;
-using std::abs;
-using std::nearbyintf;
-using std::copysign;
-using std::copysignf;
-using std::numeric_limits;
-using std::trunc;
-using std::string;
-using std::ostringstream;
-
-#define WRAP_FORWARD_INT_FIELD(keyName, type) \
-  const auto keyName = Decoder::readVarInt<type>(executor->forward_());
-
-// use C-Standard "NDEBUG" macro.
-#ifndef NDEBUG
-  using std::hex;
-  using std::showbase;
-  #define INSPECT_STACK(opcodeName, wasmIns, executor) \
-    debug(opcodeName, wasmIns, executor)
-#else
-  #define INSPECT_STACK(...)
-#endif
-
-using std::make_shared;
-using std::move;
-
-template <typename T>
-void Interpreter::retrieveDoubleRTVals(
-  shared_wasm_t &wasmIns,
-  Executor *executor,
-  const function<void(
-    const shared_ptr<Stack::ValueFrameStack> &valueStack,
-    const T x, const T y)> &handler) {
-  const auto valueStack = wasmIns->stack->valueStack;
-  if (valueStack->size() < 2) {
-    Printer::instance().error(Errors::RT_OPERANDS_NOT_ENOUGH);
+#define REF_OPCODE_HANDLER_PTR_VALID(NAME) \
+  Interpreter::do##NAME,
+#define REF_OPCODE_HANDLER_PTR_INVALID(NAME) \
+  nullptr,
+#define REF_OPCODE_HANDLER_PTR(NAME, OP, VALIDITY) \
+  REF_OPCODE_HANDLER_PTR_##VALIDITY(NAME)
+#define CONCAT_PREFIX(X) Runtime:: X
+#define MAKE_UNSIGNED() std::make_unsigned_t
+#define MAKE_SIGNED() std::make_signed_t
+#define DECLARE_BASIC_BINOP_METHOD(NAME, VAL_TYPE, RET_TYPE, OP_CAST_TYPE, OP) \
+  void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
+    executor.opHandlerFTRO<CONCAT_PREFIX(VAL_TYPE), CONCAT_PREFIX(RET_TYPE)>([](auto x, auto y) { \
+      return static_cast<CONCAT_PREFIX(OP_CAST_TYPE)>(x) OP static_cast<CONCAT_PREFIX(OP_CAST_TYPE)>(y); \
+    }); \
   }
-  const auto operands = valueStack->topN(2);
-  const auto &y = *operands.at(DEFAULT_ELEMENT_INDEX);
-  const auto &x = *operands.at(DEFAULT_ELEMENT_INDEX + 1);
-  if constexpr (is_same<T, int32_t>::value) {
-    if (!(y->getGenericType() == ValueTypesCode::kI32 && x->getGenericType() == ValueTypesCode::kI32)) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toI32(), y->toI32());
-    }
-  } else if constexpr (is_same<T, uint32_t>::value) {
-    if (!(y->getGenericType() == ValueTypesCode::kI32 && x->getGenericType() == ValueTypesCode::kI32)) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toU32(), y->toU32());
-    }
-  } else if constexpr (is_same<T, int64_t>::value) {
-    if (!(y->getGenericType() == ValueTypesCode::kI64 && x->getGenericType() == ValueTypesCode::kI64)) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toI64(), y->toI64());
-    }
-  } else if constexpr (is_same<T, uint64_t>::value) {
-    if (!(y->getGenericType() == ValueTypesCode::kI64 && x->getGenericType() == ValueTypesCode::kI64)) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toU64(), y->toU64());
-    }
-  } else if constexpr (is_same<T, float>::value) {
-    if (!(y->getGenericType() == ValueTypesCode::kF32 && x->getGenericType() == ValueTypesCode::kF32)) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toF32(), y->toF32());
-    }
-  } else if constexpr (is_same<T, double>::value) {
-    if (!(y->getGenericType() == ValueTypesCode::kF64 && x->getGenericType() == ValueTypesCode::kF64)) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH); 
-    } else {
-      handler(valueStack, x->toF64(), y->toF64());
-    }
+#define DECLARE_MEM_LOAD_OP_METHOD(NAME, T, C) \
+  void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
+    const auto& defaultMem = executor.getEngineData()->rtMems.front(); \
+    const auto [flags, offset] = executor.parseMemImmeInfo(); \
+    const auto ea = executor.popAndRetValOfRTType<Runtime::rt_i32_t>() + offset; \
+    const auto n = sizeof(CONCAT_PREFIX(T)); \
+    if (ea + n / 8 <= defaultMem.size) { \
+      executor.pushToStack( \
+        Runtime::RTValueFrame(static_cast<CONCAT_PREFIX(T)>(*reinterpret_cast<C*>(defaultMem.ptr + ea)))); \
+    } else { \
+      Exception::terminate(Exception::ErrorType::MEM_ACCESS_OOB); \
+    } \
   }
-}
-
-template <typename T>
-void Interpreter::retrieveSingleRTVal(
-  shared_wasm_t &wasmIns,
-  Executor *executor,
-  const function<void(
-    const shared_ptr<Stack::ValueFrameStack> &valueStack,
-    const T x)> &handler) {
-  const auto valueStack = wasmIns->stack->valueStack;
-  const auto &x = valueStack->top();
-  if constexpr (is_same<T, int32_t>::value) {
-    if (x->getGenericType() != ValueTypesCode::kI32) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toI32());
-    }
-  } else if constexpr (is_same<T, uint32_t>::value) {
-    if (x->getGenericType() != ValueTypesCode::kI32) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toU32());
-    }
-  } else if constexpr (is_same<T, int64_t>::value) {
-    if (x->getGenericType() != ValueTypesCode::kI64) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toI64());
-    }
-  } else if constexpr (is_same<T, uint64_t>::value) {
-    if (x->getGenericType() != ValueTypesCode::kI64) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toU64());
-    }
-  } else if constexpr (is_same<T, float>::value) {
-    if (x->getGenericType() != ValueTypesCode::kF32) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toF32());
-    }
-  } else if constexpr (is_same<T, double>::value) {
-    if (x->getGenericType() != ValueTypesCode::kF64) {
-      Printer::instance().error(Errors::RT_OPERANDS_TYPE_MISMATCH);
-    } else {
-      handler(valueStack, x->toF64());
-    }
+#define DECLARE_MEM_STORE_OP_METHOD(NAME, T, C) \
+  void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
+    const auto& defaultMem = executor.getEngineData()->rtMems.front(); \
+    const auto [flags, offset] = executor.parseMemImmeInfo(); \
+    const auto c = executor.popAndRetValOfRTType<Runtime::rt_i32_t>(); \
+    const auto ea = executor.popAndRetValOfRTType<Runtime::rt_i32_t>() + offset; \
+    const auto n = sizeof(CONCAT_PREFIX(T)); \
+    if (ea + n / 8 <= defaultMem.size) { \
+      *reinterpret_cast<C*>(defaultMem.ptr + ea) = static_cast<C>(c); \
+    } else { \
+      Exception::terminate(Exception::ErrorType::MEM_ACCESS_OOB); \
+    } \
   }
-}
-
-template <typename T>
-void Interpreter::storeMemarg(
-  shared_wasm_t &wasmIns,
-  Executor *executor,
-  const function<void(const int32_t, WasmMemoryInstance *const &mem, const T)> &handler) {
-    const auto valueStack = wasmIns->stack->valueStack;
-    if (valueStack->size() < 2) {
-      Printer::instance().error(Errors::RT_OPERANDS_NOT_ENOUGH);
-    }
-    // pop an i32 value from the stack (value to be stored).
-    auto topNVal = valueStack->topN(2);
-    constexpr auto x = DEFAULT_ELEMENT_INDEX;
-    constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
-    const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
-    T storeVal = T{};
-    // i32 / i64 / f32 / f64.
-    const auto storedFrame = *topNVal[x];
-    if constexpr (is_same<T, int32_t>::value) {
-      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTI32Value) {
-        storeVal = storedFrame->toI32();
-      } else {
-        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
-      }
-    } else if constexpr (is_same<T, uint32_t>::value) {
-      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTU32Value) {
-        storeVal = storedFrame->toU32();
-      } else {
-        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
-      }
-    } else if constexpr (is_same<T, uint32_t>::value) {
-      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTI64Value) {
-        storeVal = storedFrame->toI64();
-      } else {
-        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
-      }
-    } else if constexpr (is_same<T, uint64_t>::value) {
-      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTU64Value) {
-        storeVal = storedFrame->toU64();
-      } else {
-        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
-      }
-    } else if constexpr (is_same<T, float>::value) {
-      static_assert(sizeof(float) == 4, "insufficient size of the type.");
-      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTF32Value) {
-        storeVal = storedFrame->toF32();
-      } else {
-        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
-      }
-    } else if constexpr (is_same<T, double>::value) {
-      static_assert(sizeof(double) == 8, "insufficient size of the type.");
-      if (storedFrame->getRTValueType() == ValueFrameTypes::kRTF64Value) {
-        storeVal = storedFrame->toF64();
-      } else {
-        Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
-      }
-    }
-    // retrive base address.
-    const auto baseFrame = *topNVal[y];
-    if (baseFrame->getRTValueType() == ValueFrameTypes::kRTI32Value) {
-      auto &v = executor->uint32UseMemargCache(
-        [&executor](uint32_t *a, uint32_t *o, size_t *step) -> void {
-          *a = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
-          *o = Decoder::readVarUint<uint32_t>(executor->forward_() + *step - 1, step);
-          executor->innerOffset += (*step - 2);
-        });
-      const int32_t ea = baseFrame->toI32() + v[y];
-      // "sizeof(int8_t / 8)".
-      if (ea >= 0) {
-        handler(ea, mem, storeVal);
-      } else {
-        Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
-      }
-      wasmIns->stack->valueStack->popN(2);
-    }
+#define DECLARE_TRUNC_OP_METHOD(NAME, PARAM_TYPE, RET_TYPE, CAST) \
+  void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
+    executor.opHandlerFORO<CONCAT_PREFIX(PARAM_TYPE), CONCAT_PREFIX(RET_TYPE)>([](auto v) { \
+      v = std::trunc(v); \
+      if (!std::isnan(v) && \
+          !std::isinf(v) && \
+          v <= std::numeric_limits<CAST>::max() && \
+          v >= std::numeric_limits<CAST>::min()) { \
+          return v; \
+        } else { \
+          Exception::terminate(Exception::ErrorType::FLOAT_UNREPRESENTABLE); \
+        } \
+    }); \
   }
-
-void Interpreter::retrieveMemarg(
-  shared_wasm_t &wasmIns,
-  Executor *executor,
-  const function<void(const int32_t, WasmMemoryInstance *const &mem)> &handler) {
-    // pop an i32 value from the stack (base address).
-    const auto topVal = wasmIns->stack->valueStack->top();
-    constexpr auto y = DEFAULT_ELEMENT_INDEX + 1;
-    if (topVal->getRTValueType() == ValueFrameTypes::kRTI32Value) {
-      const auto &mem = wasmIns->module->memories[DEFAULT_ELEMENT_INDEX];
-      auto &v = executor->uint32UseMemargCache(
-        [&executor](uint32_t *a, uint32_t *o, size_t *step) -> void {
-          *a = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
-          *o = Decoder::readVarUint<uint32_t>(executor->forward_() + *step - 1, step);
-          executor->innerOffset += (*step - 2);
-        });
-      const auto ea = topVal->toI32() + v[y];
-      // "sizeof(int8_t / 8)".
-      if (ea >= 0) {
-        handler(ea, mem);
-      } else {
-        Printer::instance().error(Errors::RT_MEM_ACCESS_OOB);
-      }
-    } else {
-      Printer::instance().error(Errors::RT_INVALID_STACK_VAL);
-    }
+#define DECLARE_CONVERT_OP_METHOD(NAME, PARAM_TYPE, RET_TYPE, SIGNESS_METHOD) \
+  void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
+    executor.opHandlerFORO<CONCAT_PREFIX(PARAM_TYPE), CONCAT_PREFIX(RET_TYPE)>([](auto v) { \
+      return static_cast<MAKE_##SIGNESS_METHOD()<decltype(v)>>(v); \
+    }); \
   }
-
-void debug(string opcodeName, const shared_wasm_t &wasmIns, Executor *executor) {
-  const auto &valueStack = wasmIns->stack->valueStack;
-  const auto &labelStack = wasmIns->stack->labelStack;
-  const auto &activationStack = wasmIns->stack->activationStack;
-  auto &printer = Printer::instance();
-  ostringstream line;
-  (printer << opcodeName << '\n').debug();
-  // "ValueFrame".
-  line << "VS (values) | ";
-  for (uint32_t i = 0; i < valueStack->size(); ++i) {
-    valueStack->at(i)->outputValue(line);
-    if (i < valueStack->size() - 1) { line << ", "; }
+#define DECLARE_REINTERPRET_OP_METHOD(NAME, PARAM_TYPE, RET_TYPE) \
+  void Interpreter::do##NAME(Executor& executor, opHandlerInfoType _) { \
+    executor.opHandlerFORO<CONCAT_PREFIX(PARAM_TYPE), CONCAT_PREFIX(RET_TYPE)>([](auto v) { \
+      return *reinterpret_cast<CONCAT_PREFIX(RET_TYPE)*>(static_cast<CONCAT_PREFIX(PARAM_TYPE)*>(&v)); \
+    }); \
   }
-  line << " <-";
-  printer.makeLine(line);
-  // "LabelFrame".
-  line << "# of LS | " << labelStack->size();
-  printer.makeLine(line);
-  // "ActivationFrame".
-  line << "AS (locals) | ";
-  for (uint32_t i = 0; i < activationStack->size(); ++i) {
-    const auto &locals = activationStack->at(i).locals;
-    const auto &localSize = locals.size();
-    if (localSize == 0) {
-      line << "void";
-    } else {
-      line << '[';
-      for (uint32_t j = 0; j < localSize; ++j) {
-        const auto local = locals.at(j);
-        if (local != nullptr) { 
-          local->outputValue(line); 
-        } else {
-          line << "n/a"; 
-        }
-        if (j < localSize - 1) { line << ", "; }
-      }
-      line << ']';
-    }
-    if (i < activationStack->size() - 1) { line << ", "; }
-  }
-  line << " <-";
-  printer.makeLine(line);
-  // constant pool.
-  #define DECLARE_CP_INSPECT_METHOD(name, ...) \
-    line << "CP (" << #name << ") | "; \
-    executor->name##ConstantPoolDebug(line); \
-    printer.makeLine(line);
-  ITERATE_OPERANDS_VALUE_TYPES(DECLARE_CP_INSPECT_METHOD)
-  printer.printTableView();
-}
-
-ITERATE_SIMPLE_BINOP(DECLARE_BASIC_BINOP_METHOD)
-
-void Interpreter::doUnreachable(shared_wasm_t &wasmIns, Executor *executor) {
-  // trap immediately.
-  Printer::instance().error(Errors::RT_UNREACHABLE_CODE);
-}
-
-void Interpreter::doBlock(shared_wasm_t &wasmIns, Executor *executor) {
-  const auto labelStack = wasmIns->stack->labelStack;
-  // find immediate in cache first.
-  const auto immediate = executor->uint8UseImmesCache(
-    [&executor](size_t *step, uint8_t *immediate) -> auto {
-      *immediate = Decoder::readUint8(executor->forward_());
-      // it has already been forward by one "sizeof(uint8_t)", we need to subtract by one here.
-      executor->innerOffset += ((*step = 1) - 1);
-    });
-  const auto returnType = static_cast<ValueTypesCode>(immediate);
-  labelStack->emplace({returnType, wasmIns->stack->valueStack->size()});
-  const auto topLabel = &labelStack->top();
-  // find "end" entry.
-  const auto topActivation = &wasmIns->stack->activationStack->top();
-  const auto endOffset = executor->int64UseMetaCache(
-    OpcodeMeta::EndOffset, [&executor, &topActivation](int64_t *metaVal) -> auto {
-      size_t level = 0;
-      executor->crawler(
-        executor->absAddr() + 1,
-        topActivation->pFuncIns->code->size() - executor->innerOffset,
-        [&level, &metaVal](WasmOpCode opcode, size_t offset) -> auto {
-          switch (opcode) {
-            case WasmOpCode::kOpcodeIf:
-            case WasmOpCode::kOpcodeLoop:
-            case WasmOpCode::kOpcodeBlock: {
-              level += 1;
-              break;
-            }
-            case WasmOpCode::kOpcodeEnd: {
-              if (level == 0) {
-                // move the pointer back to the opcode.
-#if defined(OPT_DCT)
-                *metaVal = offset - 8;
-#else
-                *metaVal = offset;
-#endif
-                return true;
-              } else {
-                level--;
-              }
-              break;
-            }
-            default: break;
-          }
-          return false;
-      });
-    });
-  topLabel->end = make_shared<PosPtr>(0, executor->pc, executor->innerOffset + endOffset - 1);
-  INSPECT_STACK("block", wasmIns, executor);
-}
-
-void Interpreter::doLoop(shared_wasm_t &wasmIns, Executor *executor) {
-  // "end" should be the start.
-}
-
-void Interpreter::doIf(shared_wasm_t &wasmIns, Executor *executor) {
-}
-
-void Interpreter::doElse(shared_wasm_t &wasmIns, Executor *executor) {
-}
-
-void Interpreter::doEnd(shared_wasm_t &wasmIns, Executor *executor) {
-  const auto &currentLabelStackSize = wasmIns->stack->labelStack->size();
-  const auto &currentActivation = &wasmIns->stack->activationStack->top();
-  const auto activationLabelStackHeight = currentActivation->labelStackHeight;
-  const auto activationValueStackHeight = currentActivation->valueStackHeight;
-  if (currentLabelStackSize == activationLabelStackHeight) {
-    // function end.
-    const auto &funcProto = currentActivation->pFuncIns->staticProto;
-    if (funcProto->sig->returnCount == (wasmIns->stack->valueStack->size() - activationValueStackHeight)) {
-      const auto returnTypes = funcProto->sig->getReturnTypes();
-      // check the type of return operands.
-      for (size_t i = 0; i < returnTypes.size(); ++i) {
-        const auto topValue = wasmIns->stack->valueStack->top(i);
-        if (topValue->getGenericType() != returnTypes.at(i)) {
-          Printer::instance().error(Errors::RT_ARITY_MISMATCH);
-        }
-      }
-      // top-level function?
-      if (wasmIns->stack->activationStack->size() == 1) {
-        executor->switchStatus(false);
-      } else {
-        // go-on here.
-        const auto &leaveEntry = currentActivation->leaveEntry;
-        executor->pc = leaveEntry->pc;
-        executor->innerOffset = leaveEntry->offset;
-      }
-    }
-    wasmIns->stack->activationStack->pop();
-  } else if (currentLabelStackSize > activationLabelStackHeight) {
-    // control structure end.
-    wasmIns->stack->labelStack->pop();
-  } else {
-    Printer::instance().error(Errors::RT_INVALID_END);
-  }
-  INSPECT_STACK("end", wasmIns, executor);
-}
-
-void Interpreter::doBr(shared_wasm_t &wasmIns, Executor *executor) {
-  const auto depth = executor->uint32UseImmesCache(
-    [&executor](size_t *step, uint32_t *immediate) -> auto {
-      *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
-      executor->innerOffset += (*step - 1);
-    });
-  const auto targetLabel = &wasmIns->stack->labelStack->top(depth);
-  size_t skipTopVal = 0;
-  if (targetLabel->resultType != ValueTypesCode::kVoid) {
-    skipTopVal = 1;
-  }
-
-  if (wasmIns->stack->labelStack->size() >= depth + 1) {
-    for (uint32_t i = 0; i < depth + 1; ++i) {
-      // only leave the last "LabelFrame".
-      if (i == depth) {
-        // last round (end / start), redirect pointer.
-        const auto topLabel = &wasmIns->stack->labelStack->top();
-        executor->pc = topLabel->end->pc;
-        executor->innerOffset = topLabel->end->offset;
-      } else {
-        const auto topLabel = &wasmIns->stack->labelStack->top();
-        const auto stackHeightDiff = wasmIns->stack->valueStack->size() - topLabel->valueStackHeight - skipTopVal;
-        wasmIns->stack->valueStack->erase(skipTopVal, stackHeightDiff);
-        wasmIns->stack->labelStack->pop();
-      }
-    }
-  } else {
-    Printer::instance().error(Errors::RT_INVALID_BRANCH_DEPTH);
-  }
-  INSPECT_STACK("br", wasmIns, executor);
-}
-
-void Interpreter::doBrIf(shared_wasm_t &wasmIns, Executor *executor) {
-  const auto valueStack = wasmIns->stack->valueStack;
-  const auto isZero = valueStack->top()->isZero();
-  valueStack->pop();
-  if (!isZero) {
-    doBr(wasmIns, executor);
-  } else {
-    // remove "depth" field.
-    executor->innerOffset += Decoder::calcPassBytes(executor->absAddr() + 1);
-  }
-  INSPECT_STACK("br_if", wasmIns, executor);
-}
-
-void Interpreter::doBrTable(shared_wasm_t &wasmIns, Executor *executor) {
-}
-
-void Interpreter::doReturn(shared_wasm_t &wasmIns, Executor *executor) {
-  const auto topActivation = &wasmIns->stack->activationStack->top();
-  const auto &leaveEntry = topActivation->leaveEntry;
-  executor->pc = leaveEntry->pc;
-  executor->innerOffset = leaveEntry->offset;
-  // reset labels.
-  for (size_t i = 0; i < wasmIns->stack->labelStack->size() - topActivation->labelStackHeight; ++i) {
-    wasmIns->stack->labelStack->pop();
-  }
-  // reset activations.
-  wasmIns->stack->activationStack->pop();
-  INSPECT_STACK("return", wasmIns, executor);
-}
-
-void Interpreter::doCall(shared_wasm_t &wasmIns, Executor *executor) {
-  const auto &modFuncs = wasmIns->module->funcs;
-  const auto funcIndex = executor->uint32UseImmesCache(
-    [&executor](size_t *step, uint32_t *immediate) -> auto {
-      *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
-      executor->innerOffset += (*step - 1);
-    });
-  if (funcIndex < modFuncs.size()) {
-    // add an activation frame.
-    const auto &stack = wasmIns->stack;
-    const auto &wasmFunc = wasmIns->module->funcs.at(funcIndex);
-    const auto &paramCount = wasmFunc->staticProto->sig->paramsCount;
-    if (stack->valueStack->size() < paramCount) {
-      Printer::instance().error(Errors::RT_OPERANDS_NOT_ENOUGH);
-    }
-    stack->activationStack->emplace({
-      wasmFunc,
-      // subtract the count of locals for initialization.
-      stack->valueStack->size() - paramCount,
-      stack->labelStack->size(),
-      make_shared<PosPtr>(funcIndex, executor->pc, executor->innerOffset)});
-    // redirect.
-    const auto funcIns = modFuncs[funcIndex];
-    executor->innerOffset = -1;
-    executor->pc = funcIns->code;
-    // initialize locals.
-    for (const auto &paramType : wasmFunc->staticProto->sig->getParamTypes()) {
-      const auto topVal = wasmIns->stack->valueStack->top();
-      if (topVal->getGenericType() == paramType) {
-        stack->activationStack->top().locals.emplace_back(topVal);
-        wasmIns->stack->valueStack->pop();
-      }
-    }
-  } else {
-    Printer::instance().error(Errors::RT_INVALID_FUNC_INDEX);
-  }
-  INSPECT_STACK("call", wasmIns, executor);
-}
-
-void Interpreter::doLocalGet(shared_wasm_t &wasmIns, Executor *executor) {
-  const auto localIndex = executor->uint32UseImmesCache(
-    [&executor](size_t *step, uint32_t *immediate) -> auto {
-      *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
-      executor->innerOffset += (*step - 1);
-    });
-  const auto topActivation = &wasmIns->stack->activationStack->top();
-  if (localIndex < topActivation->locals.size()) {
-    // keep the "ValueFrames" in locals.
-    wasmIns->stack->valueStack->emplace(topActivation->locals[localIndex]);
-  }
-  INSPECT_STACK("local.get", wasmIns, executor);
-} 
-
-void Interpreter::doLocalSet(shared_wasm_t &wasmIns, Executor *executor) {
-  const auto localIndex = executor->uint32UseImmesCache(
-    [&executor](size_t *step, uint32_t *immediate) -> auto {
-      *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
-      executor->innerOffset += (*step - 1);
-    });
-  const auto topActivation = &wasmIns->stack->activationStack->top();
-  const auto topVal = wasmIns->stack->valueStack->top();
-  topActivation->locals[localIndex] = topVal;
-  // remove the top "ValueFrame".
-  wasmIns->stack->valueStack->pop();
-  INSPECT_STACK("local.set", wasmIns, executor);
-}
-
-void Interpreter::doLocalTee(shared_wasm_t &wasmIns, Executor *executor) {
-  // write a local and return(keep) the same value.
-  const auto localIndex = executor->uint32UseImmesCache(
-    [&executor](size_t *step, uint32_t *immediate) -> auto {
-      *immediate = Decoder::readVarUint<uint32_t>(executor->forward_(), step);
-      executor->innerOffset += (*step - 1);
-    });
-  const auto topActivation = &wasmIns->stack->activationStack->top();
-  const auto topVal = wasmIns->stack->valueStack->top();
-  topActivation->locals[localIndex] = topVal;
-  INSPECT_STACK("local.tee", wasmIns, executor);
-}
-
-void Interpreter::doGlobalGet(shared_wasm_t &wasmIns, Executor *executor) {
   
-  INSPECT_STACK("global.get", wasmIns, executor);
-}
-
-void Interpreter::doGlobalSet(shared_wasm_t &wasmIns, Executor *executor) {
-  INSPECT_STACK("global.set", wasmIns, executor);
-}
-
-void Interpreter::doI32Const(shared_wasm_t &wasmIns, Executor *executor) {
-  // push an i32 value onto the stack.
-  wasmIns->stack->valueStack->emplace(
-    executor->checkUpConstant(
-      executor->int32UseImmesCache(
-        [&executor](size_t *step, int32_t *immediate) -> auto {
-          *immediate = Decoder::readVarInt<int32_t>(executor->forward_(), step);
-          executor->innerOffset += (*step - 1);
-        })));
-  INSPECT_STACK("i32.const", wasmIns, executor);
-}
-
-void Interpreter::doI64Const(shared_wasm_t &wasmIns, Executor *executor) {
-  // push an i64 value onto the stack.
-  wasmIns->stack->valueStack->emplace(
-    executor->checkUpConstant(
-      executor->int64UseImmesCache(
-        [&executor](size_t *step, int64_t *immediate) -> auto {
-          *immediate = Decoder::readVarInt<int64_t>(executor->forward_(), step);
-          executor->innerOffset += (*step - 1);
-        })));
-  INSPECT_STACK("i64.const", wasmIns, executor);
-}
-
-void Interpreter::doF32Const(shared_wasm_t &wasmIns, Executor *executor) {
-  // push a f32 value onto the stack.
-  wasmIns->stack->valueStack->emplace(
-    executor->checkUpConstant(
-      executor->floatUseImmesCache(
-        [&executor](size_t *step, float *immediate) -> auto {
-          *immediate = Utility::readUnalignedValue<float>(reinterpret_cast<uintptr_t>(executor->forward_()));
-          executor->innerOffset += ((*step = sizeof(float) / sizeof(uint8_t)) - 1);
-        })));
-  INSPECT_STACK("f32.const", wasmIns, executor);
-}
-
-void Interpreter::doF64Const(shared_wasm_t &wasmIns, Executor *executor) {
-  // push a f64 value onto the stack.
-  wasmIns->stack->valueStack->emplace(
-    executor->checkUpConstant(
-      executor->doubleUseImmesCache(
-        [&executor](size_t *step, double *immediate) -> auto {
-          *immediate = Utility::readUnalignedValue<double>(reinterpret_cast<uintptr_t>(executor->forward_()));
-          executor->innerOffset += ((*step = sizeof(double) / sizeof(uint8_t)) - 1);
-        })));
-  INSPECT_STACK("f64.const", wasmIns, executor);
-}
-
-// operands: [baseAddr]; immes: [flags, offset]; return: [loadVal].
-void Interpreter::doI32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<int32_t>(ea));
-      });
-  INSPECT_STACK("i32.load", wasmIns, executor);
-}
-
-void Interpreter::doI32LoadMem8S(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-          static_cast<int32_t>(mem->load<int8_t>(ea)));
-      });
-  INSPECT_STACK("i32.load8_s", wasmIns, executor);
-}
-
-void Interpreter::doI32LoadMem8U(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-          static_cast<int32_t>(mem->load<uint8_t>(ea)));
-      });
-  INSPECT_STACK("i32.load8_u", wasmIns, executor);
-}
-
-void Interpreter::doI32LoadMem16S(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-          static_cast<int32_t>(mem->load<int16_t>(ea)));
-      });
-  INSPECT_STACK("i32.load16_s", wasmIns, executor);
-}
-
-void Interpreter::doI32LoadMem16U(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-          static_cast<int32_t>(mem->load<uint16_t>(ea)));
-      });
-  INSPECT_STACK("i32.load16_u", wasmIns, executor);
-}
-
-// operands: [storeVal, baseAddr]; immes: [flags, offset].
-void Interpreter::doI32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemarg<int32_t>(wasmIns, executor, [](
-    const uint32_t ea,
-    WasmMemoryInstance *const &mem,
-    const int32_t storeVal) -> void {
-      mem->store<int32_t>(ea, storeVal);
-    });
-  INSPECT_STACK("i32.store", wasmIns, executor);
-}
-
-void Interpreter::doI32StoreMem8(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemarg<int32_t>(wasmIns, executor, [](const uint32_t ea,
-    WasmMemoryInstance *const &mem,
-    const int32_t storeVal) -> void {
-      mem->store<int8_t>(ea, (storeVal & 255u));
-    });
-  INSPECT_STACK("i32.store8", wasmIns, executor);
-}
-
-void Interpreter::doI32StoreMem16(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemarg<int32_t>(wasmIns, executor, [](
-    const uint32_t ea,
-    WasmMemoryInstance *const &mem,
-    const int32_t storeVal) -> void {
-      mem->store<int8_t>(ea, (storeVal & 65535u));
-    });
-  INSPECT_STACK("i32.store16", wasmIns, executor);
-}
-
-void Interpreter::doI64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<int64_t>(ea));
-      });
-  INSPECT_STACK("i64.load", wasmIns, executor);
-}
-
-void Interpreter::doI64LoadMem8S(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-          static_cast<int64_t>(mem->load<int8_t>(ea)));
-      });
-  INSPECT_STACK("i64.load8_s", wasmIns, executor);
-}
-
-void Interpreter::doI64LoadMem8U(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-          static_cast<int64_t>(mem->load<uint8_t>(ea)));
-      });
-  INSPECT_STACK("i64.load8_u", wasmIns, executor);
-}
-
-void Interpreter::doI64LoadMem16S(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-          static_cast<int64_t>(mem->load<int16_t>(ea)));
-      });
-  INSPECT_STACK("i64.load16_s", wasmIns, executor);
-}
-
-void Interpreter::doI64LoadMem16U(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-          static_cast<int64_t>(mem->load<uint16_t>(ea)));
-      });
-  INSPECT_STACK("i64.load16_u", wasmIns, executor);
-}
-
-void Interpreter::doI64LoadMem32S(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-          static_cast<int64_t>(mem->load<int32_t>(ea)));
-      });
-  INSPECT_STACK("i64.load32_s", wasmIns, executor);
-}
-
-void Interpreter::doI64LoadMem32U(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-          static_cast<int64_t>(mem->load<uint32_t>(ea)));
-      });
-  INSPECT_STACK("i64.load32_u", wasmIns, executor);
-}
-
-void Interpreter::doI64StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemarg<int64_t>(wasmIns, executor, [](
-    const uint32_t ea,
-    WasmMemoryInstance *const &mem,
-    const int64_t storeVal) -> void {
-      mem->store<int64_t>(ea, storeVal);
-    });
-  INSPECT_STACK("i64.store", wasmIns, executor);
-}
-
-void Interpreter::doI64StoreMem8(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemarg<int64_t>(wasmIns, executor, [](
-    const uint32_t ea,
-    WasmMemoryInstance *const &mem,
-    const int64_t storeVal) -> void {
-      mem->store<int8_t>(ea, storeVal & 255u);
-    });
-  INSPECT_STACK("i64.store8", wasmIns, executor);
-}
-
-void Interpreter::doI64StoreMem16(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemarg<int64_t>(wasmIns, executor, [](
-    const uint32_t ea,
-    WasmMemoryInstance *const &mem,
-    const int64_t storeVal) -> void {
-      mem->store<int16_t>(ea, storeVal & 65535u);
-    });
-  INSPECT_STACK("i64.store16", wasmIns, executor);
-}
-
-void Interpreter::doI64StoreMem32(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemarg<int64_t>(wasmIns, executor, [](
-    const uint32_t ea,
-    WasmMemoryInstance *const &mem,
-    const int64_t storeVal) -> void {
-      mem->store<int32_t>(ea, storeVal & 4294836225u);
-    });
-  INSPECT_STACK("i64.store32", wasmIns, executor);
-}
-
-void Interpreter::doF32StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemarg<float>(wasmIns, executor, [](
-    const uint32_t ea,
-    WasmMemoryInstance *const &mem,
-    const float storeVal) -> void {
-      mem->store<float>(ea, storeVal);
-    });
-  INSPECT_STACK("f32.store", wasmIns, executor);
-}
-
-void Interpreter::doF32LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<float>(ea));
-      });
-  INSPECT_STACK("f32.load", wasmIns, executor);
-}
-
-void Interpreter::doF64StoreMem(shared_wasm_t &wasmIns, Executor *executor) {
-  storeMemarg<double>(wasmIns, executor, [](
-    const uint32_t ea,
-    WasmMemoryInstance *const &mem,
-    const double storeVal) -> void {
-      mem->store<double>(ea, storeVal);
-    });
-  INSPECT_STACK("f64.store", wasmIns, executor);
-}
-
-void Interpreter::doF64LoadMem(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveMemarg(wasmIns, executor,
-    [&wasmIns, &executor](
-      const uint32_t ea,
-      WasmMemoryInstance *const &mem) -> void {
-        wasmIns->stack->valueStack->top() = executor->checkUpConstant(mem->load<double>(ea));
-      });
-  INSPECT_STACK("f64.load", wasmIns, executor);
-}
-
-// numerical comparison.
-void Interpreter::doF32Floor(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(floor(x));
-    });
-  INSPECT_STACK("f32.floor", wasmIns, executor);
-}
-
-void Interpreter::doF32Trunc(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(trunc(x));
-    });
-  INSPECT_STACK("f32.trunc", wasmIns, executor);
-}
-
-void Interpreter::doF64Floor(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(floor(x));
-    });
-  INSPECT_STACK("f64.floor", wasmIns, executor);
-}
-
-void Interpreter::doF64Trunc(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(trunc(x));
-    });
-  INSPECT_STACK("f64.trunc", wasmIns, executor);
-}
-
-void Interpreter::doI32Popcnt(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(Bits::countPopulation(x));
-    });
-  INSPECT_STACK("i32.popcnt", wasmIns, executor);
-}
-
-void Interpreter::doI64Popcnt(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(Bits::countPopulation(x));
-    });
-  INSPECT_STACK("i64.popcnt", wasmIns, executor);
-}
-
-void Interpreter::doMemoryGrow(shared_wasm_t &wasmIns, Executor *executor) {
-  // reserved byte for future usage.
-  [[maybe_unused]] 
-  const auto reseverdByte = executor->uint8UseImmesCache(
-    [&executor](size_t *step, uint8_t *immediate) -> auto {
-      *immediate = Decoder::readUint8(executor->forward_());
-      executor->innerOffset += ((*step = 1) - 1);
-    });
-  retrieveSingleRTVal<uint32_t>(wasmIns, executor,
-    [&executor, &wasmIns](const shared_ptr<Stack::ValueFrameStack> &valueStack, const uint32_t x) -> void {
-      // -1 or "previous page size".
-      wasmIns->stack->valueStack->top() = executor->checkUpConstant(
-        wasmIns->module->memories[DEFAULT_ELEMENT_INDEX]->grow(x));
-    });
-  INSPECT_STACK("memory.grow", wasmIns, executor);
-}
-
-void Interpreter::doMemorySize(shared_wasm_t &wasmIns, Executor *executor) {
-  // reserved byte for future usage.
-  [[maybe_unused]] 
-  const auto reseverdByte = executor->uint8UseImmesCache(
-    [&executor](size_t *step, uint8_t *immediate) -> auto {
-      *immediate = Decoder::readUint8(executor->forward_());
-      executor->innerOffset += ((*step = 1) - 1);
-    });
-  // use the first one by default in MVP.
-  wasmIns->stack->valueStack->push(executor->checkUpConstant(
-    static_cast<uint32_t>(wasmIns->module->memories[DEFAULT_ELEMENT_INDEX]->getAvailablePage())));
-  INSPECT_STACK("memory.size", wasmIns, executor);
-}
-
-void Interpreter::doF32CopySign(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<float>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const float x,
-      const float y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(copysignf(x, y));
-    });
-  INSPECT_STACK("f32.copysign", wasmIns, executor);
-}
-
-void Interpreter::doF64CopySign(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<double>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const double x,
-      const double y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(copysign(x, y));
-    });
-  INSPECT_STACK("f64.copysign", wasmIns, executor);
-}
-
-void Interpreter::doCallIndirect(shared_wasm_t &wasmIns, Executor *executor) {}
-
-void Interpreter::doF32DemoteF64(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(Utility::double64ToFloat32(x));
-    });
-  INSPECT_STACK("f32.demote_f64", wasmIns, executor);
-}
-
-void Interpreter::doF32NearestInt(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(nearbyintf(x));
-    });
-  INSPECT_STACK("f32.nearest", wasmIns, executor);
-}
-
-void Interpreter::doF64PromoteF32(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<double>(x));
-    });
-  INSPECT_STACK("f64.promote_f32", wasmIns, executor);
-}
-
-void Interpreter::doF64NearestInt(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(nearbyintf(x));
-    });
-  INSPECT_STACK("f64.nearest", wasmIns, executor);
-}
-
-void Interpreter::doI32WrapI64(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(x & 0xffffffff));
-    });
-  INSPECT_STACK("i32.wrap_i64", wasmIns, executor);
-}
-
-void Interpreter::doF32SConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<float>(x));
-    });
-  INSPECT_STACK("f32.convert_i32_s", wasmIns, executor);
-}
-
-void Interpreter::doF32SConvertI64(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<float>(x));
-    });
-  INSPECT_STACK("f32.convert_i64_s", wasmIns, executor);
-}
-
-void Interpreter::doF32UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        x < 0 ? static_cast<int64_t>(0) : static_cast<int64_t>(x));
-    });
-  INSPECT_STACK("f32.convert_i32_u", wasmIns, executor);
-}
-
-void Interpreter::doF32UConvertI64(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<uint64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const uint64_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<float>(x));
-    });
-  INSPECT_STACK("f32.convert_i64_u", wasmIns, executor);
-}
-
-void Interpreter::doF64SConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<double>(x));
-    });
-  INSPECT_STACK("f64.convert_i32_s", wasmIns, executor);
-}
-
-void Interpreter::doF64SConvertI64(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<double>(x));
-    });
-  INSPECT_STACK("f64.convert_i64_s", wasmIns, executor);
-}
-
-void Interpreter::doF64UConvertI32(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        x < 0 ? static_cast<double>(0) : static_cast<double>(x));
-    });
-  INSPECT_STACK("f64.convert_i32_u", wasmIns, executor);
-}
-
-void Interpreter::doF64UConvertI64(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<uint64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const uint64_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<double>(x));
-    });
-  INSPECT_STACK("f64.convert_i64_u", wasmIns, executor);
-}
-
-void Interpreter::doI32TruncF32S(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(x));
-    });
-  INSPECT_STACK("i32.trunc_f32_s", wasmIns, executor);
-}
-
-void Interpreter::doI32TruncF64S(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(x));
-    });
-  INSPECT_STACK("i32.trunc_f64_s", wasmIns, executor);
-}
-
-void Interpreter::doI32TruncF32U(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<uint32_t>(x));
-    });
-  INSPECT_STACK("i32.trunc_f32_u", wasmIns, executor);
-}
-
-void Interpreter::doI32TruncF64U(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<uint32_t>(x));
-    });
-  INSPECT_STACK("i32.trunc_f64_u", wasmIns, executor);
-}
-
-void Interpreter::doI64TruncF32S(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(x));
-    });
-  INSPECT_STACK("i64.trunc_f32_s", wasmIns, executor);
-}
-
-void Interpreter::doI64TruncF64S(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(x));
-    });
-  INSPECT_STACK("i64.trunc_f64_s", wasmIns, executor);
-}
-
-void Interpreter::doI64ExtendI32S(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(x));
-    });
-  INSPECT_STACK("i64.extend_i32_s", wasmIns, executor);
-}
-
-void Interpreter::doI64TruncF32U(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<uint64_t>(x));
-    });
-  INSPECT_STACK("i64.trunc_f32_u", wasmIns, executor);
-}
-
-void Interpreter::doI64TruncF64U(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<uint64_t>(x));
-    });
-  INSPECT_STACK("i64.trunc_f64_u", wasmIns, executor);
-}
-
-void Interpreter::doI64ExtendI32U(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        x < 0 ? static_cast<int64_t>(0) : static_cast<int64_t>(x));
-    });
-  INSPECT_STACK("i64.extend_i32_u", wasmIns, executor);
-}
-
-void Interpreter::doF32ReinterpretI32(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(*reinterpret_cast<float*>(const_cast<int32_t*>(&x)));
-    });
-  INSPECT_STACK("f32.reinterpret_i32", wasmIns, executor);
-}
-
-void Interpreter::doF64ReinterpretI64(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(*reinterpret_cast<double*>(const_cast<int64_t*>(&x)));
-    });
-  INSPECT_STACK("f64.reinterpret_i64", wasmIns, executor);
-}
-
-void Interpreter::doI32ReinterpretF32(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(*reinterpret_cast<int32_t*>(const_cast<float*>(&x)));
-    });
-  INSPECT_STACK("i32.reinterpret_f32", wasmIns, executor);
-}
-
-void Interpreter::doI64ReinterpretF64(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(*reinterpret_cast<int64_t*>(const_cast<double*>(&x)));
-    });
-  INSPECT_STACK("i64.reinterpret_f64", wasmIns, executor);
-}
-
-void Interpreter::doNop(shared_wasm_t &wasmIns, Executor *executor) { 
-  /* no effect */ 
-  INSPECT_STACK("nop", wasmIns, executor); 
-}
-
-void Interpreter::doDrop(shared_wasm_t &wasmIns, Executor *executor) {
-  // drop the top "ValueFrame" directly.
-  wasmIns->stack->valueStack->pop();
-  INSPECT_STACK("drop", wasmIns, executor);
-}
-
-void Interpreter::doF32Abs(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(abs(x));
-    });
-  INSPECT_STACK("f32.abs", wasmIns, executor);
-}
-
-void Interpreter::doF32Max(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<float>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const float x,
-      const float y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(Utility::max<float>(x, y));
-    });
-  INSPECT_STACK("f32.max", wasmIns, executor);
-}
-
-void Interpreter::doF32Min(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<float>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const float x,
-      const float y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(Utility::min<float>(x, y));
-    });
-  INSPECT_STACK("f32.min", wasmIns, executor);
-}
-
-void Interpreter::doF32Neg(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(-x);
-    });
-  INSPECT_STACK("f32.neg", wasmIns, executor);
-}
-
-
-void Interpreter::doF64Abs(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(abs(x));
-    });
-  INSPECT_STACK("f64.abs", wasmIns, executor);
-}
-
-void Interpreter::doF64Max(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<double>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const double x,
-      const double y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(Utility::max<double>(x, y));
-    });
-  INSPECT_STACK("f64.max", wasmIns, executor);
-}
-
-void Interpreter::doF64Min(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<double>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const double x,
-      const double y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(Utility::min<double>(x, y));
-    });
-  INSPECT_STACK("f64.min", wasmIns, executor);
-}
-
-void Interpreter::doF64Neg(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(-x);
-    });
-  INSPECT_STACK("f64.neg", wasmIns, executor);
-}
-
-void Interpreter::doI32Clz(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(Bits::countLeadingZeros(x)));
-    });
-  INSPECT_STACK("i32.clz", wasmIns, executor);
-}
-
-void Interpreter::doI32Ctz(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(Bits::countTrailingZeros(x)));
-    });
-  INSPECT_STACK("i32.ctz", wasmIns, executor);
-}
-
-void Interpreter::doI32Eqz(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(x == 0 ? 1 : 0));
-    });
-  INSPECT_STACK("i32.eqz", wasmIns, executor);
-}
-
-void Interpreter::doI32Rotl(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int32_t x,
-      const int32_t y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant((x << (y & 0x1f)) | (x >> ((32 - y) & 0x1f)));
-    });
-  INSPECT_STACK("i32.rotl", wasmIns, executor);
-}
-
-void Interpreter::doI32Rotr(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int32_t x,
-      const int32_t y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant((x >> (y & 0x1f)) | (x << ((32 - y) & 0x1f)));
-    });
-  INSPECT_STACK("i32.rotr", wasmIns, executor);
-}
-
-void Interpreter::doI32Shl(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int32_t x,
-      const int32_t y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(x << (y & 0x1f));
-    });
-  INSPECT_STACK("i32.shl", wasmIns, executor);
-}
-
-void Interpreter::doI64Clz(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(Bits::countLeadingZeros(x)));
-    });
-  INSPECT_STACK("i64.clz", wasmIns, executor);
-}
-
-void Interpreter::doI64Ctz(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(Bits::countTrailingZeros(x)));
-    });
-  INSPECT_STACK("i64.ctz", wasmIns, executor);
-}
-
-void Interpreter::doI64Eqz(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int64_t>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int64_t x) -> void {
-      valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(x == 0 ? 1 : 0));
-    });
-  INSPECT_STACK("i64.eqz", wasmIns, executor);
-}
-
-void Interpreter::doI64Rotl(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int64_t x,
-      const int64_t y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant((x << (y & 0x3f)) | (x >> ((64 - y) & 0x3f)));
-    });
-  INSPECT_STACK("i64.rotl", wasmIns, executor);
-}
-
-void Interpreter::doI64Rotr(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int64_t x,
-      const int64_t y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant((x >> (y & 0x3f)) | (x << ((64 - y) & 0x3f)));
-    });
-  INSPECT_STACK("i64.rotr", wasmIns, executor);
-}
-
-void Interpreter::doI64Shl(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int64_t x,
-      const int64_t y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(x << (y & 0x3f));
-    });
-  INSPECT_STACK("i64.shl", wasmIns, executor);
-}
-
-void Interpreter::doSelect(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<int32_t>(wasmIns, executor,
-    [](const shared_ptr<Stack::ValueFrameStack> &valueStack, const int32_t x) -> void {
-      if (x != 0) {
-        /**
-         * [operand][operand][select-key]
-         *     ^--------^
-         *      exchange
-         */
-        valueStack->at(valueStack->size() - 3) = valueStack->at(valueStack->size() - 2);
+namespace TWVM {
+  std::array<Interpreter::opHandlerProto, sizeof(uint8_t) * 1 << 8> Interpreter::opTokenHandlers = {
+    ITERATE_ALL_OPCODE(REF_OPCODE_HANDLER_PTR)
+  };
+
+  ITERATE_SIMPLE_BINOP(DECLARE_BASIC_BINOP_METHOD)
+  ITERATE_LOAD_MEMOP(DECLARE_MEM_LOAD_OP_METHOD)
+  ITERATE_STORE_MEMOP(DECLARE_MEM_STORE_OP_METHOD)
+  ITERATE_TRUNCOP(DECLARE_TRUNC_OP_METHOD)
+  ITERATE_CONVERTOP(DECLARE_CONVERT_OP_METHOD)
+  ITERATE_REINTERPRETOP(DECLARE_REINTERPRET_OP_METHOD)
+
+  void Interpreter::doUnreachable(Executor& executor, opHandlerInfoType _) {
+    Exception::terminate(Exception::ErrorType::UNREACHABLE);
+  }
+  void Interpreter::doNop(Executor& executor, opHandlerInfoType _) {}
+  void Interpreter::doBlock(Executor& executor, opHandlerInfoType _) {
+    const auto returnArityTypes = executor.collectArities();
+    const auto cont = executor.lookupLabelContFromPC();
+    if (cont.size() > 0) {
+      executor.pushToStack(Runtime::RTLabelFrame(cont.back(), returnArityTypes));
+    } else  {
+      Exception::terminate(Exception::ErrorType::ILLFORMED_STRUCTURE);
+    }
+  }
+  void Interpreter::doLoop(Executor& executor, opHandlerInfoType _) {
+    auto* cont = executor.getPC() - 1;
+    const auto returnArityTypes = executor.collectArities();
+    executor.pushToStack(Runtime::RTLabelFrame(cont));  // No arities in MVP.
+  }
+  void Interpreter::doIf(Executor& executor, opHandlerInfoType _) {
+    const auto returnArityTypes = executor.collectArities();
+    const auto conts = executor.lookupLabelContFromPC();
+    if (conts.size() > 1) {
+      const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+      executor.pushToStack(Runtime::RTLabelFrame(conts.back(), returnArityTypes));
+      if (v == 0) {
+        executor.setPC(conts.front());
       }
-      // remove the top 2 elements, including the flag ValueFrame.
-      valueStack->popN(2);
-    });
-  INSPECT_STACK("select", wasmIns, executor);
-}
-
-void Interpreter::doF32Ceil(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(ceilf(x));
-    });
-  INSPECT_STACK("f32.ceil", wasmIns, executor);
-}
-
-void Interpreter::doF32Sqrt(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<float>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const float x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<float>(sqrtf(x)));
-    });
-  INSPECT_STACK("f32.sqrt", wasmIns, executor);
-}
-
-void Interpreter::doF64Ceil(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(
-        static_cast<double>(ceill(x)));
-    });
-  INSPECT_STACK("f64.ceil", wasmIns, executor);
-}
-
-void Interpreter::doF64Sqrt(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveSingleRTVal<double>(wasmIns, executor,
-    [&executor](const shared_ptr<Stack::ValueFrameStack> &valueStack, const double x) -> void {
-      valueStack->top() = executor->checkUpConstant(sqrt(x));
-    });
-  INSPECT_STACK("f64.sqrt", wasmIns, executor);
-}
-
-void Interpreter::doI32DivS(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int32_t x,
-      const int32_t y) -> void {
-      valueStack->pop();
-      if (y == 0) {
-        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
-      } else if (y == -1 && x == numeric_limits<int32_t>::min()) {
-        // INT32_T_MIN = -INT32_T_MAX - 1.
-        Printer::instance().error(Errors::RT_DIV_UNREPRESENTABLE);
+    } else  {
+      Exception::terminate(Exception::ErrorType::ILLFORMED_STRUCTURE);
+    }
+  }
+  void Interpreter::doElse(Executor& executor, opHandlerInfoType _) {
+    doBr(executor, 0);
+  }
+  void Interpreter::doEnd(Executor& executor, opHandlerInfoType _) {
+    doBr(executor, 0);  // No forwarding PC.
+  }
+  void Interpreter::doBr(Executor& executor, opHandlerInfoType passedDepth) {
+    const auto depth = passedDepth.has_value() ? *passedDepth : executor.decodeVaruintFromPC<Runtime::relative_depth_t>();
+    const auto labelsCount = executor.getLabelAboveActivFrameCount();
+    if (labelsCount > depth) {  
+      // Consume Label frames.
+      auto* cont = executor.retFromFrameWithCont<Runtime::RTLabelFrame>(depth);
+      if (static_cast<OpCodes>(*(executor.getPC() - 1)) != OpCodes::End) {
+        executor.setPC(cont);
+      }
+    } else if (labelsCount == depth) {  
+      // Consuem Activ frame.
+      doReturn(executor, depth);
+    } else {
+      Exception::terminate(Exception::ErrorType::BREAK_LEVEL_EXCEEDED);
+    }
+  }
+  void Interpreter::doBrIf(Executor& executor, opHandlerInfoType _) {
+    const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+    const auto depth = executor.decodeVaruintFromPC<Runtime::relative_depth_t>();
+    if (v != 0) {
+      doBr(executor, depth);
+    }
+  }
+  void Interpreter::doBrTable(Executor& executor, opHandlerInfoType _) {
+    const auto entries = executor.parseBrTableInfo();
+    const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+    if (v < entries.size()) {
+      doBr(executor, entries.at(v));
+    } else {
+      doBr(executor, entries.back());
+    }
+  }
+  void Interpreter::doReturn(Executor& executor, opHandlerInfoType labelDepth) {
+    const auto activIdx = executor.getTopFrameIdx(Runtime::STVariantIndex::ACTIVATION);
+    if (activIdx.has_value() && *activIdx == 0) {
+      executor.stopEngine();
+    } else {
+      const auto depth = labelDepth.value_or(executor.getLabelAboveActivFrameCount());
+      executor.setPC(
+        executor.retFromFrameWithCont<Runtime::RTActivFrame>(depth));
+    }
+  }
+  void Interpreter::doCall(Executor& executor, opHandlerInfoType passedFuncIdx) {
+    const auto idx = passedFuncIdx.has_value() ? *passedFuncIdx : executor.decodeVaruintFromPC<Runtime::index_t>();
+    const auto& descriptor = executor.getEngineData()->rtFuncDescriptor.at(idx);
+    auto paramCount = descriptor.funcType->first.size();
+    auto rtLocals = descriptor.localsDefault;  // Copied.
+    // Set up func parameters.
+    if (paramCount > 0) {
+      for (auto i = 0; i < paramCount; ++i) {
+        const auto& vf = executor.refFrameFromStack<Runtime::RTValueFrame>();
+        if (vf.value.index() == rtLocals.at(i).index()) {
+          rtLocals.at(i) = vf.value;
+          executor.popFromStack();
+        } else {
+          Exception::terminate(Exception::ErrorType::MISSING_FUNC_PARAMS);
+        }
+      }
+    }
+    // Construct frame (locals + artiy).
+    executor.pushToStack(
+      Runtime::RTActivFrame(
+        rtLocals, 
+        executor.getPC(), 
+        &descriptor.funcType->second));
+    // Redirection.
+    executor.setPC(descriptor.codeEntry);
+  }
+  void Interpreter::doCallIndirect(Executor& executor, opHandlerInfoType _) {
+    const auto& engineData = executor.getEngineData(); 
+    const auto& defaultTable = engineData->rtTables.front();  // Restricted to only 1 table in MVP. 
+    const auto sigIdx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    [[maybe_unused]] const auto tblIdx = executor.decodeByteFromPC();  // reserved.
+    const auto& funcTypesRef = engineData->module->funcTypes;
+    if (funcTypesRef.size() > sigIdx) {
+      const auto& expectedType = funcTypesRef.at(sigIdx);
+      const auto funcIdx = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+      if (defaultTable.size() > funcIdx) {
+        executor.validateTypeWithFuncIdx(expectedType, funcIdx);  // May throw.
+        doCall(executor, funcIdx);
       } else {
-        valueStack->top() = executor->checkUpConstant(x / y);
+        Exception::terminate(Exception::ErrorType::NO_AVAILABLE_TABLES_EXIST);
       }
-    });
-  INSPECT_STACK("i32.div_s", wasmIns, executor);
-}
-
-void Interpreter::doI32DivU(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<uint32_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const uint32_t x,
-      const uint32_t y) -> void {
-      valueStack->pop();
-      if (y == 0) {
-        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
+    } else {
+      Exception::terminate(Exception::ErrorType::FUNC_TYPE_ACCESS_OOB);
+    }
+  }
+  void Interpreter::doDrop(Executor& executor, opHandlerInfoType _) {
+    executor.refFrameFromStack<Runtime::RTValueFrame>();
+    executor.popFromStack();
+  }
+  void Interpreter::doSelect(Executor& executor, opHandlerInfoType _) {
+    const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+    const auto& vy = executor.refFrameFromStack<Runtime::RTValueFrame>();  // Top.
+    const auto& vx = executor.refFrameFromStack<Runtime::RTValueFrame>(1);
+    if (vy.value.index() == vx.value.index()) {
+      executor.eraseFrameFromStack(v == 0 ? 1 : 0);
+    } else {
+      Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
+    }
+  }
+  void Interpreter::doLocalGet(Executor& executor, opHandlerInfoType _) {
+    const auto idx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    const auto& frameOffset = executor.refTrackedTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
+    const auto& locals = std::get<Runtime::RTActivFrame>(*frameOffset.ptr).locals;
+    if (locals.size() >= idx + 1) {
+      executor.pushToStack(locals.at(idx));
+    } else {
+      Exception::terminate(Exception::ErrorType::ILLEGAL_LOCAL_IDX);
+    }
+  }
+  void Interpreter::doLocalSet(Executor& executor, opHandlerInfoType fromTee) {
+    const auto localIdx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    const auto& activFrameOffset = executor.refTrackedTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
+    const auto& valueFrame = executor.refFrameFromStack<Runtime::RTValueFrame>();
+    auto& locals = std::get<Runtime::RTActivFrame>(*activFrameOffset.ptr).locals;
+    if (locals.at(localIdx).index() == valueFrame.value.index()) {
+      locals.at(localIdx) = valueFrame.value;
+    }
+    if (!fromTee.has_value()) {
+      executor.popFromStack();
+    }
+  }
+  void Interpreter::doLocalTee(Executor& executor, opHandlerInfoType _) {
+    doLocalSet(executor, INFO_BOOL_TRUE);
+  }
+  void Interpreter::doGlobalGet(Executor& executor, opHandlerInfoType _) {
+    const auto idx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    auto& rtGlobals = executor.getEngineData()->rtGlobals;
+    if (rtGlobals.size() > idx) {
+      executor.pushToStack(Runtime::RTValueFrame(rtGlobals.at(idx)));
+    } else {
+      Exception::terminate(Exception::ErrorType::GLOBAL_ACCESS_OOB);
+    }
+  }
+  void Interpreter::doGlobalSet(Executor& executor, opHandlerInfoType _) {
+    const auto idx = executor.decodeVaruintFromPC<Runtime::index_t>();
+    const auto& engineData = executor.getEngineData(); 
+    auto& rtGlobals = engineData->rtGlobals;
+    if (rtGlobals.size() > idx) {
+      const auto mutability = engineData->module->globals.at(idx).globalType.mutability;
+      const auto& v = executor.refFrameFromStack<Runtime::RTValueFrame>();
+      if (mutability && v.value.index() == rtGlobals.at(idx).index()) {
+        rtGlobals.at(idx) = v.value;
+        executor.popFromStack();
       } else {
-        valueStack->top() = executor->checkUpConstant(x / y);
+        Exception::terminate(Exception::ErrorType::IMMUTABLE_GLOBAL_CHANGED);
       }
+    } else {
+      Exception::terminate(Exception::ErrorType::GLOBAL_ACCESS_OOB);
+    }
+  }
+  void Interpreter::doI32Const(Executor& executor, opHandlerInfoType _) {
+    executor.pushToStack(Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i32_t>()));
+  }
+  void Interpreter::doI64Const(Executor& executor, opHandlerInfoType _) {
+    executor.pushToStack(Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i64_t>()));
+  }
+  void Interpreter::doF32Const(Executor& executor, opHandlerInfoType _) {
+    executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<float>()));
+  }
+  void Interpreter::doF64Const(Executor& executor, opHandlerInfoType _) {
+    executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<double>()));
+  }
+  void Interpreter::doMemorySize(Executor& executor, opHandlerInfoType _) {
+    const auto& rtMems = executor.getEngineData()->rtMems;
+    [[maybe_unused]] const auto reserved = executor.decodeByteFromPC();
+    if (rtMems.size() > 0) {
+      const auto& defaultMem = rtMems.front();
+      executor.pushToStack(
+        Runtime::RTValueFrame(
+          static_cast<Runtime::rt_i32_t>(defaultMem.size)));
+    } else {
+      Exception::terminate(Exception::ErrorType::NO_AVAILABLE_MEM);
+    }
+  }
+  void Interpreter::doMemoryGrow(Executor& executor, opHandlerInfoType _) {
+    const auto& rtMems = executor.getEngineData()->rtMems;
+    [[maybe_unused]] const auto reserved = executor.decodeByteFromPC();
+    if (rtMems.size() > 0) {
+      const auto& defaultMem = rtMems.front();
+      const auto sz = defaultMem.size / WASM_PAGE_SIZE;
+      const auto n = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+      const auto size = n + sz;
+      executor.pushToStack(
+        Runtime::RTValueFrame(static_cast<Runtime::rt_i32_t>(executor.resizeMem(size))));
+    } else {
+      Exception::terminate(Exception::ErrorType::NO_AVAILABLE_MEM);
+    }
+  }
+  void Interpreter::doI32Eqz(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto v) {
+      return v == 0;
+    }); 
+  }
+  void Interpreter::doI64Eqz(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto v) {
+      return v == 0;
     });
-  INSPECT_STACK("i32.div_u", wasmIns, executor);
-}
-
-void Interpreter::doI32RemS(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int32_t x,
-      const int32_t y) -> void {
-      valueStack->pop();
-      if (y == 0) {
-        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
-      } else if (y == -1) {
-        valueStack->top() = executor->checkUpConstant(static_cast<int32_t>(0));
+  }
+  void Interpreter::doI32Clz(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto v) {
+      return Util::countLeadingZeros(v);
+    });
+  }
+  void Interpreter::doI32Ctz(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto v) {
+      return Util::countTrailingZeros(v);
+    });
+  }
+  void Interpreter::doI32Popcnt(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto v) {
+      return Util::countPopulation(v);
+    });
+  }
+  void Interpreter::doI32DivS(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto x, auto y) {
+      const auto sx = static_cast<std::make_signed_t<decltype(x)>>(x);
+      const auto sy = static_cast<std::make_signed_t<decltype(y)>>(y);
+      if (sy != 0) {
+        if (!(sy == -1 && sx == std::numeric_limits<int32_t>::min())) {
+          return sx / sy;
+        } else {
+          Exception::terminate(Exception::ErrorType::VAL_NOT_REPRESENTABLE);
+        }
       } else {
-        valueStack->top() = executor->checkUpConstant(x % y);
+        Exception::terminate(Exception::ErrorType::DIVISION_BY_ZERO);
       }
     });
-  INSPECT_STACK("i32.rem_s", wasmIns, executor);
-}
-
-void Interpreter::doI32RemU(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<uint32_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const uint32_t x,
-      const uint32_t y) -> void {
-      valueStack->pop();
-      if (y == 0) {
-        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
+  }
+  void Interpreter::doI32DivU(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto x, auto y) {
+      const auto ux = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      const auto uy = static_cast<std::make_unsigned_t<decltype(y)>>(y);
+      if (uy != 0) {
+        return ux / uy;
       } else {
-        valueStack->top() = executor->checkUpConstant(x % y);
+        Exception::terminate(Exception::ErrorType::DIVISION_BY_ZERO);
       }
     });
-  INSPECT_STACK("i32.rem_u", wasmIns, executor);
-}
-
-void Interpreter::doI32ShrS(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int32_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int32_t x,
-      const int32_t y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(x >> (y & 0x1f));
-    });
-  INSPECT_STACK("i32.shr_s", wasmIns, executor);
-}
-
-void Interpreter::doI32ShrU(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<uint32_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const uint32_t x,
-      const uint32_t y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(x >> (y & 0x1f));
-    });
-  INSPECT_STACK("i32.shr_u", wasmIns, executor);
-}
-
-void Interpreter::doI64DivS(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int64_t x,
-      const int64_t y) -> void {
-      valueStack->pop();
-      if (y == 0) {
-        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
-      } else if (y == -1 && x == numeric_limits<int64_t>::min()) {
-        // INT64_T_MIN = -INT64_T_MAX - 1.
-        Printer::instance().error(Errors::RT_DIV_UNREPRESENTABLE);
+  }
+  void Interpreter::doI32RemS(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto x, auto y) {
+      const auto sx = static_cast<std::make_signed_t<decltype(x)>>(x);
+      const auto sy = static_cast<std::make_signed_t<decltype(y)>>(y);
+      if (sy != 0) {
+        return sx % sy;
       } else {
-        valueStack->top() = executor->checkUpConstant(x / y);
+        Exception::terminate(Exception::ErrorType::DIVISION_BY_ZERO);
       }
     });
-  INSPECT_STACK("i64.div_s", wasmIns, executor);
-}
-
-void Interpreter::doI64DivU(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<uint64_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const uint64_t x,
-      const uint64_t y) -> void {
-      valueStack->pop();
-      if (y == 0) {
-        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
+  }
+  void Interpreter::doI32RemU(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto x, auto y) {
+      const auto ux = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      const auto uy = static_cast<std::make_unsigned_t<decltype(y)>>(y);
+      if (uy != 0) {
+        return ux % uy;
       } else {
-        valueStack->top() = executor->checkUpConstant(x / y);
+        Exception::terminate(Exception::ErrorType::DIVISION_BY_ZERO);
       }
     });
-  INSPECT_STACK("i64.div_u", wasmIns, executor);
-}
-
-void Interpreter::doI64RemS(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int64_t x,
-      const int64_t y) -> void {
-      valueStack->pop();
-      if (y == 0) {
-        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
-      } else if (y == -1) {
-        valueStack->top() = executor->checkUpConstant(static_cast<int64_t>(0));
+  }
+  void Interpreter::doI32Shl(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto x, auto y) {
+      return x << (y & 0x1f);
+    });
+  }
+  void Interpreter::doI32ShrS(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto x, auto y) {
+      const auto sx = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      const auto sy = static_cast<std::make_unsigned_t<decltype(y)>>(y);
+      return sx >> (sy & 0x1f);
+    });
+  }
+  void Interpreter::doI32ShrU(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto x, auto y) {
+      const auto ux = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      const auto uy = static_cast<std::make_unsigned_t<decltype(y)>>(y);
+      return ux >> (uy & 0x1f);
+    });
+  }
+  void Interpreter::doI32Rotl(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto x, auto y) {
+      const auto ux = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      return (ux << (y & 0x1f)) | (ux >> (32 - (y & 0x1f)));
+    });
+  }
+  void Interpreter::doI32Rotr(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto x, auto y) {
+      const auto ux = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      return (ux >> (y & 0x1f)) | (ux << ((32 - y) & 0x1f));
+    });
+  }
+  void Interpreter::doI64Clz(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto v) {
+      return Util::countLeadingZeros(v);
+    });
+  }
+  void Interpreter::doI64Ctz(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto v) {
+      return Util::countTrailingZeros(v);
+    });
+  }
+  void Interpreter::doI64Popcnt(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto v) {
+      return Util::countPopulation(v);
+    });
+  }
+  void Interpreter::doI64DivS(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto x, auto y) {
+      const auto sx = static_cast<std::make_signed_t<decltype(x)>>(x);
+      const auto sy = static_cast<std::make_signed_t<decltype(y)>>(y);
+      if (sy != 0) {
+        if (!(sy == -1 && sx == std::numeric_limits<int64_t>::min())) {
+          return sx / sy;
+        } else {
+          Exception::terminate(Exception::ErrorType::VAL_NOT_REPRESENTABLE);
+        }
       } else {
-        valueStack->top() = executor->checkUpConstant(y == -1 ? static_cast<int64_t>(0) : x % y);
+        Exception::terminate(Exception::ErrorType::DIVISION_BY_ZERO);
       }
     });
-  INSPECT_STACK("i64.rem_s", wasmIns, executor);
-}
-
-void Interpreter::doI64RemU(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<uint64_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const uint64_t x,
-      const uint64_t y) -> void {
-      valueStack->pop();
-      if (y == 0) {
-        Printer::instance().error(Errors::RT_DIV_BY_ZERO);
+  }
+  void Interpreter::doI64DivU(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto x, auto y) {
+      const auto ux = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      const auto uy = static_cast<std::make_unsigned_t<decltype(y)>>(y);
+      if (uy != 0) {
+        return ux / uy;
       } else {
-        valueStack->top() = executor->checkUpConstant(x % y);
+        Exception::terminate(Exception::ErrorType::DIVISION_BY_ZERO);
       }
     });
-  INSPECT_STACK("i64.rem_u", wasmIns, executor);
-}
-
-void Interpreter::doI64ShrS(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<int64_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const int64_t x,
-      const int64_t y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(x >> (y & 0x3f));
+  }
+  void Interpreter::doI64RemS(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto x, auto y) {
+      const auto sx = static_cast<std::make_signed_t<decltype(x)>>(x);
+      const auto sy = static_cast<std::make_signed_t<decltype(y)>>(y);
+      if (sy != 0) {
+        return sx % sy;
+      } else {
+        Exception::terminate(Exception::ErrorType::DIVISION_BY_ZERO);
+      }
     });
-  INSPECT_STACK("i64.shr_s", wasmIns, executor);
-}
-
-void Interpreter::doI64ShrU(shared_wasm_t &wasmIns, Executor *executor) {
-  retrieveDoubleRTVals<uint64_t>(wasmIns, executor,
-    [&executor](
-      const shared_ptr<Stack::ValueFrameStack> &valueStack,
-      const uint64_t x,
-      const uint64_t y) -> void {
-      valueStack->pop();
-      valueStack->top() = executor->checkUpConstant(x >> (y & 0x3f));
+  }
+  void Interpreter::doI64RemU(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto x, auto y) {
+      const auto ux = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      const auto uy = static_cast<std::make_unsigned_t<decltype(y)>>(y);
+      if (uy != 0) {
+        return ux % uy;
+      } else {
+        Exception::terminate(Exception::ErrorType::DIVISION_BY_ZERO);
+      }
     });
-  INSPECT_STACK("i64.shr_u", wasmIns, executor);
+  }
+  void Interpreter::doI64Shl(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto x, auto y) {
+      return x << (y & 0x3f);
+    });
+  }
+  void Interpreter::doI64ShrS(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto x, auto y) {
+      const auto sx = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      const auto sy = static_cast<std::make_unsigned_t<decltype(y)>>(y);
+      return sx >> (sy & 0x3f);
+    });
+  }
+  void Interpreter::doI64ShrU(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto x, auto y) {
+      const auto ux = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      const auto uy = static_cast<std::make_unsigned_t<decltype(y)>>(y);
+      return ux >> (uy & 0x3f);
+    });
+  }
+  void Interpreter::doI64Rotl(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i64_t, Runtime::rt_i64_t>([](auto x, auto y) {
+      const auto ux = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      return (ux << (y & 0x3f)) | (ux >> (64 - (y & 0x3f)));
+    });
+  }
+  void Interpreter::doI64Rotr(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_i32_t, Runtime::rt_i32_t>([](auto x, auto y) {
+      const auto ux = static_cast<std::make_unsigned_t<decltype(x)>>(x);
+      return (ux >> (y & 0x3f)) | (ux << ((64 - y) & 0x3f));
+    });
+  }
+  void Interpreter::doF32Abs(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f32_t, Runtime::rt_f32_t>([](auto v) {
+      return std::abs(v);
+    });
+  }
+  void Interpreter::doF32Neg(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f32_t, Runtime::rt_f32_t>([](auto v) {
+      return -v;
+    });
+  }
+  void Interpreter::doF32Ceil(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f32_t, Runtime::rt_f32_t>([](auto v) {
+      return std::ceil(v);
+    });
+  }
+  void Interpreter::doF32Floor(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f32_t, Runtime::rt_f32_t>([](auto v) {
+      return std::floor(v);
+    });
+  }
+  void Interpreter::doF32Trunc(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f32_t, Runtime::rt_f32_t>([](auto v) {
+      return std::trunc(v);
+    });
+  }
+  void Interpreter::doF32NearestInt(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f32_t, Runtime::rt_f32_t>([](auto v) {
+      std::fesetround(FE_TONEAREST);
+      return std::nearbyint(v);
+    });
+  }
+  void Interpreter::doF32Sqrt(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f32_t, Runtime::rt_f32_t>([](auto v) {
+      return std::sqrt(v);
+    });
+  }
+  void Interpreter::doF32Min(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_f32_t, Runtime::rt_f32_t>([](auto x, auto y) {
+      return std::min(x, y);
+    });
+  }
+  void Interpreter::doF32Max(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_f32_t, Runtime::rt_f32_t>([](auto x, auto y) {
+      return std::max(x, y);
+    });
+  }
+  void Interpreter::doF32CopySign(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_f32_t, Runtime::rt_f32_t>([](auto x, auto y) {
+      return std::copysign(x, y);
+    });
+  }
+  void Interpreter::doF64Abs(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f64_t, Runtime::rt_f64_t>([](auto v) {
+      return std::abs(v);
+    });
+  }
+  void Interpreter::doF64Neg(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f64_t, Runtime::rt_f64_t>([](auto v) {
+      return -v;
+    });
+  }
+  void Interpreter::doF64Ceil(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f64_t, Runtime::rt_f64_t>([](auto v) {
+      return std::ceil(v);
+    });
+  }
+  void Interpreter::doF64Floor(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f64_t, Runtime::rt_f64_t>([](auto v) {
+      return std::floor(v);
+    });
+  }
+  void Interpreter::doF64Trunc(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f64_t, Runtime::rt_f64_t>([](auto v) {
+      return std::trunc(v);
+    });
+  }
+  void Interpreter::doF64NearestInt(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f64_t, Runtime::rt_f64_t>([](auto v) {
+      std::fesetround(FE_TONEAREST);
+      return std::nearbyint(v);
+    });
+  }
+  void Interpreter::doF64Sqrt(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f64_t, Runtime::rt_f64_t>([](auto v) {
+      return std::sqrt(v);
+    });
+  }
+  void Interpreter::doF64Min(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_f64_t, Runtime::rt_f64_t>([](auto x, auto y) {
+      return std::min(x, y);
+    });
+  }
+  void Interpreter::doF64Max(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_f64_t, Runtime::rt_f64_t>([](auto x, auto y) {
+      return std::max(x, y);
+    });
+  }
+  void Interpreter::doF64CopySign(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFTRO<Runtime::rt_f64_t, Runtime::rt_f64_t>([](auto x, auto y) {
+      return std::copysign(x, y);
+    });
+  }
+  void Interpreter::doI32WrapI64(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_i64_t, Runtime::rt_i32_t>([](auto v) {
+      return v & 0xffffffff;
+    });
+  }
+  void Interpreter::doF32DemoteF64(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f64_t, Runtime::rt_f32_t>([](auto v) {
+      return v;
+    });
+  }
+  void Interpreter::doF64PromoteF32(Executor& executor, opHandlerInfoType _) {
+    executor.opHandlerFORO<Runtime::rt_f32_t, Runtime::rt_f64_t>([](auto v) {
+      return v;
+    });
+  }
 }

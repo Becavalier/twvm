@@ -1,19 +1,17 @@
 {
   "name": "twvm",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A tiny, lightweight and efficient WebAssembly virtual machine.",
-  "main": "index.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
     "build": "bash scripts/build.sh",
-    "debug": "npm-run-all \"build -- --debug\"",
+    "build:debug": "npm-run-all \"build -- --debug\"",
     "test": "npm-run-all \"build -- --test\"",
-    "lint": "cpplint --counting=total --filter=-build/c++17 --root=. --recursive --linelength=120 --extensions=cc,h ./lib",
-    "memcheck": "npm run debug && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes build/bin/twvm",
-    "check-deps-hierarchy": "sudo python3 scripts/check-circular-deps.py ./lib ./scripts/deps-relationship -v -s",
-    "clear": "make clean && rm -rf ./build/"
+    "lint": "cpplint --counting=total --filter=-build/c++17 --root=. --recursive --linelength=120 --extensions=cc,hh ./lib",
+    "memcheck": "npm run build:debug && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes build/bin/twvm",
+    "clean": "rm -rf ./build/"
   },
   "repository": {
     "type": "git",
@@ -22,9 +20,9 @@
   "keywords": [
     "WebAssembly",
     "VM",
-    "Virtual",
-    "Machine",
-    "Runtime"
+    "Virtual Machine",
+    "Runtime",
+    "Interpreter"
   ],
   "author": "YHSPY",
   "license": "MIT",
@@ -34,8 +32,5 @@
   "homepage": "https://github.com/Becavalier/TWVM#readme",
   "devDependencies": {
     "npm-run-all": "^4.1.5"
-  },
-  "dependencies": {
-    "react-draft-wysiwyg": "^1.13.2"
   }
 }

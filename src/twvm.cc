@@ -1,85 +1,52 @@
-// Copyright 2019 YHSPY. All rights reserved.
-#include <cstdlib>
-#include <thread>
-#include <iostream>
+// Copyright 2021 YHSPY. All rights reserved.
 #include <string>
-#include <memory>
-#include <exception>
+#include <iostream>
 #include "src/twvm.h"
-#include "lib/config.h"
-#include "lib/cmdline.h"
-#include "lib/inspector.h"
+#include "lib/include/loader.hh"
+#include "lib/include/instantiator.hh"
+#include "lib/include/executor.hh"
+#include "lib/include/options.hh"
+#include "lib/include/state.hh"
+#include "lib/include/util.hh"
+#include "lib/include/exception.hh"
 
-using std::thread;
-using std::string;
-using std::make_unique;
-using std::exit;
-using std::exception;
-using std::cerr;
+using namespace TWVM;
 
 int main(int argc, const char **argv) {
-  // set up command line arguments.
-  Options options("twvm", "TWVM - A tiny, lightweight and efficient WebAssembly virtual machine.");
-  options.addPositional("<*.wasm>", Options::Arguments::One,
-    [](Options *o, const string& argument) -> auto {
-      Config::executeModulePath = argument;
+  // Setting up options.
+  Options options { 
+    "TWVM - A tiny, lightweight and efficient WebAssembly virtual machine.",
+    [](auto* o, auto& v) {
+      if (v.size() > 0) {
+        State::createItem("path", v.front());  // Only using one path for now.
+      }
+    }
+  };
+  options.add(
+    "-v", 
+    "Show version number and built date.", 
+    Options::OptionTypes::EXCLUSIVE,
+    [](auto* o, auto& v) {
+      Util::printAssistantInfo(false);
     });
   options.add(
-    "--version", "-v",
-    "Show version and building info.", Options::Arguments::Zero,
-    [](Options *o, const string& argument) -> auto {
-      Utility::drawLogoGraphic(false);
-      exit(EXIT_SUCCESS);
-    });
-  options.add(
-    "--debug", "-d",
-    "Show debug info while executing the module.", Options::Arguments::Zero,
-    [](Options *o, const string& argument) -> auto {
-      Config::isDebugMode = true;
+    "-h", 
+    "Show help information.", 
+    Options::OptionTypes::EXCLUSIVE,
+    [](auto* o, auto& v) {
+      Util::printAssistantInfo();
+      o->printOptions();
     });
   options.parse(argc, argv);
 
-  try {
-    // start executing.
-    if (Config::executeModulePath.length() == 0) {
-      Printer::instance().error(Errors::CMD_NO_FILE);
-    }
-
-    // start a timer.
-    auto start = high_resolution_clock::now();
-
-    // static loading.
-    const auto wasmModule = Loader::init(Config::executeModulePath);
-    (Printer::instance()
-      << "static parsing time: "
-      << calcTimeInterval(start)
-      << "ms.\n").debug();
-
-    // instantiating.
-    const auto wasmInstance = Instantiator::instantiate(wasmModule);
-    (Printer::instance()
-      << "instantiating time: "
-      << calcTimeInterval(start)
-      << "ms. \n").debug();
-
-    // inspect.
-    if (Config::isDebugMode) {
-      Inspector::inspect(wasmInstance);
-    }
-    
-    // execution.
-    thread execThread([&wasmInstance]() -> void {
-      const auto executor = make_unique<Executor>();
-      executor->execute(wasmInstance);
-    });
-    if (execThread.joinable()) { execThread.join(); }
-    (Printer::instance()
-      << "executing time: "
-      << calcTimeInterval(start) 
-      << "ms. \n").debug();
-  } catch (const exception& e) {
-    cerr << "TRACKING_ERROR_CODE: " << e.what() << endl;
-    return EXIT_FAILURE;
+  // Running engine.
+  const auto& inputPath = State::retrieveItem("path");
+  if (inputPath.has_value()) {
+    Executor::execute(
+      Instantiator::instantiate(
+        Loader::load((*inputPath)->toStr())));
+  } else {
+    Exception::terminate(Exception::ErrorType::INVALID_INPUT_PATH);
   }
-  return EXIT_SUCCESS;
+  return 0;
 }

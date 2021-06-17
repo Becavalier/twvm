@@ -1,101 +1,168 @@
-// Copyright 2019 YHSPY. All rights reserved.
-#include <array>
-#include "lib/executor.h"
-#include "lib/interpreter.h"
-#include "lib/decoder.h"
-#include "lib/utility.h"
-#include "lib/common/macros.h"
-#include "lib/common/constants.h"
-#include "lib/common/opcode.h"
-#include "lib/instances/ins-wasm.h"
+#include <optional>
+#include "lib/include/executor.hh"
+#include "lib/include/decoder.hh"
+#include "lib/include/interpreter.hh"
+#include "lib/include/opcodes.hh"
+#include "lib/include/util.hh"
 
-using std::array;
-using handlerProto = void (shared_ptr<WasmInstance>&, Executor*);
-
-const bool Executor::checkStackState(shared_ptr<WasmInstance> wasmIns) {
-  // check the status of stack.
-  const auto valueStack = wasmIns->stack->valueStack;
-  const auto leftValueSize = valueStack->size();
-  (Printer::instance() << '(' << (wasmIns->startEntry ? "start" : "main") << "): ").say();
-  if (leftValueSize == 1) {
-    valueStack->top()->outputValue(cout << dec);
-    // keep the top value on stack, just use it as final result.
-    // valueStack->pop().
-  } else {
-    cout << "(void)";
+namespace TWVM {
+  std::optional<uint32_t> Executor::getTopFrameIdx(Runtime::STVariantIndex type, uint32_t n) {
+    const auto& v = frameBitmap.at(Util::asInteger(type));
+    return v.size() > n ? 
+      std::make_optional(*(v.rbegin() + n)) : 
+      std::nullopt;
   }
-  cout << endl;
-  // reset flags.
-  Executor::resetExecutionEngine(valueStack->top());
-  return leftValueSize <= 1;
-}
-
-const bool Executor::execute(shared_ptr<WasmInstance> wasmIns) {
-  (Printer::instance() << '\n').debug();
-  (Printer::instance() << "- [EXECUTING PHASE] -\n").debug();
-
-  // save a reference.
-  currentWasmIns = wasmIns;
-
-  if (!wasmIns->startPoint) {
-    // noting to be executed.
-    (Printer::instance() << "no execution entry found.\n").say();
-    return true;
-  }
-
-  pc = wasmIns->startPoint->pc;
-  contextIndex = wasmIns->startPoint->index;
-
-#if !defined(OPT_DCT)
-  // build a handler lookup table.
-  static array<handlerProto*, U8_SIZE * BYTE_LEN> opcodeTokenHandlers;
-#define APPEND_HANDLER_TO_CONTAINER(name, opcode) \
-  opcodeTokenHandlers[opcode] = Interpreter::do##name;
-  ITERATE_ALL_OPCODE(APPEND_HANDLER_TO_CONTAINER)
-#endif
-
-  while (true) {
-    if (!runningStatus) {
-      // verify running reuslt by the state of final stack.
-      return checkStackState(wasmIns);
+  Executor::FrameOffset Executor::refTrackedTopFrameByType(Runtime::STVariantIndex type, uint32_t n) {
+    const auto topIdx = getTopFrameIdx(type, n);
+    if (topIdx.has_value()) {
+      return { &rtIns->stack.at(*topIdx), *topIdx, };
+    } else {
+      Exception::terminate(Exception::ErrorType::EXHAUSTED_STACK_ACCESS);
     }
-#if defined(OPT_DCT)
-    /**
-     * the structure of an opcode action:
-     * |----------|----------------------|-------------------------|
-     * | OpCode 1 | Invoker(uintptr_t) 8 | Immediates(var/fixed) n |
-     * |----------|----------------------|-------------------------|
-     */
-    // don't use "switch-case" based conditional selection, since -
-    // it's overhead from low (Branch-Table -> Binary-Decision-Tree -> if-else) to high, -
-    // but not efficient enough on average.
-    uintptr_t handlerPtr;
-    // skip the identifying byte.
-    memcpy(&handlerPtr, pc->data() + (innerOffset += 2), PTR_SIZE);
-    innerOffset += (PTR_SIZE - 1);
-    // direct call.
-    reinterpret_cast<handlerProto*>(handlerPtr)(wasmIns, this);
-#else
-    // TTC (use "[]" to avoid the overhead of bound-checking).
-    opcodeTokenHandlers[(*pc)[++innerOffset]](wasmIns, this);
-#endif
   }
-  return false;
-}
-
-const void Executor::crawler(
-  const uint8_t* buf, size_t length, const function<bool(WasmOpCode, size_t)> &callback) {
-  // skip every opcode and immediate.
-  size_t offset = 0;
-  while (offset != length) {
-    const auto opcode = static_cast<WasmOpCode>(*(buf + offset++));
-    // move pointer to the immediates.
-#if defined(OPT_DCT)
-    offset += PTR_SIZE;
-#endif
-    offset += Interpreter::calcOpCodeEntityLen(buf + offset, opcode);
-    if (callback && callback(opcode, offset)) {
-      return;
+  // [entries after End / Else].
+  std::vector<uint8_t*> Executor::lookupLabelContFromPC() {  // don't mess this process with interpreter.
+    status = EngineStatus::CRAWLING;
+    storedPC = pc;
+    size_t pairingCountEnd = 0;
+    size_t pairingCountElse = 0;
+    std::vector<uint8_t*> conts = {};
+    while (status == EngineStatus::CRAWLING) {
+      const auto op = static_cast<OpCodes>(*pc++);
+      switch (op) {
+        case OpCodes::Block:
+        case OpCodes::Loop:
+        case OpCodes::If: {
+          decodeByteFromPC();
+          pairingCountEnd++;
+          if (op == OpCodes::If) {
+            pairingCountElse++;
+          }
+          break;
+        }
+        case OpCodes::Br:
+        case OpCodes::BrIf: {
+          decodeVaruintFromPC<Runtime::relative_depth_t>(); 
+          break;
+        }
+        case OpCodes::BrTable: {
+          const auto targetCount = decodeVaruintFromPC<uint32_t>();
+          for (uint32_t i = 0; i < targetCount + 1; ++i) {  // Include `default_target`.
+            decodeVaruintFromPC<uint32_t>();
+          }
+          break;
+        }
+        case OpCodes::Call: {
+          decodeVaruintFromPC<Runtime::index_t>(); 
+          break;
+        }
+        case OpCodes::CallIndirect: {
+          decodeVaruintFromPC<Runtime::index_t>();
+          decodeByteFromPC();
+          break;
+        }
+        case OpCodes::LocalGet:
+        case OpCodes::LocalSet:
+        case OpCodes::LocalTee:
+        case OpCodes::GlobalGet:
+        case OpCodes::GlobalSet: {
+          decodeVaruintFromPC<Runtime::index_t>(); 
+          break;
+        }
+        case OpCodes::I32LoadMem:
+        case OpCodes::I64LoadMem:
+        case OpCodes::F32LoadMem:
+        case OpCodes::F64LoadMem:
+        case OpCodes::I32LoadMem8S:
+        case OpCodes::I32LoadMem8U:
+        case OpCodes::I32LoadMem16S:
+        case OpCodes::I32LoadMem16U:
+        case OpCodes::I64LoadMem8S:
+        case OpCodes::I64LoadMem8U:
+        case OpCodes::I64LoadMem16S:
+        case OpCodes::I64LoadMem16U:
+        case OpCodes::I64LoadMem32S:
+        case OpCodes::I64LoadMem32U:
+        case OpCodes::I32StoreMem:
+        case OpCodes::I64StoreMem:
+        case OpCodes::F32StoreMem:
+        case OpCodes::F64StoreMem:
+        case OpCodes::I32StoreMem8:
+        case OpCodes::I32StoreMem16:
+        case OpCodes::I64StoreMem8:
+        case OpCodes::I64StoreMem16:
+        case OpCodes::I64StoreMem32: {
+          decodeVaruintFromPC<Runtime::index_t>();
+          decodeVaruintFromPC<Runtime::index_t>();
+          break;
+        }
+        case OpCodes::I32Const: {
+          decodeVaruintFromPC<Runtime::rt_i32_t>();
+          break;
+        }
+        case OpCodes::I64Const: {
+          decodeVaruintFromPC<Runtime::rt_i64_t>();
+          break;
+        }
+        case OpCodes::F32Const: {
+          decodeFloatingPointFromPC<float>();
+          break;
+        }
+        case OpCodes::F64Const: {
+          decodeFloatingPointFromPC<double>();
+          break;
+        }
+        case OpCodes::Else: {
+          if (pairingCountElse == 0) {
+            conts.push_back(pc);
+          } else {
+            pairingCountElse--;
+          }
+          break;
+        }
+        case OpCodes::End: {
+          if (pairingCountEnd == 0) {
+            conts.push_back(pc);
+            status = EngineStatus::EXECUTING;
+          } else {
+            pairingCountEnd--;
+          }
+          break;
+        }
+        default: break;
+      }
+    }
+    pc = storedPC;
+    return conts;
+  }
+  const void Executor::stopEngine() {
+    status = EngineStatus::STOPPED;
+    // Check return arity.
+    const auto& entryFrameOffset = refTrackedTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
+    const auto& entryFrame = std::get<Runtime::RTActivFrame>(*entryFrameOffset.ptr);
+    const auto& returnArity = entryFrame.returnArity;
+    if (returnArity->size() > 0) {
+      const auto v = std::get<Runtime::RTValueFrame>(rtIns->stack.back()).value;
+      std::visit([](auto&& arg){ std::cout << arg; }, v);
+    }
+  }
+  void Executor::execute(
+    shared_module_runtime_t rtIns, 
+    std::optional<uint32_t> invokeIdx) {
+    if (!invokeIdx.has_value()) {
+      if (rtIns->rtEntryIdx.has_value()) {  // invoke `main`.
+        invokeIdx = *rtIns->rtEntryIdx;
+      } 
+    }
+    if (invokeIdx.has_value()) {
+      // [CALL, (IDX), END].
+      std::vector<uint8_t> driver = { Util::asInteger(OpCodes::Call) };  // driver opcodes.
+      const auto bytes = Decoder::encodeVaruint(*invokeIdx);
+      driver.insert(driver.end(), bytes.begin(), bytes.end());
+      Executor executor(driver.data(), rtIns);
+      while (executor.getCurrentStatus() == Executor::EngineStatus::EXECUTING) {
+        Interpreter::opTokenHandlers[*executor.pc++](executor, std::nullopt);
+      }
     }
   }
 }
