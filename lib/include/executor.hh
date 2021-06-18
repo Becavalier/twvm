@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <utility>
 #include <vector>
+#include <cstring>
 #include "lib/include/structs.hh"
 #include "lib/include/exception.hh"
 #include "lib/include/decoder.hh"
