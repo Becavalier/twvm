@@ -1,6 +1,6 @@
 // Copyright 2021 YHSPY. All rights reserved.
-#ifndef LIB_EXCEPTION_H_
-#define LIB_EXCEPTION_H_
+#ifndef LIB_INCLUDE_EXCEPTION_HH_
+#define LIB_INCLUDE_EXCEPTION_HH_
 
 #include <iostream>
 #include <unordered_map>
@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <cstdlib>
 #include "lib/include/constants.hh"
+
+namespace TWVM {
 
 class Exception {
  public:
@@ -52,12 +54,12 @@ class Exception {
     std::stringstream ss;
     ss << std::hex << std::showbase
       << COLOR_ERR
-      << "[twvm] " 
+      << "[twvm] "
       << RESET_NORMAL
       << errorMsg.at(type);
     if (pos) {
       ss << "Byte index before: " << pos  << '.';
-    }  
+    }
     std::cerr << ss.str() << std::endl;
     std::exit(EXIT_FAILURE);
   }
@@ -65,4 +67,6 @@ class Exception {
   static std::unordered_map<ErrorType, std::string> errorMsg;
 };
 
-#endif  // LIB_EXCEPTION_H_
+}  // namespace TWVM
+
+#endif  // LIB_INCLUDE_EXCEPTION_HH_

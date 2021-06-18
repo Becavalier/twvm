@@ -1,6 +1,6 @@
 // Copyright 2021 YHSPY. All rights reserved.
-#ifndef LIB_INTERPRETER_H_
-#define LIB_INTERPRETER_H_
+#ifndef LIB_INCLUDE_INTERPRETER_HH_
+#define LIB_INCLUDE_INTERPRETER_HH_
 
 #include <array>
 #include "lib/include/opcodes.hh"
@@ -11,15 +11,17 @@
 #define DECLARE_OPCODE_HANDLER_INVALID(NAME)
 #define DECLARE_OPCODE_HANDLER(NAME, OP, VALDITI) \
   DECLARE_OPCODE_HANDLER_##VALDITI(NAME)
-  
-namespace TWVM {
-  class Executor;  // forward declaration.
-  struct Interpreter {
-    using opHandlerProto = void (*)(Executor&, std::optional<uint32_t>);
-    using opHandlerInfoType = std::optional<uint32_t>;
-    static std::array<opHandlerProto, sizeof(uint8_t) * 1 << 8> opTokenHandlers;
-    ITERATE_ALL_OPCODE(DECLARE_OPCODE_HANDLER)
-  };
-}
 
-#endif  // LIB_INTERPRETER_H_
+namespace TWVM {
+
+class Executor;  // forward declaration.
+struct Interpreter {
+  using opHandlerProto = void (*)(Executor&, std::optional<uint32_t>);
+  using opHandlerInfoType = std::optional<uint32_t>;
+  static std::array<opHandlerProto, sizeof(uint8_t) * 1 << 8> opTokenHandlers;
+  ITERATE_ALL_OPCODE(DECLARE_OPCODE_HANDLER)
+};
+
+}  // namespace TWVM
+
+#endif  // LIB_INCLUDE_INTERPRETER_HH_

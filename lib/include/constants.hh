@@ -1,6 +1,6 @@
 // Copyright 2021 YHSPY. All rights reserved.
-#ifndef LIB_CONSTANTS_H_
-#define LIB_CONSTANTS_H_
+#ifndef LIB_INCLUDE_CONSTANTS_HH_
+#define LIB_INCLUDE_CONSTANTS_HH_
 
 // ANSI escape code (Colors).
 #define RESET_NORMAL "\e[0m"
@@ -26,4 +26,4 @@ constexpr uint8_t MAGIC_VAR_INDEX_PLUS_TYPE = 0x7f;
 /* Others */
 constexpr auto OPTS_ARG_SETW = 10;
 
-#endif  // LIB_CONSTANTS_H_
+#endif  // LIB_INCLUDE_CONSTANTS_HH_

@@ -1,6 +1,6 @@
 // Copyright 2021 YHSPY. All rights reserved.
-#ifndef LIB_OPCODES_H_
-#define LIB_OPCODES_H_
+#ifndef LIB_INCLUDE_OPCODES_HH_
+#define LIB_INCLUDE_OPCODES_HH_
 
 #define ITERATE_ALL_OPCODE(V) \
   V(Unreachable, 0x0, VALID) \
@@ -200,9 +200,11 @@
   NAME = OP,
 
 namespace TWVM {
-  enum class OpCodes : uint8_t {
-    ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
-  };
-}
 
-#endif  // LIB_OPCODES_H_
+enum class OpCodes : uint8_t {
+  ITERATE_ALL_OPCODE(DECLARE_NAMED_ENUM)
+};
+
+}  // namespace TWVM
+
+#endif  // LIB_INCLUDE_OPCODES_HH_
