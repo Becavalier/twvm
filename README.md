@@ -2,7 +2,7 @@
 
 # TWVM
 
-#### *TWVM is now under construction privately, will update the source code and documentations ASAP.*
+#### *TWVM is still under continuously construction.*
 
 <img alt="GitHub Actions status" src="https://github.com/Becavalier/TWVM/workflows/Build CI/badge.svg">
 

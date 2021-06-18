@@ -169,8 +169,8 @@
       v = std::trunc(v); \
       if (!std::isnan(v) && \
           !std::isinf(v) && \
-          v <= std::numeric_limits<CAST>::max() && \
-          v >= std::numeric_limits<CAST>::min()) { \
+          static_cast<CAST>(v) <= std::numeric_limits<CAST>::max() && \
+          static_cast<CAST>(v) >= std::numeric_limits<CAST>::min()) { \
           return v; \
         } else { \
           Exception::terminate(Exception::ErrorType::FLOAT_UNREPRESENTABLE); \

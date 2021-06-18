@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <functional>
 #include "lib/include/exception.hh"
 
 namespace TWVM {
