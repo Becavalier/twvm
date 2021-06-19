@@ -2,6 +2,8 @@
 #ifndef LIB_INCLUDE_CONSTANTS_HH_
 #define LIB_INCLUDE_CONSTANTS_HH_
 
+#define IDX_ZERO 0
+#define IDX_ONE 1
 // ANSI escape code (Colors).
 #define RESET_NORMAL "\e[0m"
 #define COLOR_ERR "\e[0;31m"

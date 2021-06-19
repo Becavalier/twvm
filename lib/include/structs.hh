@@ -149,14 +149,14 @@ struct Runtime {
   };
   using rt_i32_t = int32_t;
   using rt_i64_t = int64_t;
-  using rt_u32_t = uint32_t;
-  using rt_u64_t = uint64_t;
   using rt_f32_t = float;
   using rt_f64_t = double;
+  using imme_u32_t = uint32_t;
+  using imme_u64_t = uint64_t;
   using relative_depth_t = uint32_t;
-  using block_type_t = uint8_t;
-  using runtime_value_t = std::variant<rt_i32_t, rt_i64_t, rt_f32_t, rt_f64_t>;
   using index_t = uint32_t;
+  using runtime_value_t = std::variant<rt_i32_t, rt_i64_t, rt_f32_t, rt_f64_t>;
+
   struct RTFuncDescriptor {
     SET_STRUCT_MOVE_ONLY(RTFuncDescriptor)
     const Module::func_type_t* funcType;

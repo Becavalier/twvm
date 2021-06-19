@@ -77,10 +77,10 @@
   V(I32Xor, rt_i32_t, rt_i32_t, rt_i32_t, ^) \
   V(I32Eq, rt_i32_t, rt_i32_t, rt_i32_t, ==) \
   V(I32Ne, rt_i32_t, rt_i32_t, rt_i32_t, !=) \
-  V(I32LtU, rt_i32_t, rt_i32_t, rt_u32_t, <) \
-  V(I32LeU, rt_i32_t, rt_i32_t, rt_u32_t, <=) \
-  V(I32GtU, rt_i32_t, rt_i32_t, rt_u32_t, >) \
-  V(I32GeU, rt_i32_t, rt_i32_t, rt_u32_t, >=) \
+  V(I32LtU, rt_i32_t, rt_i32_t, imme_u32_t, <) \
+  V(I32LeU, rt_i32_t, rt_i32_t, imme_u32_t, <=) \
+  V(I32GtU, rt_i32_t, rt_i32_t, imme_u32_t, >) \
+  V(I32GeU, rt_i32_t, rt_i32_t, imme_u32_t, >=) \
   V(I32LtS, rt_i32_t, rt_i32_t, rt_i32_t, <) \
   V(I32LeS, rt_i32_t, rt_i32_t, rt_i32_t, <=) \
   V(I32GtS, rt_i32_t, rt_i32_t, rt_i32_t, >) \
@@ -93,10 +93,10 @@
   V(I64Xor, rt_i64_t, rt_i64_t, rt_i64_t, ^) \
   V(I64Eq, rt_i64_t, rt_i32_t, rt_i64_t, ==) \
   V(I64Ne, rt_i64_t, rt_i32_t, rt_i64_t, !=) \
-  V(I64LtU, rt_i64_t, rt_i32_t, rt_u64_t, <) \
-  V(I64LeU, rt_i64_t, rt_i32_t, rt_u64_t, <=) \
-  V(I64GtU, rt_i64_t, rt_i32_t, rt_u64_t, >) \
-  V(I64GeU, rt_i64_t, rt_i32_t, rt_u64_t, >=) \
+  V(I64LtU, rt_i64_t, rt_i32_t, imme_u64_t, <) \
+  V(I64LeU, rt_i64_t, rt_i32_t, imme_u64_t, <=) \
+  V(I64GtU, rt_i64_t, rt_i32_t, imme_u64_t, >) \
+  V(I64GeU, rt_i64_t, rt_i32_t, imme_u64_t, >=) \
   V(I64LtS, rt_i64_t, rt_i32_t, rt_i64_t, <) \
   V(I64LeS, rt_i64_t, rt_i32_t, rt_i64_t, <=) \
   V(I64GtS, rt_i64_t, rt_i32_t, rt_i64_t, >) \
@@ -399,10 +399,10 @@ void Interpreter::doI64Const(Executor& executor, opHandlerInfoType _) {
   executor.pushToStack(Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i64_t>()));
 }
 void Interpreter::doF32Const(Executor& executor, opHandlerInfoType _) {
-  executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<float>()));
+  executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<Runtime::rt_f32_t>()));
 }
 void Interpreter::doF64Const(Executor& executor, opHandlerInfoType _) {
-  executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<double>()));
+  executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<Runtime::rt_f64_t>()));
 }
 void Interpreter::doMemorySize(Executor& executor, opHandlerInfoType _) {
   const auto& rtMems = executor.getEngineData()->rtMems;

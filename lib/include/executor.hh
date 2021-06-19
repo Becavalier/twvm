@@ -11,6 +11,8 @@
 #include <utility>
 #include <vector>
 #include <cstring>
+#include <unordered_map>
+#include <tuple>
 #include "lib/include/structs.hh"
 #include "lib/include/exception.hh"
 #include "lib/include/decoder.hh"
@@ -40,6 +42,12 @@ class Executor {
   std::optional<Runtime::relative_depth_t> brIfDepth;
   std::vector<std::vector<uint32_t>> frameBitmap = { {}, {}, {} };
   size_t labelAboveActivFrameCount = 0;
+  struct {
+    std::unordered_map<uint8_t*, std::tuple<Runtime::runtime_value_t, uint8_t*>> rtValStore;
+    // Since we only use uint32_t for now, here we get rid of variant.
+    std::unordered_map<uint8_t*, std::tuple<Runtime::imme_u32_t, uint8_t*>> immeValStore;
+    std::unordered_map<uint8_t*, std::vector<uint8_t*>> contStore;
+  } store;
  public:
   Executor(uint8_t* pc, shared_module_runtime_t rtIns) : pc(pc), rtIns(rtIns) {}
   const auto getCurrentStatus() const { return status; }
@@ -59,17 +67,49 @@ class Executor {
   auto getPC() { return pc; }
   void setPC(uint8_t* addr) { pc = addr; }
   auto movPC(size_t steps = 1) { pc += steps; return pc; }
-  std::vector<uint8_t*> lookupLabelContFromPC();
+  const std::vector<uint8_t*>& lookupLabelContFromPC();
   auto decodeByteFromPC() {
     return *reinterpret_cast<uint8_t*>(pc++);
   }
   template<typename T>
-  T decodeVaruintFromPC() {
-    return Decoder::decodeVaruint<T>(pc);
+  decltype(auto) decodeVaruintFromPC() {
+    const auto entryPC = pc;
+    auto& st = store.immeValStore;
+    const auto& iter = st.find(entryPC);
+    if (iter == st.end()) {
+      const auto v = Decoder::decodeVaruint<T>(pc);
+      st[entryPC] = std::make_tuple(v, pc);
+      const auto& [rtVal, newPC] = st[entryPC];
+      return rtVal;
+    } else {
+      const auto& [rtVal, newPC] = iter->second;
+      pc = newPC;
+      return rtVal;
+    }
   }
-  template<typename T>
-  T decodeVarintFromPC() {
-    return Decoder::decodeVarint<T>(pc);
+  template<typename T, typename U = T>
+  decltype(auto) decodeVarintFromPC() {
+    const auto entryPC = pc;
+    auto& st = store.rtValStore;
+    const auto& iter = st.find(entryPC);
+    if (iter == st.end()) {
+      const auto v = Decoder::decodeVarint<T>(pc);
+      st[entryPC] = std::make_tuple(v, pc);
+      const auto& [rtVal, newPC] = st[entryPC];
+      if constexpr (std::is_same_v<U, Runtime::runtime_value_t>) {
+        return rtVal;
+      } else {
+        return std::get<T>(rtVal);
+      }
+    } else {
+      const auto& [rtVal, newPC] = iter->second;
+      pc = newPC;
+      if constexpr (std::is_same_v<U, Runtime::runtime_value_t>) {
+        return rtVal;
+      } else {
+        return std::get<T>(rtVal);
+      }
+    }
   }
   template<typename T>
   T decodeFloatingPointFromPC() {
@@ -173,15 +213,15 @@ class Executor {
   }
   auto parseBrTableInfo() {
     std::vector<uint32_t> brTableEntries = {};
-    const auto targetCount = decodeVaruintFromPC<Runtime::rt_u32_t>();
+    const auto targetCount = decodeVaruintFromPC<Runtime::imme_u32_t>();
     for (auto i = 0; i <= targetCount; ++i) {
-      brTableEntries.push_back(decodeVaruintFromPC<Runtime::rt_u32_t>());  // entries.
+      brTableEntries.push_back(decodeVaruintFromPC<Runtime::imme_u32_t>());  // entries.
     }
     return brTableEntries;
   }
   MemImme parseMemImmeInfo() {
-    const auto flags = decodeVaruintFromPC<Runtime::rt_u32_t>();
-    const auto offset = decodeVaruintFromPC<Runtime::rt_u32_t>();
+    const auto flags = decodeVaruintFromPC<Runtime::imme_u32_t>();
+    const auto offset = decodeVaruintFromPC<Runtime::imme_u32_t>();
     return { flags, offset };
   }
   size_t resizeMem(int32_t pages, uint32_t memIdx = 0) {
