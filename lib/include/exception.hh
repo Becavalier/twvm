@@ -48,6 +48,8 @@ class Exception {
     FLOAT_UNREPRESENTABLE,
     INVALID_CONVERSION_STOI,
     INVALID_INPUT_PATH,
+    NOT_ENOUGH_INPUT_ARGS,
+    INVALID_VAL_TYPE,
   };
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {

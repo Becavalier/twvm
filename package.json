@@ -9,7 +9,7 @@
     "build": "bash scripts/build.sh",
     "build:debug": "npm-run-all \"build -- --debug\"",
     "test": "npm-run-all \"build -- --test\"",
-    "lint": "cpplint --counting=total --filter=-build/c++17 --root=. --recursive --linelength=120 --extensions=cc,hh ./lib",
+    "lint": "cpplint --counting=total --filter=-build/c++11 --root=. --recursive --linelength=120 --extensions=cc,hh ./lib",
     "memcheck": "npm run build:debug && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes build/bin/twvm",
     "clean": "rm -rf ./build/"
   },

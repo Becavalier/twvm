@@ -25,6 +25,7 @@ struct Options {
   using PathHandlerType = void (*)(Options*, const std::vector<std::string>&);
   struct Command {
     const std::string desc;
+    const std::optional<const std::string> args;
     OptHandlerType cb;
     OptionTypes type;
   };
@@ -34,17 +35,15 @@ struct Options {
   PathHandlerType pathHandler = nullptr;
  public:
   Options(const std::string& appDesc, PathHandlerType cb) : appDesc(appDesc), pathHandler(cb) {}
-  void add(const std::string& name, const std::string desc, OptionTypes type, OptHandlerType cb) {
-    commands.emplace(std::make_pair(name, Command { desc, cb, type }));
-  }
-  void printOptions() {
-    std::stringstream ss;
-    ss << appDesc << "\n\n";
-    for (const auto& [x, y] : commands) {
-      ss << ' ' << std::left << std::setw(OPTS_ARG_SETW) << x << y.desc << '\n';
+  void add(
+    const std::string& name,
+    const std::optional<const std::string>& args,
+    const std::string& desc,
+    OptionTypes type,
+    OptHandlerType cb) {
+      commands.emplace(std::make_pair(name, Command { desc, args, cb, type }));
     }
-    std::cout << ss.str() << std::endl;
-  }
+  void printOptions();
   void parse(int, const char*[]);
 };
 

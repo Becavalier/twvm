@@ -26,6 +26,8 @@ constexpr uint8_t MAGIC_OPCODE_PLUS_TYPE = 0xc0;
 constexpr uint8_t MAGIC_VAR_INDEX_PLUS_TYPE = 0x7f;
 
 /* Others */
-constexpr auto OPTS_ARG_SETW = 10;
+constexpr auto OPTS_ARG_SETW = 23;
+constexpr auto INPUT_ENTRY_KEY_NAME = "entryFuncName";
+constexpr auto INPUT_ENTRY_KEY_ARG = "entryArgs";
 
 #endif  // LIB_INCLUDE_CONSTANTS_HH_

@@ -4,13 +4,16 @@
 
 #include <type_traits>
 #include <vector>
+#include <optional>
+#include <string>
 #include "lib/include/structs.hh"
 
 namespace TWVM {
 
 class Instantiator {
+  static Runtime::runtime_value_t convertStrToRTVal(const std::string&, uint8_t);
   template<typename T>
-  static void expandVTypesToRTValues(std::vector<Runtime::runtime_value_t>& container, T& t) {
+  static void expandVTypesToRTVals(std::vector<Runtime::runtime_value_t>& container, T& t) {
     if constexpr (
       std::is_same_v<std::decay_t<T>, std::vector<uint8_t>>
     ) {
@@ -31,7 +34,7 @@ class Instantiator {
   static void expandWasmTypesToRTValues(
     std::vector<Runtime::runtime_value_t>& container,
     Args& ...args) {
-      (expandVTypesToRTValues(container, args), ...);
+      (expandVTypesToRTVals(container, args), ...);
     }
 };
 

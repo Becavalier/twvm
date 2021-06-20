@@ -10,9 +10,23 @@
 #include "lib/include/exception.hh"
 #include "lib/include/constants.hh"
 #include "lib/include/decoder.hh"
+#if __has_include(<lib/include/state.hh>)
+#include <string_view>
+#include <string>
+#include "lib/include/state.hh"
+#endif
 
 namespace TWVM {
 
+Runtime::runtime_value_t Instantiator::convertStrToRTVal(const std::string& str, uint8_t type) {
+  switch (static_cast<ValueTypes>(type)) {
+    case ValueTypes::I32: return static_cast<Runtime::rt_i32_t>(std::stoi(str));
+    case ValueTypes::I64: return static_cast<Runtime::rt_i64_t>(std::stol(str));
+    case ValueTypes::F32: return static_cast<Runtime::rt_f32_t>(std::stof(str));
+    case ValueTypes::F64: return static_cast<Runtime::rt_f64_t>(std::stod(str));
+    default: Exception::terminate(Exception::ErrorType::INVALID_VAL_TYPE);
+  }
+}
 Runtime::runtime_value_t Instantiator::evalInitExpr(uint8_t valType, std::vector<uint8_t> &initExprOps) {
   // In the MVP, to keep things simple, only four constant operators and `get_local` available.
   const auto valTypeT = static_cast<ValueTypes>(valType);
@@ -53,8 +67,8 @@ shared_module_runtime_t Instantiator::instantiate(shared_module_t mod) {
     executableIns->rtFuncDescriptor.emplace_back(&funcType, codeEntry);
     expandWasmTypesToRTValues(
       executableIns->rtFuncDescriptor.back().localsDefault,
-      mod->funcDefs.at(i).locals,
-      funcType.first);
+      funcType.first,
+      mod->funcDefs.at(i).locals);
   }
 
   /* mem */
@@ -126,12 +140,44 @@ shared_module_runtime_t Instantiator::instantiate(shared_module_t mod) {
     mod->exports.begin(),
     mod->exports.end(),
     [](auto& item) -> bool {
+#if __has_include(<lib/include/state.hh>)
+      const auto& inputFuncName = State::retrieveItem(INPUT_ENTRY_KEY_NAME);
+      return item.name ==
+        (inputFuncName.has_value() ? (*inputFuncName)->toStr() : "main") &&
+        (item.extKind == EXT_KIND_FUNC);
+#else
       return item.name == "main" && item.extKind == EXT_KIND_FUNC;
+#endif
     });
+  const auto funcIdx = entryFunc->extIdx;
   if (entryFunc != mod->exports.end()) {
-    executableIns->rtEntryIdx = entryFunc->extIdx;
+    executableIns->rtEntryIdx = funcIdx;
   }
-
+#if __has_include(<lib/include/state.hh>)
+  // Setup user input args.
+  const auto& inputArgs = State::retrieveItem(INPUT_ENTRY_KEY_ARG);
+  const auto& inputFuncArgTypes = executableIns->rtFuncDescriptor.at(funcIdx).funcType->first;
+  auto argView = inputArgs.has_value() ? std::string_view((*inputArgs)->toStr()) : std::string_view {};
+  for (auto i = 0; i < inputFuncArgTypes.size(); ++i) {
+    if (argView.empty()) {
+      Exception::terminate(Exception::ErrorType::NOT_ENOUGH_INPUT_ARGS);
+    } else {
+      const auto comma = argView.find_first_of(',');
+      if (comma != std::string_view::npos) {
+        executableIns->stack.push_back(
+          Runtime::RTValueFrame {
+            convertStrToRTVal(std::string(argView.substr(0, comma)), inputFuncArgTypes[i])
+          });
+        argView.remove_prefix(comma + 1);
+      } else {
+        executableIns->stack.push_back(
+          Runtime::RTValueFrame {
+            convertStrToRTVal((*inputArgs)->toStr(), inputFuncArgTypes[i])
+          });
+      }
+    }
+  }
+#endif
   return executableIns;
 }
 

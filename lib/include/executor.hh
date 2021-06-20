@@ -19,6 +19,12 @@
 #include "lib/include/util.hh"
 #include "lib/include/constants.hh"
 
+template<> struct std::hash<uint8_t*> {
+  size_t operator()(const uint8_t* ptr) const {
+    return reinterpret_cast<size_t>(ptr);
+  }
+};
+
 namespace TWVM {
 
 class Executor {

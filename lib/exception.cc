@@ -37,6 +37,8 @@ std::unordered_map<Exception::ErrorType, std::string> Exception::errorMsg = {
   { ErrorType::FLOAT_UNREPRESENTABLE, "Floating point number unrepresentable in integer range. " },
   { ErrorType::INVALID_CONVERSION_STOI, "Invalid conversion from string to integer. " },
   { ErrorType::INVALID_INPUT_PATH, "Invalid path of the input file. " },
+  { ErrorType::NOT_ENOUGH_INPUT_ARGS, "Insufficient arguments for invoking the function." },
+  { ErrorType::INVALID_VAL_TYPE, "Invalid WebAssembly value type." },
 };
 
 }  // namespace TWVM

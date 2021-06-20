@@ -358,6 +358,8 @@ void Interpreter::doLocalSet(Executor& executor, opHandlerInfoType fromTee) {
   auto& locals = std::get<Runtime::RTActivFrame>(*activFrameOffset.ptr).locals;
   if (locals.at(localIdx).index() == valueFrame.value.index()) {
     locals.at(localIdx) = valueFrame.value;
+  } else {
+    Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
   }
   if (!fromTee.has_value()) {
     executor.popFromStack();
@@ -393,10 +395,12 @@ void Interpreter::doGlobalSet(Executor& executor, opHandlerInfoType _) {
   }
 }
 void Interpreter::doI32Const(Executor& executor, opHandlerInfoType _) {
-  executor.pushToStack(Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i32_t>()));
+  executor.pushToStack(
+    Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i32_t, Runtime::runtime_value_t>()));
 }
 void Interpreter::doI64Const(Executor& executor, opHandlerInfoType _) {
-  executor.pushToStack(Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i64_t>()));
+  executor.pushToStack(
+    Runtime::RTValueFrame(executor.decodeVarintFromPC<Runtime::rt_i64_t, Runtime::runtime_value_t>()));
 }
 void Interpreter::doF32Const(Executor& executor, opHandlerInfoType _) {
   executor.pushToStack(Runtime::RTValueFrame(executor.decodeFloatingPointFromPC<Runtime::rt_f32_t>()));
