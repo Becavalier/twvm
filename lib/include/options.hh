@@ -21,26 +21,26 @@ struct Options {
     EXCLUSIVE,
   };
  private:
-  using OptHandlerType = void (*)(Options*, const std::optional<std::string>&);
-  using PathHandlerType = void (*)(Options*, const std::vector<std::string>&);
+  using opt_handler_t = void (*)(Options*, const std::optional<std::string>&);
+  using path_handler_t = void (*)(Options*, const std::vector<std::string>&);
   struct Command {
     const std::string desc;
     const std::optional<const std::string> args;
-    OptHandlerType cb;
+    opt_handler_t cb;
     OptionTypes type;
   };
   std::string appDesc;
   std::map<const std::string, Command> commands;
   std::vector<std::string> inputPaths;
-  PathHandlerType pathHandler = nullptr;
+  path_handler_t pathHandler = nullptr;
  public:
-  Options(const std::string& appDesc, PathHandlerType cb) : appDesc(appDesc), pathHandler(cb) {}
+  Options(const std::string& appDesc, path_handler_t cb) : appDesc(appDesc), pathHandler(cb) {}
   void add(
     const std::string& name,
     const std::optional<const std::string>& args,
     const std::string& desc,
     OptionTypes type,
-    OptHandlerType cb) {
+    opt_handler_t cb) {
       commands.emplace(std::make_pair(name, Command { desc, args, cb, type }));
     }
   void printOptions();

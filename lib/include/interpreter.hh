@@ -7,7 +7,7 @@
 #include "lib/include/structs.hh"
 
 #define DECLARE_OPCODE_HANDLER_VALID(NAME) \
-  static void do##NAME(Executor&, opHandlerInfoType = std::nullopt);
+  static void do##NAME(Executor&, op_handler_info_t = std::nullopt);
 #define DECLARE_OPCODE_HANDLER_INVALID(NAME)
 #define DECLARE_OPCODE_HANDLER(NAME, OP, VALDITI) \
   DECLARE_OPCODE_HANDLER_##VALDITI(NAME)
@@ -16,9 +16,9 @@ namespace TWVM {
 
 class Executor;  // forward declaration.
 struct Interpreter {
-  using opHandlerProto = void (*)(Executor&, std::optional<uint32_t>);
-  using opHandlerInfoType = std::optional<uint32_t>;
-  static std::array<opHandlerProto, sizeof(uint8_t) * 1 << 8> opTokenHandlers;
+  using op_handler_proto_t = void (*)(Executor&, std::optional<uint32_t>);
+  using op_handler_info_t = std::optional<uint32_t>;
+  static std::array<op_handler_proto_t, sizeof(uint8_t) * 1 << 8> opTokenHandlers;
   ITERATE_ALL_OPCODE(DECLARE_OPCODE_HANDLER)
 };
 

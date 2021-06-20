@@ -62,7 +62,7 @@ And then, run the below command to check the memory leak of the program:
 - [x] Architecture refactoring.
 - [x] Run simple fibonacci function successfully.
 - [x] Full Wasm spec version 1.0 support.
-- [ ] Pass all testsuites.
+- [ ] Pass all basic testcases.
 - [ ] DCT optimization.
 - [ ] WAT support.
 

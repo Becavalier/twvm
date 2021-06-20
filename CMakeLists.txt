@@ -34,7 +34,6 @@ add_definitions(-DBUILD_VERSION="$ENV{BUILD_VERSION}")
 if (DEFINED ENV{NDEBUG})
   add_definitions(-DNDEBUG)
 endif()
-add_definitions(-DOPT_DCT)
 # add_definitions(-DOPT_PAR_LOADING)
 
 # print all definitions;

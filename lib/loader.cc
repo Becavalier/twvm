@@ -100,22 +100,22 @@ void Loader::preamble(std::ifstream& in, shared_module_t mod) {
 
   // Incomplete magic bytes.
   if (vSize < MAGIC_BYTES_COUNT)
-    Exception::terminate(Exception::ErrorType::INVALID_MAGIC);
+    Exception::terminate(Exception::ErrorType::INVALID_MAGIC_CODE);
 
   // Validate magic code.
   auto parsedMagic = *reinterpret_cast<uint32_t*>(v.data());
   if (parsedMagic != VALID_MAGIC) {
-    Exception::terminate(Exception::ErrorType::INVALID_MAGIC, reader.pos());
+    Exception::terminate(Exception::ErrorType::INVALID_MAGIC_CODE, reader.pos());
   }
 
   // Incomplete version bytes.
   if (vSize < totalHeaderBytes)
-    Exception::terminate(Exception::ErrorType::INVALID_VER);
+    Exception::terminate(Exception::ErrorType::INVALID_VER_NUM);
 
   // Validate version code.
   auto parsedVersion = *reinterpret_cast<uint32_t*>(v.data() + MAGIC_BYTES_COUNT);
   if (parsedVersion != VALID_VERSION) {
-    Exception::terminate(Exception::ErrorType::INVALID_VER, reader.pos());
+    Exception::terminate(Exception::ErrorType::INVALID_VER_NUM, reader.pos());
   }
   mod->hasValidHeader = true;
   mod->version = parsedVersion;

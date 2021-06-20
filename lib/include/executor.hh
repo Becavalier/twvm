@@ -28,6 +28,7 @@ template<> struct std::hash<uint8_t*> {
 namespace TWVM {
 
 class Executor {
+  using engine_result_t = const std::optional<Runtime::runtime_value_t>;
   enum class EngineStatus : uint8_t {
     EXECUTING,
     CRAWLING,  // Crawling continuation (for labels).
@@ -168,8 +169,13 @@ class Executor {
   void validateArity(const Module::type_seq_t& arity) {
     if (arity.size() > 0) {
       for (auto i = 0; i < arity.size(); ++i) {
-        if (((rtIns->stack.rbegin() + i)->index() + arity.at(i)) != MAGIC_VAR_INDEX_PLUS_TYPE) {
-          Exception::terminate(Exception::ErrorType::ARITY_TYPE_MISMATCH);
+        try {
+          const auto& frame = std::get<Runtime::RTValueFrame>(*(rtIns->stack.rbegin() + i));
+          if ((frame.value.index() + arity.at(i)) != MAGIC_VAR_INDEX_PLUS_TYPE) {
+            Exception::terminate(Exception::ErrorType::ARITY_TYPE_MISMATCH);
+          }
+        } catch (...) {
+          Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
         }
       }
     }
@@ -278,7 +284,8 @@ class Executor {
       Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);
     }
   }
-  static void execute(shared_module_runtime_t, std::optional<uint32_t> = {});
+  engine_result_t postProcess();
+  static engine_result_t execute(shared_module_runtime_t, std::optional<uint32_t> = {});
 };
 
 }  // namespace TWVM

@@ -152,32 +152,32 @@ shared_module_runtime_t Instantiator::instantiate(shared_module_t mod) {
   const auto funcIdx = entryFunc->extIdx;
   if (entryFunc != mod->exports.end()) {
     executableIns->rtEntryIdx = funcIdx;
-  }
 #if __has_include(<lib/include/state.hh>)
-  // Setup user input args.
-  const auto& inputArgs = State::retrieveItem(INPUT_ENTRY_KEY_ARG);
-  const auto& inputFuncArgTypes = executableIns->rtFuncDescriptor.at(funcIdx).funcType->first;
-  auto argView = inputArgs.has_value() ? std::string_view((*inputArgs)->toStr()) : std::string_view {};
-  for (auto i = 0; i < inputFuncArgTypes.size(); ++i) {
-    if (argView.empty()) {
-      Exception::terminate(Exception::ErrorType::NOT_ENOUGH_INPUT_ARGS);
-    } else {
-      const auto comma = argView.find_first_of(',');
-      if (comma != std::string_view::npos) {
-        executableIns->stack.push_back(
-          Runtime::RTValueFrame {
-            convertStrToRTVal(std::string(argView.substr(0, comma)), inputFuncArgTypes[i])
-          });
-        argView.remove_prefix(comma + 1);
+    // Setup user input args.
+    const auto& inputArgs = State::retrieveItem(INPUT_ENTRY_KEY_ARG);
+    const auto& inputFuncArgTypes = executableIns->rtFuncDescriptor.at(funcIdx).funcType->first;
+    auto argView = inputArgs.has_value() ? std::string_view((*inputArgs)->toStr()) : std::string_view {};
+    for (auto i = 0; i < inputFuncArgTypes.size(); ++i) {
+      if (argView.empty()) {
+        Exception::terminate(Exception::ErrorType::INSUFFICIENT_INPUT_ARGS);
       } else {
-        executableIns->stack.push_back(
-          Runtime::RTValueFrame {
-            convertStrToRTVal((*inputArgs)->toStr(), inputFuncArgTypes[i])
-          });
+        const auto comma = argView.find_first_of(',');
+        if (comma != std::string_view::npos) {
+          executableIns->stack.push_back(
+            Runtime::RTValueFrame {
+              convertStrToRTVal(std::string(argView.substr(0, comma)), inputFuncArgTypes[i])
+            });
+          argView.remove_prefix(comma + 1);
+        } else {
+          executableIns->stack.push_back(
+            Runtime::RTValueFrame {
+              convertStrToRTVal((*inputArgs)->toStr(), inputFuncArgTypes[i])
+            });
+        }
       }
     }
-  }
 #endif
+  }
   return executableIns;
 }
 

@@ -146,22 +146,21 @@ const std::vector<uint8_t*>& Executor::lookupLabelContFromPC() {  // don't mess 
 }
 const void Executor::stopEngine() {
   status = EngineStatus::STOPPED;
+}
+inline Executor::engine_result_t Executor::postProcess() {
   // Check return arity.
   const auto& entryFrameOffset = refTrackedTopFrameByType(Runtime::STVariantIndex::ACTIVATION);
   const auto& entryFrame = std::get<Runtime::RTActivFrame>(*entryFrameOffset.ptr);
   const auto& returnArity = entryFrame.returnArity;
   if (returnArity->size() > 0) {
-    const auto v = std::get<Runtime::RTValueFrame>(rtIns->stack.back()).value;
-    std::visit([](auto&& arg){ std::cout << arg; }, v);
+    return std::get<Runtime::RTValueFrame>(rtIns->stack.back()).value;
+  } else {
+    return std::nullopt;
   }
 }
-void Executor::execute(
-  shared_module_runtime_t rtIns,
-  std::optional<uint32_t> invokeIdx) {
-  if (!invokeIdx.has_value()) {
-    if (rtIns->rtEntryIdx.has_value()) {  // Invoke `main`.
-      invokeIdx = *rtIns->rtEntryIdx;
-    }
+Executor::engine_result_t Executor::execute(shared_module_runtime_t rtIns, std::optional<uint32_t> invokeIdx) {
+  if (!invokeIdx.has_value() && rtIns->rtEntryIdx.has_value()) {
+    invokeIdx = *rtIns->rtEntryIdx;
   }
   if (invokeIdx.has_value()) {
     // [CALL, (IDX), END].
@@ -172,6 +171,10 @@ void Executor::execute(
     while (executor.getCurrentStatus() == Executor::EngineStatus::EXECUTING) {
       Interpreter::opTokenHandlers[*executor.pc++](executor, std::nullopt);
     }
+    // Post-process.
+    return executor.postProcess();
+  } else {
+    return std::nullopt;
   }
 }
 

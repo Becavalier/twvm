@@ -60,9 +60,12 @@ int main(int argc, const char **argv) {
   // Running engine.
   const auto& inputPath = State::retrieveItem("path");
   if (inputPath.has_value()) {
-    Executor::execute(
+    const auto ret = Executor::execute(
       Instantiator::instantiate(
         Loader::load((*inputPath)->toStr())));
+    if (ret.has_value()) {
+      std::visit([](auto&& arg){ std::cout << arg; }, *ret);
+    }
   } else {
     Exception::terminate(Exception::ErrorType::INVALID_INPUT_PATH);
   }
