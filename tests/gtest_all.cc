@@ -121,40 +121,67 @@ auto run(const std::string& path) {
   V(i32_shr_u, rt_i32_t, 4194303, EXPECT_EQ) \
   V(i32_rotl, rt_i32_t, -9217, EXPECT_EQ) \
   V(i32_rotr, rt_i32_t, -37748737, EXPECT_EQ) \
-  V(f32_abs, rt_f32_t, 12.34, EXPECT_FLOAT_EQ) \
-  V(f32_neg, rt_f32_t, 12.34, EXPECT_FLOAT_EQ) \
-  V(f32_ceil, rt_f32_t, -12, EXPECT_FLOAT_EQ) \
-  V(f32_floor, rt_f32_t, -13, EXPECT_FLOAT_EQ) \
-  V(f32_trunc, rt_f32_t, -12, EXPECT_FLOAT_EQ) \
-  V(f32_nearest, rt_f32_t, -12, EXPECT_FLOAT_EQ) \
-  V(f32_sqrt, rt_f32_t, 3.512833595275879, EXPECT_FLOAT_EQ) \
-  V(f32_add, rt_f32_t, 24.68, EXPECT_FLOAT_EQ) \
-  V(f32_sub, rt_f32_t, 0, EXPECT_FLOAT_EQ) \
-  V(f32_mul, rt_f32_t, 152.27560424804688, EXPECT_FLOAT_EQ) \
-  V(f32_div, rt_f32_t, 1, EXPECT_FLOAT_EQ) \
-  V(f32_min, rt_f32_t, 12.33, EXPECT_FLOAT_EQ) \
-  V(f32_max, rt_f32_t, 12.34, EXPECT_FLOAT_EQ) \
-  V(f32_copysign, rt_f32_t, 12.1, EXPECT_FLOAT_EQ) \
+  V(f32_abs, rt_f32_t, 12.34f, EXPECT_FLOAT_EQ) \
+  V(f32_neg, rt_f32_t, 12.34f, EXPECT_FLOAT_EQ) \
+  V(f32_ceil, rt_f32_t, -12.f, EXPECT_FLOAT_EQ) \
+  V(f32_floor, rt_f32_t, -13.f, EXPECT_FLOAT_EQ) \
+  V(f32_trunc, rt_f32_t, -12.f, EXPECT_FLOAT_EQ) \
+  V(f32_nearest, rt_f32_t, -12.f, EXPECT_FLOAT_EQ) \
+  V(f32_sqrt, rt_f32_t, 3.512833595275879f, EXPECT_FLOAT_EQ) \
+  V(f32_add, rt_f32_t, 24.68f, EXPECT_FLOAT_EQ) \
+  V(f32_sub, rt_f32_t, 0.f, EXPECT_FLOAT_EQ) \
+  V(f32_mul, rt_f32_t, 152.27560424804688f, EXPECT_FLOAT_EQ) \
+  V(f32_div, rt_f32_t, 1.f, EXPECT_FLOAT_EQ) \
+  V(f32_min, rt_f32_t, 12.33f, EXPECT_FLOAT_EQ) \
+  V(f32_max, rt_f32_t, 12.34f, EXPECT_FLOAT_EQ) \
+  V(f32_copysign, rt_f32_t, 12.1f, EXPECT_FLOAT_EQ) \
   V(f64_abs, rt_f64_t, 12.34, EXPECT_DOUBLE_EQ) \
-  V(f64_neg, rt_f64_t, 12.34, EXPECT_DOUBLE_EQ) \
-  V(f64_ceil, rt_f64_t, -12, EXPECT_DOUBLE_EQ) \
-  V(f64_floor, rt_f64_t, -13, EXPECT_DOUBLE_EQ) \
-  V(f64_trunc, rt_f64_t, -12, EXPECT_DOUBLE_EQ) \
-  V(f64_nearest, rt_f64_t, -12, EXPECT_DOUBLE_EQ) \
+  V(f64_ceil, rt_f64_t, -12., EXPECT_DOUBLE_EQ) \
+  V(f64_floor, rt_f64_t, -13., EXPECT_DOUBLE_EQ) \
+  V(f64_trunc, rt_f64_t, -12., EXPECT_DOUBLE_EQ) \
+  V(f64_nearest, rt_f64_t, -12., EXPECT_DOUBLE_EQ) \
   V(f64_sqrt, rt_f64_t, 3.5128336140500593, EXPECT_DOUBLE_EQ) \
   V(f64_add, rt_f64_t, 24.68, EXPECT_DOUBLE_EQ) \
-  V(f64_sub, rt_f64_t, 0, EXPECT_FLOAT_EQ) \
+  V(f64_sub, rt_f64_t, 0., EXPECT_FLOAT_EQ) \
   V(f64_mul, rt_f64_t, 152.2756, EXPECT_DOUBLE_EQ) \
-  V(f64_div, rt_f64_t, 1, EXPECT_DOUBLE_EQ) \
+  V(f64_div, rt_f64_t, 1., EXPECT_DOUBLE_EQ) \
   V(f64_min, rt_f64_t, 12.33, EXPECT_DOUBLE_EQ) \
   V(f64_max, rt_f64_t, 12.34, EXPECT_DOUBLE_EQ) \
   V(f64_copysign, rt_f64_t, 12.33, EXPECT_DOUBLE_EQ) \
-  
+  V(i32_wrap_i64, rt_i32_t, -1097262461, EXPECT_EQ) \
+  V(i32_trunc_f32_s, rt_i32_t, -12345678, EXPECT_EQ) \
+  V(i32_trunc_f32_u, rt_i32_t, 12345678, EXPECT_EQ) \
+  V(i32_trunc_f64_s, rt_i32_t, -12345678, EXPECT_EQ) \
+  V(i32_trunc_f64_u, rt_i32_t, 12345678, EXPECT_EQ) \
+  V(i64_extend_i32_s, rt_i64_t, -12345678, EXPECT_EQ) \
+  V(i64_extend_i32_u, rt_i64_t, 4282621618, EXPECT_EQ) \
+  V(i64_trunc_f32_s, rt_i64_t, -12345678, EXPECT_EQ) \
+  V(i64_trunc_f32_u, rt_i64_t, 12345678, EXPECT_EQ) \
+  V(i64_trunc_f64_s, rt_i64_t, -12345678, EXPECT_EQ) \
+  V(i64_trunc_f64_u, rt_i64_t, 12345678, EXPECT_EQ) \
+  V(f32_convert_i32_s, rt_f32_t, -12345678.f, EXPECT_EQ) \
+  V(f32_convert_i32_u, rt_f32_t, 4282621696.f, EXPECT_EQ) \
+  V(f32_convert_i64_s, rt_f32_t, -12345678.f, EXPECT_EQ) \
+  V(f32_convert_i64_u, rt_f32_t, 18446744073709552000.f, EXPECT_EQ) \
+  V(f32_demote_f64, rt_f32_t, -12345678407663616.f, EXPECT_EQ) \
+  V(f64_convert_i32_s, rt_f64_t, -123456789., EXPECT_EQ) \
+  V(f64_convert_i32_u, rt_f64_t, 4171510507., EXPECT_EQ) \
+  V(f64_convert_i64_s, rt_f64_t, -123456789., EXPECT_EQ) \
+  V(f64_convert_i64_u, rt_f64_t, 18446744073586094000., EXPECT_EQ) \
+  V(f64_promote_f32, rt_f64_t, -12345679020032., EXPECT_EQ) \
+  V(i32_reinterpret_f32, rt_i32_t, -885235378, EXPECT_EQ) \
+  V(i64_reinterpret_f64, rt_i64_t, -4510482390845489152, EXPECT_EQ) \
+  V(f32_reinterpret_i32, rt_f32_t, -0.0000034867075555666815f, EXPECT_FLOAT_EQ) \
+  V(f64_reinterpret_i64, rt_f64_t, 2.1097938843731583e-300, EXPECT_DOUBLE_EQ) \
 
 ITERATE_TESTCASES(DECLARE_RETURNABLE_TESTS)
 
-TEST(TWVM, Others) {
-  EXPECT_EXIT(run(CONCAT_LIT_STR(unreachable.wasm)), testing::ExitedWithCode(1), "Unreachable");
-  EXPECT_EXIT(run(CONCAT_LIT_STR(br_if_unreachable.wasm)), testing::ExitedWithCode(1), "Unreachable");
+TEST(TWVM, EXPECT_EXIT) {
+  EXPECT_EXIT(run(CONCAT_LIT_STR(unreachable.wasm)), testing::ExitedWithCode(1), Exception::getErrorMsg(Exception::ErrorType::UNREACHABLE));
+  EXPECT_EXIT(run(CONCAT_LIT_STR(br_if_unreachable.wasm)), testing::ExitedWithCode(1), Exception::getErrorMsg(Exception::ErrorType::UNREACHABLE));
+  EXPECT_EXIT(run(CONCAT_LIT_STR(i32_trunc_f32_u_throw.wasm)), testing::ExitedWithCode(1), Exception::getErrorMsg(Exception::ErrorType::FLOAT_UNREPRESENTABLE));
+  EXPECT_EXIT(run(CONCAT_LIT_STR(i32_trunc_f64_u_throw.wasm)), testing::ExitedWithCode(1), Exception::getErrorMsg(Exception::ErrorType::FLOAT_UNREPRESENTABLE));
+  EXPECT_EXIT(run(CONCAT_LIT_STR(i64_trunc_f32_u_throw.wasm)), testing::ExitedWithCode(1), Exception::getErrorMsg(Exception::ErrorType::FLOAT_UNREPRESENTABLE));
+  EXPECT_EXIT(run(CONCAT_LIT_STR(i64_trunc_f64_u_throw.wasm)), testing::ExitedWithCode(1), Exception::getErrorMsg(Exception::ErrorType::FLOAT_UNREPRESENTABLE));
   EXPECT_NO_FATAL_FAILURE(run(CONCAT_LIT_STR(nop.wasm)));
 }

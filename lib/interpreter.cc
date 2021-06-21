@@ -12,6 +12,7 @@
 #include "lib/include/executor.hh"
 #include "lib/include/exception.hh"
 #include "lib/include/opcodes.hh"
+#include "lib/include/util.hh"
 
 #define ITERATE_LOAD_MEMOP(V) \
   V(I32LoadMem, rt_i32_t, Runtime::rt_i32_t) \
@@ -169,9 +170,8 @@
       v = std::trunc(v); \
       if (!std::isnan(v) && \
           !std::isinf(v) && \
-          static_cast<CAST>(v) <= std::numeric_limits<CAST>::max() && \
-          static_cast<CAST>(v) >= std::numeric_limits<CAST>::min()) { \
-          return v; \
+          Util::floatInRange<CAST>(v)) { \
+          return static_cast<CAST>(v); \
         } else { \
           Exception::terminate(Exception::ErrorType::FLOAT_UNREPRESENTABLE); \
         } \

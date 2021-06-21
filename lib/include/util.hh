@@ -26,8 +26,17 @@ struct Util {
     return DEFAULT_CPU_CORE;
 #endif
   }
-  template <typename T>
-  static constexpr typename std::enable_if_t<std::is_integral_v<T> && sizeof(T) <= 8, unsigned>
+  template<typename T, typename U>
+  static constexpr bool floatInRange(U u) {
+    if constexpr (std::is_unsigned_v<T>) {
+      if (u < 0) return false;
+    } else {
+      if (u < std::numeric_limits<T>::min() || u > std::numeric_limits<T>::max()) return false;
+    }
+    return true;
+  }
+  template<typename T>
+  static constexpr typename std::enable_if_t<std::is_integral_v<T>&& sizeof(T) <= 8, unsigned>
   countPopulation(T value) {
     static_assert(sizeof(T) <= 8);
 #if __has_builtin(__builtin_popcountll) && __has_builtin(__builtin_popcount)
@@ -59,8 +68,8 @@ struct Util {
 #endif
   }
 
-  template <typename T, unsigned bits = sizeof(T) * 8>
-  constexpr static std::enable_if_t<std::is_integral_v<T> && sizeof(T) <= 8, unsigned>
+  template<typename T, unsigned bits = sizeof(T) * 8>
+  constexpr static std::enable_if_t<std::is_integral_v<T>&& sizeof(T) <= 8, unsigned>
   countTrailingZeros(T value) {
     static_assert(bits > 0);
 #if __has_builtin(__builtin_ctz) && __has_builtin(__builtin_ctzll)
@@ -74,8 +83,8 @@ struct Util {
 #endif
   }
 
-  template <typename T, unsigned bits = sizeof(T) * 8>
-  constexpr static std::enable_if_t<std::is_integral_v<T> && sizeof(T) <= 8, unsigned>
+  template<typename T, unsigned bits = sizeof(T) * 8>
+  constexpr static std::enable_if_t<std::is_integral_v<T>&& sizeof(T) <= 8, unsigned>
   countLeadingZeros(T value) {
     static_assert(bits > 0);
 #if __has_builtin(__builtin_clzll) && __has_builtin(__builtin_clz)

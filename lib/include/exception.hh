@@ -51,6 +51,9 @@ class Exception {
     INSUFFICIENT_INPUT_ARGS,
     INVALID_VAL_TYPE,
   };
+  const static auto& getErrorMsg(ErrorType type) {
+    return errorMsg.at(type);
+  }
   [[noreturn]]
   static void terminate(ErrorType type, ssize_t pos = 0) {
     std::stringstream ss;
@@ -58,7 +61,7 @@ class Exception {
       << COLOR_ERR
       << "[twvm] "
       << RESET_NORMAL
-      << errorMsg.at(type);
+      << getErrorMsg(type);
     if (pos) {
       ss << "Byte index before: " << pos  << '.';
     }
