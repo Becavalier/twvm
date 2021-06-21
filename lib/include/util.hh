@@ -3,6 +3,7 @@
 #define LIB_INCLUDE_UTIL_HH_
 
 #include <type_traits>
+#include <limits>
 
 #if defined(LINUX)
 #include <sys/sysinfo.h>
@@ -75,7 +76,7 @@ struct Util {
 #if __has_builtin(__builtin_ctz) && __has_builtin(__builtin_ctzll)
     return value == 0 ? bits
                       : bits == 64 ? __builtin_ctzll(static_cast<uint64_t>(value))
-                                    : __builtin_ctz(static_cast<uint32_t>(value));
+                                   : __builtin_ctz(static_cast<uint32_t>(value));
 #else
     using U = std::make_unsigned_t<T>;
     U u = value;
@@ -90,7 +91,7 @@ struct Util {
 #if __has_builtin(__builtin_clzll) && __has_builtin(__builtin_clz)
     return value == 0 ? bits
                       : bits == 64 ? __builtin_clzll(static_cast<uint64_t>(value))
-                                    : __builtin_clz(static_cast<uint32_t>(value)) - (32 - bits);
+                                   : __builtin_clz(static_cast<uint32_t>(value)) - (32 - bits);
 #else
     // Binary search algorithm (from "Hacker's Delight").
     if (bits == 1) {

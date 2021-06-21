@@ -156,11 +156,11 @@ class Executor {
   }
   void popFromStack() { rtIns->stack.pop_back(); }
   template<typename T>
-  auto popAndRetValOfRTType() {
+  auto retStackValOfRTType(bool pop = true) {
     try {
       const T v = std::get<T>(
         std::get<Runtime::RTValueFrame>(rtIns->stack.back()).value);
-      rtIns->stack.pop_back();
+      if (pop) rtIns->stack.pop_back();
       return v;
     } catch (...) {
       Exception::terminate(Exception::ErrorType::STACK_VAL_TYPE_MISMATCH);

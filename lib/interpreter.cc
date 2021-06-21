@@ -142,11 +142,11 @@
   void Interpreter::do##NAME(Executor& executor, op_handler_info_t _) { \
     const auto& defaultMem = executor.getEngineData()->rtMems.front(); \
     const auto [flags, offset] = executor.parseMemImmeInfo(); \
-    const auto ea = executor.popAndRetValOfRTType<Runtime::rt_i32_t>() + offset; \
+    const auto ea = executor.retStackValOfRTType<Runtime::rt_i32_t>(false) + offset; \
     const auto n = sizeof(CONCAT_PREFIX(T)); \
     if (ea + n / 8 <= defaultMem.size) { \
-      executor.pushToStack( \
-        Runtime::RTValueFrame(static_cast<CONCAT_PREFIX(T)>(*reinterpret_cast<C*>(defaultMem.ptr + ea)))); \
+      executor.refFrameFromStack<Runtime::RTValueFrame>().value = \
+        static_cast<CONCAT_PREFIX(T)>(*reinterpret_cast<C*>(defaultMem.ptr + ea)); \
     } else { \
       Exception::terminate(Exception::ErrorType::MEM_ACCESS_OOB); \
     } \
@@ -155,8 +155,8 @@
   void Interpreter::do##NAME(Executor& executor, op_handler_info_t _) { \
     const auto& defaultMem = executor.getEngineData()->rtMems.front(); \
     const auto [flags, offset] = executor.parseMemImmeInfo(); \
-    const auto c = executor.popAndRetValOfRTType<CONCAT_PREFIX(T)>(); \
-    const auto ea = executor.popAndRetValOfRTType<Runtime::rt_i32_t>() + offset; \
+    const auto c = executor.retStackValOfRTType<CONCAT_PREFIX(T)>(); \
+    const auto ea = executor.retStackValOfRTType<Runtime::rt_i32_t>() + offset; \
     const auto n = sizeof(CONCAT_PREFIX(T)); \
     if (ea + n / 8 <= defaultMem.size) { \
       *reinterpret_cast<C*>(defaultMem.ptr + ea) = static_cast<C>(c); \
@@ -225,7 +225,7 @@ void Interpreter::doIf(Executor& executor, op_handler_info_t _) {
   const auto returnArityTypes = executor.collectArities();
   const auto conts = executor.lookupLabelContFromPC();
   if (conts.size() > 1) {
-    const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+    const auto v = executor.retStackValOfRTType<Runtime::rt_i32_t>();
     executor.pushToStack(Runtime::RTLabelFrame(conts.back(), returnArityTypes));
     if (v == 0) {
       executor.setPC(conts.front());
@@ -257,7 +257,7 @@ void Interpreter::doBr(Executor& executor, op_handler_info_t passedDepth) {
   }
 }
 void Interpreter::doBrIf(Executor& executor, op_handler_info_t _) {
-  const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+  const auto v = executor.retStackValOfRTType<Runtime::rt_i32_t>();
   const auto depth = executor.decodeVaruintFromPC<Runtime::relative_depth_t>();
   if (v != 0) {
     doBr(executor, depth);
@@ -265,7 +265,7 @@ void Interpreter::doBrIf(Executor& executor, op_handler_info_t _) {
 }
 void Interpreter::doBrTable(Executor& executor, op_handler_info_t _) {
   const auto entries = executor.parseBrTableInfo();
-  const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+  const auto v = executor.retStackValOfRTType<Runtime::rt_i32_t>();
   if (v < entries.size()) {
     doBr(executor, entries.at(v));
   } else {
@@ -316,7 +316,7 @@ void Interpreter::doCallIndirect(Executor& executor, op_handler_info_t _) {
   const auto& funcTypesRef = engineData->module->funcTypes;
   if (funcTypesRef.size() > sigIdx) {
     const auto& expectedType = funcTypesRef.at(sigIdx);
-    const auto funcIdx = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+    const auto funcIdx = executor.retStackValOfRTType<Runtime::rt_i32_t>();
     if (defaultTable.size() > funcIdx) {
       executor.validateTypeWithFuncIdx(expectedType, funcIdx);  // May throw.
       doCall(executor, funcIdx);
@@ -332,7 +332,7 @@ void Interpreter::doDrop(Executor& executor, op_handler_info_t _) {
   executor.popFromStack();
 }
 void Interpreter::doSelect(Executor& executor, op_handler_info_t _) {
-  const auto v = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+  const auto v = executor.retStackValOfRTType<Runtime::rt_i32_t>();
   const auto& vy = executor.refFrameFromStack<Runtime::RTValueFrame>();  // Top.
   const auto& vx = executor.refFrameFromStack<Runtime::RTValueFrame>(1);
   if (vy.value.index() == vx.value.index()) {
@@ -426,7 +426,7 @@ void Interpreter::doMemoryGrow(Executor& executor, op_handler_info_t _) {
   if (rtMems.size() > 0) {
     const auto& defaultMem = rtMems.front();
     const auto sz = defaultMem.size / WASM_PAGE_SIZE;
-    const auto n = executor.popAndRetValOfRTType<Runtime::rt_i32_t>();
+    const auto n = executor.retStackValOfRTType<Runtime::rt_i32_t>();
     const auto size = n + sz;
     executor.pushToStack(
       Runtime::RTValueFrame(static_cast<Runtime::rt_i32_t>(executor.resizeMem(size))));
