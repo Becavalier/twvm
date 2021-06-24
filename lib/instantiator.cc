@@ -33,7 +33,7 @@ Runtime::runtime_value_t Instantiator::evalInitExpr(uint8_t valType, std::vector
   if (
     valTypeT >= ValueTypes::F64 &&
     valTypeT <= ValueTypes::I32 &&
-    (valType + initExprOps.front()) == MAGIC_OPCODE_PLUS_TYPE
+    (valType + initExprOps.front()) == MAGIC_CON_OPCODE_PLUS_TYPE
   ) {
     auto* startByte = initExprOps.data() + 1;
     switch (valTypeT) {
@@ -76,7 +76,7 @@ shared_module_runtime_t Instantiator::instantiate(shared_module_t mod) {
     const auto memType = i.memType;
     if (memType.maximum == 0 ||
       (memType.maximum > 0 && memType.initial <= memType.maximum)) {
-      const auto size = memType.initial * WASM_PAGE_SIZE;
+      const auto size = memType.initial * WASM_PAGE_SIZE_IN_BYTE;
       executableIns->rtMems.emplace_back(
         memType.initial, static_cast<uint8_t*>(std::calloc(size, sizeof(uint8_t))), memType.maximum);
     } else {
@@ -91,7 +91,7 @@ shared_module_runtime_t Instantiator::instantiate(shared_module_t mod) {
       Exception::terminate(Exception::ErrorType::MEM_ACCESS_OOB);
     }
     const auto& memStart = executableIns->rtMems.at(i.memIdx);
-    if (std::get<int32_t>(offset) + i.dataBytes.size() < memStart.size * WASM_PAGE_SIZE) {
+    if (std::get<int32_t>(offset) + i.dataBytes.size() < memStart.size * WASM_PAGE_SIZE_IN_BYTE) {
       std::memcpy(
         memStart.ptr + std::get<int32_t>(offset),
         i.dataBytes.data(),

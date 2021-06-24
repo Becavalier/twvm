@@ -241,11 +241,11 @@ class Executor {
       auto& rtMem = rtIns->rtMems.at(memIdx);
       const auto totalPages = rtMem.size + pages;
       if (totalPages <= WASM_MAX_PAGES && (rtMem.maximumPages == 0 || totalPages <= rtMem.maximumPages)) {
-        const size_t totalBytes = totalPages * WASM_PAGE_SIZE;
+        const size_t totalBytes = totalPages * WASM_PAGE_SIZE_IN_BYTE;
         const auto ptr = static_cast<uint8_t*>(std::realloc(rtMem.ptr, totalBytes));
         if (ptr) {
           const auto prevPages = rtMem.size;
-          const auto prevBytes = prevPages * WASM_PAGE_SIZE;
+          const auto prevBytes = prevPages * WASM_PAGE_SIZE_IN_BYTE;
           std::memset(ptr + prevBytes, 0, totalBytes - prevBytes);
           rtMem.ptr = ptr;
           rtMem.size = totalPages;

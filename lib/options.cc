@@ -41,7 +41,7 @@ void Options::printOptions() {
     if (y.args.has_value()) {
       commandName += ("=" + *y.args);
     }
-    ss << ' ' << std::left << std::setw(OPTS_ARG_SETW) << commandName << y.desc << '\n';
+    ss << ' ' << std::left << std::setw(SCREEN_ARG_SETW_OFFSET) << commandName << y.desc << '\n';
   }
   std::cout << ss.str() << std::endl;
 }

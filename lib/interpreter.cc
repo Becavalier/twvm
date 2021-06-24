@@ -366,7 +366,7 @@ void Interpreter::doLocalSet(Executor& executor, op_handler_info_t fromTee) {
   }
 }
 void Interpreter::doLocalTee(Executor& executor, op_handler_info_t _) {
-  doLocalSet(executor, INFO_BOOL_TRUE);
+  doLocalSet(executor, OPTIONAL_SYM_BOOL_TRUE);
 }
 void Interpreter::doGlobalGet(Executor& executor, op_handler_info_t _) {
   const auto idx = executor.decodeVaruintFromPC<Runtime::index_t>();
@@ -425,7 +425,7 @@ void Interpreter::doMemoryGrow(Executor& executor, op_handler_info_t _) {
   [[maybe_unused]] const auto reserved = executor.decodeByteFromPC();
   if (rtMems.size() > 0) {
     const auto& defaultMem = rtMems.front();
-    const auto sz = defaultMem.size / WASM_PAGE_SIZE;
+    const auto sz = defaultMem.size / WASM_PAGE_SIZE_IN_BYTE;
     const auto n = executor.retStackValOfRTType<Runtime::rt_i32_t>();
     const auto size = n + sz;
     executor.pushToStack(
