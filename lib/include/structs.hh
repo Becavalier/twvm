@@ -162,6 +162,12 @@ struct Runtime {
     const Module::func_type_t* funcType;
     uint8_t* codeEntry;
     std::vector<runtime_value_t> localsDefault;
+
+    // JIT compilation support
+    uint32_t executionCount = 0;
+    void* jitCompiledPtr = nullptr;  // Native function pointer after JIT compilation
+    bool isJitCompiled = false;
+
     RTFuncDescriptor(const Module::func_type_t* funcType, uint8_t* codeEntry)
       : funcType(funcType), codeEntry(codeEntry) {}
   };
@@ -202,6 +208,7 @@ struct Runtime {
   std::vector<stack_frame_t> stack;
   std::optional<uint32_t> rtEntryIdx;
   std::vector<RTFuncDescriptor> rtFuncDescriptor;
+  bool jitEnabled = false;  // JIT compilation flag
   explicit Runtime(shared_module_t module) : module(module) {}
   ~Runtime() {
     // Free allocated mem.

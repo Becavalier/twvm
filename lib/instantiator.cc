@@ -47,8 +47,9 @@ Runtime::runtime_value_t Instantiator::evalInitExpr(uint8_t valType, std::vector
     Exception::terminate(Exception::ErrorType::INVALID_GLOBAL_SIG);
   }
 }
-shared_module_runtime_t Instantiator::instantiate(shared_module_t mod) {
+shared_module_runtime_t Instantiator::instantiate(shared_module_t mod, bool jitEnabled) {
   auto executableIns = std::make_shared<Runtime>(mod);
+  executableIns->jitEnabled = jitEnabled;
   /* imports - type / num */
   // TODO(Jason Yu): after MVP.
 

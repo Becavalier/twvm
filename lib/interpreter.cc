@@ -13,6 +13,7 @@
 #include "lib/include/exception.hh"
 #include "lib/include/opcodes.hh"
 #include "lib/include/util.hh"
+#include "lib/include/jit_compiler.hh"
 
 #define ITERATE_LOAD_MEMOP(V) \
   V(I32LoadMem, rt_i32_t, Runtime::rt_i32_t) \
@@ -282,9 +283,58 @@ void Interpreter::doReturn(Executor& executor, op_handler_info_t labelDepth) {
       executor.retFromFrameWithCont<Runtime::RTActivFrame>(depth));
   }
 }
+// Helper function to execute JIT-compiled code
+static void executeJITFunction(Executor& executor, Runtime::RTFuncDescriptor& descriptor) {
+  auto paramCount = descriptor.funcType->first.size();
+  const auto& returnTypes = descriptor.funcType->second;
+
+  // Extract parameters from stack in reverse order
+  std::vector<int32_t> params;  // For PoC, assume i32 params
+  for (size_t i = 0; i < paramCount; ++i) {
+    params.push_back(executor.retStackValOfRTType<Runtime::rt_i32_t>());
+  }
+  std::reverse(params.begin(), params.end());
+
+  // Cast function pointer and call
+  // For PoC: assume i32(i32) signature for fibonacci
+  if (paramCount == 1 && returnTypes.size() == 1 &&
+      static_cast<ValueTypes>(returnTypes[0]) == ValueTypes::I32) {
+    using FuncPtr = int32_t(*)(int32_t);
+    FuncPtr jitFunc = reinterpret_cast<FuncPtr>(descriptor.jitCompiledPtr);
+    int32_t result = jitFunc(params[0]);
+
+    // Push result back to stack
+    executor.pushToStack(Runtime::RTValueFrame(static_cast<Runtime::rt_i32_t>(result)));
+  } else {
+    // Unsupported signature - fall back to interpretation
+    std::cout << "[JIT] Unsupported function signature, falling back to interpretation\n";
+  }
+}
+
 void Interpreter::doCall(Executor& executor, op_handler_info_t passedFuncIdx) {
   const auto idx = passedFuncIdx.has_value() ? *passedFuncIdx : executor.decodeVaruintFromPC<Runtime::index_t>();
-  const auto& descriptor = executor.getEngineData()->rtFuncDescriptor.at(idx);
+  auto& descriptor = executor.getEngineData()->rtFuncDescriptor.at(idx);
+
+  // JIT compilation (only if enabled via --jit flag)
+  if (executor.getEngineData()->jitEnabled) {
+    // Profiling: increment execution counter
+    descriptor.executionCount++;
+
+    // Check if should JIT compile (threshold = 100)
+    if (!descriptor.isJitCompiled && descriptor.executionCount >= 100) {
+      if (JITCompiler::getInstance().initialize()) {
+        JITCompiler::getInstance().compileFunction(idx, descriptor, executor.getEngineData());
+      }
+    }
+
+    // Execute JIT-compiled version if available
+    if (descriptor.isJitCompiled && descriptor.jitCompiledPtr) {
+      executeJITFunction(executor, descriptor);
+      return;
+    }
+  }
+
+  // Fall back to interpretation
   auto paramCount = descriptor.funcType->first.size();
   auto rtLocals = descriptor.localsDefault;  // Copied.
   // Set up func parameters.

@@ -47,22 +47,34 @@ int main(int argc, const char **argv) {
       Util::printAssistantInfo(false);
     });
   options.add(
-    "-h", 
+    "-h",
     std::nullopt,
-    "Show help information.", 
+    "Show help information.",
     Options::OptionTypes::EXCLUSIVE,
     [](auto* o, auto& v) {
       Util::printAssistantInfo();
       o->printOptions();
+    });
+  options.add(
+    "--jit",
+    std::nullopt,
+    "Enable JIT compilation (tiered compilation with threshold=100).",
+    Options::OptionTypes::COMMON,
+    [](auto* o, auto& v) {
+      State::createItem("jit_enabled", "true");
     });
   options.parse(argc, argv);
 
   // Running engine.
   const auto& inputPath = State::retrieveItem("path");
   if (inputPath.has_value()) {
+    // Check if JIT is enabled via command-line flag
+    const auto& jitFlag = State::retrieveItem("jit_enabled");
+    bool jitEnabled = jitFlag.has_value() && (*jitFlag)->toBool();
+
     const auto ret = Executor::execute(
       Instantiator::instantiate(
-        Loader::load((*inputPath)->toStr())));
+        Loader::load((*inputPath)->toStr()), jitEnabled));
     if (ret.has_value()) {
       std::visit([](auto&& arg){ std::cout << arg; }, *ret);
     }

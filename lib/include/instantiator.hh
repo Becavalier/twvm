@@ -28,7 +28,7 @@ class Instantiator {
     }
   }
  public:
-  static shared_module_runtime_t instantiate(shared_module_t);
+  static shared_module_runtime_t instantiate(shared_module_t, bool jitEnabled = false);
   static Runtime::runtime_value_t evalInitExpr(uint8_t, std::vector<uint8_t>&);
   template<typename ...Args>
   static void expandWasmTypesToRTValues(
