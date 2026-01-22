@@ -2,6 +2,7 @@
 #ifndef LIB_INCLUDE_EXECUTOR_HH_
 #define LIB_INCLUDE_EXECUTOR_HH_
 
+#include <cstddef>
 #include <optional>
 #include <exception>
 #include <type_traits>

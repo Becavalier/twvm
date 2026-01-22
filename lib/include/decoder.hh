@@ -2,6 +2,7 @@
 #ifndef LIB_INCLUDE_DECODER_HH_
 #define LIB_INCLUDE_DECODER_HH_
 
+#include <cstdint>
 #include <fstream>
 #include <vector>
 #include <type_traits>

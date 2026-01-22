@@ -2,6 +2,7 @@
 #ifndef LIB_INCLUDE_UTIL_HH_
 #define LIB_INCLUDE_UTIL_HH_
 
+#include <cstdint>
 #include <type_traits>
 #include <limits>
 
@@ -32,7 +33,9 @@ struct Util {
     if constexpr (std::is_unsigned_v<T>) {
       if (u < 0) return false;
     } else {
-      if (u < std::numeric_limits<T>::min() || u > std::numeric_limits<T>::max()) return false;
+      // Use explicit cast to avoid implicit conversion warnings
+      if (u < static_cast<U>(std::numeric_limits<T>::min()) ||
+          u > static_cast<U>(std::numeric_limits<T>::max())) return false;
     }
     return true;
   }

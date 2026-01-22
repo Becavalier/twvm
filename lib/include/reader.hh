@@ -2,6 +2,7 @@
 #ifndef LIB_INCLUDE_READER_HH_
 #define LIB_INCLUDE_READER_HH_
 
+#include <cstddef>
 #include <vector>
 #include <fstream>
 #include <iostream>
@@ -53,9 +54,9 @@ class Reader {
     return static_cast<uint8_t>(in.get());
   }
   std::string walkStringByBytes(size_t n) {
-    char str[n];
-    in.read(str, n);
-    return std::string(str, n);
+    std::vector<char> str(n);
+    in.read(str.data(), n);
+    return std::string(str.data(), n);
   }
   void skipBytes(size_t n) {
     in.seekg(n, std::ios_base::cur);

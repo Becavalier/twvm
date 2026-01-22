@@ -2,6 +2,8 @@
 #ifndef LIB_INCLUDE_OPCODES_HH_
 #define LIB_INCLUDE_OPCODES_HH_
 
+#include <cstdint>
+
 #define ITERATE_ALL_OPCODE(V) \
   V(Unreachable, 0x0, VALID) \
   V(Nop, 0x1, VALID) \

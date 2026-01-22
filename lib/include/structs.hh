@@ -2,6 +2,8 @@
 #ifndef LIB_INCLUDE_STRUCTS_HH_
 #define LIB_INCLUDE_STRUCTS_HH_
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <map>
 #include <string>

@@ -2,12 +2,14 @@
 #ifndef LIB_INCLUDE_EXCEPTION_HH_
 #define LIB_INCLUDE_EXCEPTION_HH_
 
+#include <cstddef>
 #include <iostream>
 #include <unordered_map>
 #include <string>
 #include <sstream>
 #include <stdexcept>
 #include <cstdlib>
+#include <cstdint>
 #include "lib/include/constants.hh"
 
 namespace TWVM {

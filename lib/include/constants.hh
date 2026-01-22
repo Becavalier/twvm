@@ -2,6 +2,9 @@
 #ifndef LIB_INCLUDE_CONSTANTS_HH_
 #define LIB_INCLUDE_CONSTANTS_HH_
 
+#include <cstddef>
+#include <cstdint>
+
 #define IDX_ZERO 0
 #define IDX_ONE 1
 // ANSI escape code (Colors).

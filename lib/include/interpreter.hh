@@ -3,6 +3,7 @@
 #define LIB_INCLUDE_INTERPRETER_HH_
 
 #include <array>
+#include <optional>
 #include "lib/include/opcodes.hh"
 #include "lib/include/structs.hh"
 
