@@ -168,9 +168,10 @@ Executor::engine_result_t Executor::execute(shared_module_runtime_t rtIns, std::
     const auto bytes = Decoder::encodeVaruint(*invokeIdx);
     driver.insert(driver.end(), bytes.begin(), bytes.end());
     Executor executor(driver.data(), rtIns);
-    while (executor.getCurrentStatus() == Executor::EngineStatus::EXECUTING) {
-      Interpreter::opTokenHandlers[*executor.pc++](executor, std::nullopt);
-    }
+
+    // Use direct-threaded interpreter for better performance
+    Interpreter::executeDirectThreaded(executor);
+
     // Post-process.
     return executor.postProcess();
   } else {

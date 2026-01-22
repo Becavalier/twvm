@@ -750,4 +750,760 @@ void Interpreter::doF64PromoteF32(Executor& executor, op_handler_info_t _) {
   });
 }
 
+// Direct-threaded interpreter using computed goto (GCC/Clang extension)
+// This provides significantly better performance than function pointer dispatch
+void Interpreter::executeDirectThreaded(Executor& executor) {
+#if defined(__GNUC__) || defined(__clang__)
+  // Check if we support computed goto
+  #define USE_COMPUTED_GOTO 1
+
+  // Create the dispatch table at function scope
+  void* dispatch_table[256];
+
+  // Dispatch macro: fetch next opcode and jump to its handler
+  #define DISPATCH() do { \
+    uint8_t opcode = *executor.pc++; \
+    goto *dispatch_table[opcode]; \
+  } while(0)
+
+  // Jump to initialization code after all labels are defined
+  goto init_dispatch_table;
+
+  // After all opcode handlers are defined, we can safely take their addresses
+init_dispatch_table:
+  // Initialize all to invalid first
+  for (int i = 0; i < 256; i++) {
+    dispatch_table[i] = &&op_invalid;
+  }
+
+  // Set valid opcode handlers using macros for elegance and maintainability
+  #define SET_DISPATCH_ENTRY_VALID(NAME) \
+    dispatch_table[Util::asInteger(OpCodes::NAME)] = &&op_##NAME;
+  #define SET_DISPATCH_ENTRY_INVALID(NAME)
+  #define SET_DISPATCH_ENTRY(NAME, OP, VALIDITY) \
+    SET_DISPATCH_ENTRY_##VALIDITY(NAME)
+
+  ITERATE_ALL_OPCODE(SET_DISPATCH_ENTRY)
+
+  #undef SET_DISPATCH_ENTRY
+  #undef SET_DISPATCH_ENTRY_INVALID
+  #undef SET_DISPATCH_ENTRY_VALID
+
+  // Start execution - fetch first opcode
+  goto *dispatch_table[*executor.pc++];
+
+  // ===== Opcode Handlers =====
+  // Each handler executes the instruction and dispatches to the next one
+
+  op_Unreachable:
+    doUnreachable(executor, std::nullopt);
+    DISPATCH();
+
+  op_Nop:
+    // Inline nop for maximum performance
+    DISPATCH();
+
+  op_Block:
+    doBlock(executor, std::nullopt);
+    DISPATCH();
+
+  op_Loop:
+    doLoop(executor, std::nullopt);
+    DISPATCH();
+
+  op_If:
+    doIf(executor, std::nullopt);
+    DISPATCH();
+
+  op_Else:
+    doElse(executor, std::nullopt);
+    DISPATCH();
+
+  op_End:
+    doEnd(executor, std::nullopt);
+    if (executor.getCurrentStatus() != Executor::EngineStatus::EXECUTING) {
+      return;  // Engine stopped
+    }
+    DISPATCH();
+
+  op_Br:
+    doBr(executor, std::nullopt);
+    DISPATCH();
+
+  op_BrIf:
+    doBrIf(executor, std::nullopt);
+    DISPATCH();
+
+  op_BrTable:
+    doBrTable(executor, std::nullopt);
+    DISPATCH();
+
+  op_Return:
+    doReturn(executor, std::nullopt);
+    if (executor.getCurrentStatus() != Executor::EngineStatus::EXECUTING) {
+      return;  // Engine stopped
+    }
+    DISPATCH();
+
+  op_Call:
+    doCall(executor, std::nullopt);
+    DISPATCH();
+
+  op_CallIndirect:
+    doCallIndirect(executor, std::nullopt);
+    DISPATCH();
+
+  op_Drop:
+    doDrop(executor, std::nullopt);
+    DISPATCH();
+
+  op_Select:
+    doSelect(executor, std::nullopt);
+    DISPATCH();
+
+  op_LocalGet:
+    doLocalGet(executor, std::nullopt);
+    DISPATCH();
+
+  op_LocalSet:
+    doLocalSet(executor, std::nullopt);
+    DISPATCH();
+
+  op_LocalTee:
+    doLocalTee(executor, std::nullopt);
+    DISPATCH();
+
+  op_GlobalGet:
+    doGlobalGet(executor, std::nullopt);
+    DISPATCH();
+
+  op_GlobalSet:
+    doGlobalSet(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32LoadMem:
+    doI32LoadMem(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LoadMem:
+    doI64LoadMem(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32LoadMem:
+    doF32LoadMem(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64LoadMem:
+    doF64LoadMem(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32LoadMem8S:
+    doI32LoadMem8S(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32LoadMem8U:
+    doI32LoadMem8U(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32LoadMem16S:
+    doI32LoadMem16S(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32LoadMem16U:
+    doI32LoadMem16U(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LoadMem8S:
+    doI64LoadMem8S(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LoadMem8U:
+    doI64LoadMem8U(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LoadMem16S:
+    doI64LoadMem16S(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LoadMem16U:
+    doI64LoadMem16U(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LoadMem32S:
+    doI64LoadMem32S(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LoadMem32U:
+    doI64LoadMem32U(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32StoreMem:
+    doI32StoreMem(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64StoreMem:
+    doI64StoreMem(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32StoreMem:
+    doF32StoreMem(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64StoreMem:
+    doF64StoreMem(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32StoreMem8:
+    doI32StoreMem8(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32StoreMem16:
+    doI32StoreMem16(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64StoreMem8:
+    doI64StoreMem8(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64StoreMem16:
+    doI64StoreMem16(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64StoreMem32:
+    doI64StoreMem32(executor, std::nullopt);
+    DISPATCH();
+
+  op_MemorySize:
+    doMemorySize(executor, std::nullopt);
+    DISPATCH();
+
+  op_MemoryGrow:
+    doMemoryGrow(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Const:
+    doI32Const(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Const:
+    doI64Const(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Const:
+    doF32Const(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Const:
+    doF64Const(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Eqz:
+    doI32Eqz(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Eq:
+    doI32Eq(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Ne:
+    doI32Ne(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32LtS:
+    doI32LtS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32LtU:
+    doI32LtU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32GtS:
+    doI32GtS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32GtU:
+    doI32GtU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32LeS:
+    doI32LeS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32LeU:
+    doI32LeU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32GeS:
+    doI32GeS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32GeU:
+    doI32GeU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Eqz:
+    doI64Eqz(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Eq:
+    doI64Eq(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Ne:
+    doI64Ne(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LtS:
+    doI64LtS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LtU:
+    doI64LtU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64GtS:
+    doI64GtS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64GtU:
+    doI64GtU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LeS:
+    doI64LeS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64LeU:
+    doI64LeU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64GeS:
+    doI64GeS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64GeU:
+    doI64GeU(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Eq:
+    doF32Eq(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Ne:
+    doF32Ne(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Lt:
+    doF32Lt(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Gt:
+    doF32Gt(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Le:
+    doF32Le(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Ge:
+    doF32Ge(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Eq:
+    doF64Eq(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Ne:
+    doF64Ne(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Lt:
+    doF64Lt(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Gt:
+    doF64Gt(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Le:
+    doF64Le(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Ge:
+    doF64Ge(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Clz:
+    doI32Clz(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Ctz:
+    doI32Ctz(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Popcnt:
+    doI32Popcnt(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Add:
+    doI32Add(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Sub:
+    doI32Sub(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Mul:
+    doI32Mul(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32DivS:
+    doI32DivS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32DivU:
+    doI32DivU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32RemS:
+    doI32RemS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32RemU:
+    doI32RemU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32And:
+    doI32And(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Or:
+    doI32Or(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Xor:
+    doI32Xor(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Shl:
+    doI32Shl(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32ShrS:
+    doI32ShrS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32ShrU:
+    doI32ShrU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Rotl:
+    doI32Rotl(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32Rotr:
+    doI32Rotr(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Clz:
+    doI64Clz(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Ctz:
+    doI64Ctz(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Popcnt:
+    doI64Popcnt(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Add:
+    doI64Add(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Sub:
+    doI64Sub(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Mul:
+    doI64Mul(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64DivS:
+    doI64DivS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64DivU:
+    doI64DivU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64RemS:
+    doI64RemS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64RemU:
+    doI64RemU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64And:
+    doI64And(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Or:
+    doI64Or(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Xor:
+    doI64Xor(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Shl:
+    doI64Shl(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64ShrS:
+    doI64ShrS(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64ShrU:
+    doI64ShrU(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Rotl:
+    doI64Rotl(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64Rotr:
+    doI64Rotr(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Abs:
+    doF32Abs(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Neg:
+    doF32Neg(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Ceil:
+    doF32Ceil(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Floor:
+    doF32Floor(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Trunc:
+    doF32Trunc(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32NearestInt:
+    doF32NearestInt(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Sqrt:
+    doF32Sqrt(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Add:
+    doF32Add(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Sub:
+    doF32Sub(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Mul:
+    doF32Mul(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Div:
+    doF32Div(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Min:
+    doF32Min(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32Max:
+    doF32Max(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32CopySign:
+    doF32CopySign(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Abs:
+    doF64Abs(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Neg:
+    doF64Neg(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Ceil:
+    doF64Ceil(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Floor:
+    doF64Floor(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Trunc:
+    doF64Trunc(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64NearestInt:
+    doF64NearestInt(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Sqrt:
+    doF64Sqrt(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Add:
+    doF64Add(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Sub:
+    doF64Sub(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Mul:
+    doF64Mul(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Div:
+    doF64Div(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Min:
+    doF64Min(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64Max:
+    doF64Max(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64CopySign:
+    doF64CopySign(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32TruncF32S:
+    doI32TruncF32S(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32TruncF32U:
+    doI32TruncF32U(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32TruncF64S:
+    doI32TruncF64S(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32TruncF64U:
+    doI32TruncF64U(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64TruncF32S:
+    doI64TruncF32S(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64TruncF32U:
+    doI64TruncF32U(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64TruncF64S:
+    doI64TruncF64S(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64TruncF64U:
+    doI64TruncF64U(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64ExtendI32S:
+    doI64ExtendI32S(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64ExtendI32U:
+    doI64ExtendI32U(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32SConvertI32:
+    doF32SConvertI32(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32UConvertI32:
+    doF32UConvertI32(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32SConvertI64:
+    doF32SConvertI64(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32UConvertI64:
+    doF32UConvertI64(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64SConvertI32:
+    doF64SConvertI32(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64UConvertI32:
+    doF64UConvertI32(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64SConvertI64:
+    doF64SConvertI64(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64UConvertI64:
+    doF64UConvertI64(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32WrapI64:
+    doI32WrapI64(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32DemoteF64:
+    doF32DemoteF64(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64PromoteF32:
+    doF64PromoteF32(executor, std::nullopt);
+    DISPATCH();
+
+  op_I32ReinterpretF32:
+    doI32ReinterpretF32(executor, std::nullopt);
+    DISPATCH();
+
+  op_I64ReinterpretF64:
+    doI64ReinterpretF64(executor, std::nullopt);
+    DISPATCH();
+
+  op_F32ReinterpretI32:
+    doF32ReinterpretI32(executor, std::nullopt);
+    DISPATCH();
+
+  op_F64ReinterpretI64:
+    doF64ReinterpretI64(executor, std::nullopt);
+    DISPATCH();
+
+  // Invalid opcode handler
+  op_invalid:
+    Exception::terminate(Exception::ErrorType::UNREACHABLE);
+    return;
+
+  #undef DISPATCH
+  #undef USE_COMPUTED_GOTO
+
+#else
+  // Fallback for compilers without computed goto support
+  #warning "Computed goto not supported by this compiler, falling back to slower dispatch"
+  while (executor.getCurrentStatus() == Executor::EngineStatus::EXECUTING) {
+    Interpreter::opTokenHandlers[*executor.pc++](executor, std::nullopt);
+  }
+#endif
+}
+
 }  // namespace TWVM

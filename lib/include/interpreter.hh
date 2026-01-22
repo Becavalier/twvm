@@ -18,7 +18,13 @@ class Executor;  // forward declaration.
 struct Interpreter {
   using op_handler_proto_t = void (*)(Executor&, std::optional<uint32_t>);
   using op_handler_info_t = std::optional<uint32_t>;
+
+  // For fallback mode (when computed goto is not supported)
   static std::array<op_handler_proto_t, sizeof(uint8_t) * 1 << 8> opTokenHandlers;
+
+  // Main execution engine with direct threading support
+  static void executeDirectThreaded(Executor& executor);
+
   ITERATE_ALL_OPCODE(DECLARE_OPCODE_HANDLER)
 };
 

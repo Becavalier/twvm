@@ -27,13 +27,19 @@ template<> struct std::hash<uint8_t*> {
 
 namespace TWVM {
 
+// Forward declaration
+struct Interpreter;
+
 class Executor {
+  friend struct Interpreter;  // Allow Interpreter to access private members for direct threading
   using engine_result_t = const std::optional<Runtime::runtime_value_t>;
+ public:
   enum class EngineStatus : uint8_t {
     EXECUTING,
     CRAWLING,  // Crawling continuation (for labels).
     STOPPED,
   };
+ private:
   struct FrameOffset {
     Runtime::stack_frame_t* ptr;
     uint32_t offset;
